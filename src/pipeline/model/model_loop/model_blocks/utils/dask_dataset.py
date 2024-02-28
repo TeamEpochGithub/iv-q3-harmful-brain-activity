@@ -8,8 +8,6 @@ import numpy.typing as npt
 import torch
 from torch.utils.data import Dataset
 
-from src.augmentations.transformations import Transformations
-
 
 class Dask2TorchDataset(Dataset[Any]):
     """Class to convert a dask array to a torch dataset.
@@ -18,7 +16,7 @@ class Dask2TorchDataset(Dataset[Any]):
     :param y: Labels.
     """
 
-    def __init__(self, X: da.Array | npt.NDArray[np.float64], y: da.Array | npt.NDArray[np.float64] | None, *, transforms: Transformations | None = None) -> None:
+    def __init__(self, X: da.Array | npt.NDArray[np.float64], y: da.Array | npt.NDArray[np.float64] | None) -> None:
         """Initialize the Dask2TorchDataset.
 
         :param X: Input features.
