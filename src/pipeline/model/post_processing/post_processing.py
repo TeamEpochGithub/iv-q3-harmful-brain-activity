@@ -7,7 +7,7 @@ import dask.array as da
 from sklearn.pipeline import Pipeline
 
 from src.logging_utils.logger import logger
-from src.logging_utils.section_separator import print_section_separator
+from epochalyst.logging.section_separator import print_section_separator
 
 
 @dataclass

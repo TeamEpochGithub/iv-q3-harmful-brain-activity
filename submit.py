@@ -10,7 +10,7 @@ from omegaconf import DictConfig
 
 from src.config.submit_config import SubmitConfig
 from src.logging_utils.logger import logger
-from src.logging_utils.section_separator import print_section_separator
+from epochalyst.logging.section_separator import print_section_separator
 from src.utils.make_submission import make_submission
 from src.utils.setup import setup_config, setup_pipeline, setup_test_data
 
