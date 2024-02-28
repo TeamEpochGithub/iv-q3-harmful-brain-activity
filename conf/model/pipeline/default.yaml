@@ -1,4 +1,4 @@
-_target_: src.pipeline.model.model.ModelPipeline
+_target_: epochalyst.pipeline.model.model.ModelPipeline
 _convert_: partial
 
 feature_pipeline:
