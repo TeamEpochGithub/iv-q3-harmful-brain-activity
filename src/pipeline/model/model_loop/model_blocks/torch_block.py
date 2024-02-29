@@ -26,7 +26,7 @@ from tqdm import tqdm
 import wandb
 from src.augmentations.transformations import Transformations
 from src.logging_utils.logger import logger
-from src.logging_utils.section_separator import print_section_separator
+from epochalyst.logging.section_separator import print_section_separator
 from src.modules.models.custom_data_parallel import CustomDataParallel
 from src.pipeline.model.model_loop.model_blocks.utils.collate_fn import collate_fn
 from src.pipeline.model.model_loop.model_blocks.utils.dask_dataset import Dask2TorchDataset

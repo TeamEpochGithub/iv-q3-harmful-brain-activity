@@ -1,10 +1,10 @@
-# Kelp Wanted: Segmenting Kelp Forests
+# HMS - Harmful Brain Activity Classification
 
 This is Team Epoch's solution to
-the [Kelp Wanted: Segmenting Kelp Forests](https://www.drivendata.org/competitions/255/kelp-forest-segmentation/)
+the [HMS - Harmful Brain Activity Classification](https://www.kaggle.com/competitions/hms-harmful-brain-activity-classification/overview)
 competition.
 
-A [technical report](Detect_Kelp___Technical_Report.pdf) is included in this repository.
+A [technical report](TODO) is included in this repository.
 
 ## Getting started
 
@@ -28,7 +28,7 @@ machine with less RAM using all the test data that was provided by DrivenData.
 Make sure to clone the repository with your favourite git client or using the following command:
 
 ```
-https://github.com/TeamEpochGithub/iv-q2-detect-kelp.git
+TODO: UPDATE(https://github.com/TeamEpochGithub/iv-q2-detect-kelp.git)
 ```
 
 ### 2. Install Python 3.10.13
@@ -46,22 +46,6 @@ pip install -r requirements.txt
 
 ### 4. Setup the competition data
 
-The data of the competition can be downloaded here: [Kelp Wanted: Segmenting Kelp Forests](https://www.drivendata.org/competitions/255/kelp-forest-segmentation/data/)
-Unzip all the files into the `data/raw` directory.
-The structure should look like this:
-
-```
-data/
-    ├── processed/ # Cache directory for processed data. 
-    ├── raw/ # @TODO Competition data must be PLACED HERE
-        ├── submission_format/ # @TODO Submission format from the competition
-        ├── test_satellite/ # @TODO Test satellite images from the competition
-        ├── train_kelp/ # @TODO Train kelp images from the competition
-        ├── train_satellite/ # @TODO Train satellite images from the competition
-        ├── metadata_fTq0l2T.csv # @TODO Metadata from the competition
-    ├── test/ # Test caching
-    ├── training/ # Training cache
-```
 
 ### 5. Main files explanation
 
@@ -87,14 +71,10 @@ In this way, we ensure that we load the correct saved model automatically when r
 For reproducing our best submission, run `submit.py`. This will load the already configured `submit.yaml` file and
 run the inference on the test data from the competition. `submit.yaml` in configured to what whe think is our best and our
 most robust solution:
-![img.png](images/best_submission.png)
-`conf/ensemble/21-02-1st.yaml` contains a mixed ensemble of models trained on different feature sets, including UNets with VGG encoders, SwinTransformers and a ConvNext model.
 
 
 If you get an error of that the path was not found of a model. Please ensure that you have the correct trained model in the `tm` directory.
 If you don't have the trained models, you can train them 1 by 1 using `train.py` and the `conf/train.yaml` file.
-
-`submit.py` will output a `submission.zip` in the root of the project directory. This file can be uploaded to the competition page. 
 
 
 ## Quality Checks
@@ -110,14 +90,6 @@ To run the pre-commit hooks locally, do:
 ```shell
 pre-commit run --all-files
 ```
-
-## GBDT
-
-Due to long training times, we reused trained models for the GBDT. To train these, set `test_size` to zero, and remove
-the `saved_at` from a model config.
-Once it is saved, it is possible to set `saved-at` to the filename of the saved model, and use this for any runs
-regardless of test size.
-
 
 
 ## Documentation

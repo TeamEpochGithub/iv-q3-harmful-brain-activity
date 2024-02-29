@@ -15,7 +15,7 @@ from omegaconf import DictConfig
 import wandb
 from src.config.cross_validation_config import CVConfig
 from src.logging_utils.logger import logger
-from src.logging_utils.section_separator import print_section_separator
+from epochalyst.logging.section_separator import print_section_separator
 from src.utils.script.generate_params import generate_cv_params
 from src.utils.script.lock import Lock
 from src.utils.script.reset_wandb_env import reset_wandb_env

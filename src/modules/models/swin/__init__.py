@@ -1,1 +1,0 @@
-"""Swin Transformer modules."""

@@ -16,7 +16,7 @@ from sklearn.model_selection import train_test_split
 import wandb
 from src.config.train_config import TrainConfig
 from src.logging_utils.logger import logger
-from src.logging_utils.section_separator import print_section_separator
+from epochalyst.logging.section_separator import print_section_separator
 from src.utils.script.generate_params import generate_train_params
 from src.utils.script.lock import Lock
 from src.utils.seed_torch import set_torch_seed

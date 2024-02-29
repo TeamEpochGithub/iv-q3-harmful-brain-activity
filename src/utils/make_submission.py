@@ -8,7 +8,7 @@ import tifffile
 from tqdm import tqdm
 
 from src.logging_utils.logger import logger
-from src.logging_utils.section_separator import print_section_separator
+from epochalyst.logging.section_separator import print_section_separator
 
 
 def make_submission(path: Path, predictions: np.ndarray[Any, Any], filenames: list[str]) -> None:
