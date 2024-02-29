@@ -1,6 +1,6 @@
 # Source Code
 
-This folder contains the source code for the Kelp competition.
+This folder contains the source code for the Detect Harmful Brain Activity competition.
 
 ## Structure
 

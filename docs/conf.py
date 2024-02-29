@@ -11,12 +11,12 @@ from typing import Any, Final
 
 from pygit2 import Repository  # type: ignore[import-untyped, import-not-found]
 
-# TODO(Jeffrey): Replace this with GitHub URL later
-REPO_URL: Final[str] = f"https://gitlab.ewi.tudelft.nl/dreamteam-epoch/epoch-iv/q2-detect-kelp/-/blob/{Repository('.').head.shorthand}/"
+# TODO: Replace this with GitHub URL later
+REPO_URL: Final[str] = f"https://gitlab.ewi.tudelft.nl/dreamteam-epoch/epoch-iv/q3-harmful-brain-activity/-/blob/{Repository('.').head.shorthand}/"
 
 sys.path.insert(0, Path("../..").resolve().as_posix())
 
-project: Final[str] = "Detect Kelp"
+project: Final[str] = "Detect Harmful Brain Activity"
 copyright: Final[str] = "2024, Team Epoch."  # noqa: A001
 author: Final[str] = "Team Epoch"
 

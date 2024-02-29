@@ -30,7 +30,7 @@ machine with less RAM using all the test data that was provided by DrivenData.
 Make sure to clone the repository with your favourite git client or using the following command:
 
 ```shell
-git clone TODO: UPDATE(https://github.com/TeamEpochGithub/iv-q2-detect-kelp.git)
+git clone TODO: UPDATE(...)
 ```
 
 ### 2. Install Python 3.10.13

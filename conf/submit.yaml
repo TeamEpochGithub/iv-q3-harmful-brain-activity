@@ -3,6 +3,6 @@ defaults:
   - hydra/logging
   - ensemble: 21-02-1st
 
-raw_data_path: data/raw/test_satellite
-raw_target_path: data/raw/train_kelp
+raw_data_path: data/...
+raw_target_path: data/...
 test_size: 0
