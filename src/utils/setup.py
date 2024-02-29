@@ -15,8 +15,7 @@ from sklearn.utils import estimator_html_repr
 
 import wandb
 from src.logging_utils.logger import logger
-from src.pipeline.ensemble.ensemble_base import EnsembleBase
-from src.pipeline.model.model import ModelPipeline
+from epochalyst.pipeline.model.model import ModelPipeline
 from src.utils.replace_list_with_dict import replace_list_with_dict
 
 
@@ -45,7 +44,7 @@ def setup_config(cfg: DictConfig) -> None:
         raise ValueError(f"Missing keys in config: {missing}")
 
 
-def setup_pipeline(pipeline_cfg: DictConfig, output_dir: Path, is_train: bool | None) -> ModelPipeline | EnsembleBase:
+def setup_pipeline(pipeline_cfg: DictConfig, output_dir: Path, is_train: bool | None) -> ModelPipeline:
     """Instantiate the pipeline and log it to HTML.
 
     :param pipeline_cfg: The model pipeline config. Root node should be a ModelPipeline
@@ -123,8 +122,13 @@ def setup_train_data(data_path: str, target_path: str) -> tuple[dask.array.Array
     :return: X, y, x_processed
     """
     logger.info("Lazily reading the raw data")
-    X = imread(f"{data_path}/*.tif").transpose(0, 3, 1, 2)
-    y = imread(f"{target_path}/*.tif")
+    # X = imread(f"{data_path}/*.tif").transpose(0, 3, 1, 2)
+    # y = imread(f"{target_path}/*.tif")
+
+    # TODO(Jasper): Remove fake data
+    X = dask.array.random.random((100, 5, 1000), chunks=(10, 5, 1000))
+    y = dask.array.random.random((100, 1000), chunks=(10, 1000))
+
     logger.info(f"Raw data shape: {X.shape}")
     logger.info(f"Raw target shape: {y.shape}")
 
