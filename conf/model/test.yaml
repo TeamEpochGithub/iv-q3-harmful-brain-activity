@@ -5,3 +5,7 @@ defaults:
 x_sys:
   steps:
     - _target_: src.modules.transformation.example_transformation_block.ExampleTransformationBlock
+
+train_sys:
+  steps:
+    - _target_: src.modules.training.example_training_block.ExampleTrainingBlock

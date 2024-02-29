@@ -7,15 +7,15 @@ from pathlib import Path
 from typing import Any, cast
 
 import dask.array
+import wandb
 from dask_image.imread import imread
+from epochalyst.pipeline.model.model import ModelPipeline
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 from sklearn import set_config
 from sklearn.utils import estimator_html_repr
 
-import wandb
 from src.logging_utils.logger import logger
-from epochalyst.pipeline.model.model import ModelPipeline
 from src.utils.replace_list_with_dict import replace_list_with_dict
 
 
@@ -122,6 +122,7 @@ def setup_train_data(data_path: str, target_path: str) -> tuple[dask.array.Array
     :return: X, y, x_processed
     """
     logger.info("Lazily reading the raw data")
+    logger.debug(f"Data path: {data_path}, Target path: {target_path}")  # TODO(Jasper): Remove this line
     # X = imread(f"{data_path}/*.tif").transpose(0, 3, 1, 2)
     # y = imread(f"{target_path}/*.tif")
 
