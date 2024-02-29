@@ -1,5 +1,4 @@
 """Train.py is the main script for training the model and will take in the raw data and output a trained model."""
-import copy
 import os
 import warnings
 from contextlib import nullcontext
@@ -7,17 +6,16 @@ from pathlib import Path
 
 import hydra
 import numpy as np
+import wandb
 from distributed import Client
+from epochalyst.logging.section_separator import print_section_separator
 from hydra.core.config_store import ConfigStore
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 from sklearn.model_selection import train_test_split
 
-import wandb
 from src.config.train_config import TrainConfig
 from src.logging_utils.logger import logger
-from epochalyst.logging.section_separator import print_section_separator
-from src.utils.script.generate_params import generate_train_params
 from src.utils.script.lock import Lock
 from src.utils.seed_torch import set_torch_seed
 from src.utils.setup import setup_config, setup_pipeline, setup_train_data, setup_wandb
@@ -73,24 +71,15 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
     logger.info(f"Train/Test size: {len(train_indices)}/{len(test_indices)}")
 
     # Generate the parameters for training
-    fit_params = generate_train_params(cfg, model_pipeline, train_indices=train_indices, test_indices=test_indices)
-
-    # Fit the pipeline
-    original_y = copy.deepcopy(y)
-    if "model" in cfg:
-        target_pipeline = model_pipeline.get_target_pipeline()
-
-        if target_pipeline is not None:
-            logger.info("Now fitting the target pipeline...")
-            y = target_pipeline.fit_transform(y)
+    # fit_params = generate_train_params(cfg, model_pipeline, train_indices=train_indices, test_indices=test_indices)
 
     print_section_separator("Fit_transform model pipeline")
-    predictions = model_pipeline.fit_transform(X, y, **fit_params)
+    predictions, _ = model_pipeline.train(X, y)  # , **fit_params)
 
     if len(test_indices) > 0:
         print_section_separator("Scoring")
         scorer = instantiate(cfg.scorer)
-        score = scorer(original_y[test_indices].compute(), predictions[test_indices])
+        score = scorer(y[test_indices].compute(), predictions[test_indices])
         logger.info(f"Score: {score}")
 
         if wandb.run:

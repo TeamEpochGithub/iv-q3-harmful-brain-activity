@@ -5,12 +5,12 @@ from pathlib import Path
 
 import hydra
 from distributed import Client
+from epochalyst.logging.section_separator import print_section_separator
 from hydra.core.config_store import ConfigStore
 from omegaconf import DictConfig
 
 from src.config.submit_config import SubmitConfig
 from src.logging_utils.logger import logger
-from epochalyst.logging.section_separator import print_section_separator
 from src.utils.make_submission import make_submission
 from src.utils.setup import setup_config, setup_pipeline, setup_test_data
 

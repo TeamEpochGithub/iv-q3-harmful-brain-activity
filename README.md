@@ -12,7 +12,9 @@ This section contains the steps that need to be taken to get started with our pr
 submission on the private leaderboard. The project was developed on Windows 10/11 OS on Python 3.10.13 on Pip version 23.2.1.
 
 ### 0. Prerequisites
+
 Models were trained on machines with the following specifications:
+
 - CPU: AMD Ryzen Threadripper Pro 3945WX 12-Core Processor / AMD Ryzen 9 7950X 16-Core Processor
 - GPU: NVIDIA RTX A5000 / NVIDIA RTX Quadro 6000 / NVIDIA RTX A6000
 - RAM: 96GB / 128GB
@@ -27,8 +29,8 @@ machine with less RAM using all the test data that was provided by DrivenData.
 
 Make sure to clone the repository with your favourite git client or using the following command:
 
-```
-TODO: UPDATE(https://github.com/TeamEpochGithub/iv-q2-detect-kelp.git)
+```shell
+git clone TODO: UPDATE(https://github.com/TeamEpochGithub/iv-q2-detect-kelp.git)
 ```
 
 ### 2. Install Python 3.10.13
@@ -46,23 +48,26 @@ pip install -r requirements.txt
 
 ### 4. Setup the competition data
 
+TODO: Explanation
 
 ### 5. Main files explanation
 
-- `train.py`: This file is used to train a model. `train.py` reads a configuration file from `conf/train.yaml`. This configuration file 
-contains the model configuration to train with additional training parameters such as test_size and a scorer to use. 
+- `train.py`: This file is used to train a model. `train.py` reads a configuration file from `conf/train.yaml`. This configuration file
+contains the model configuration to train with additional training parameters such as test_size and a scorer to use.
 The model selected in the `conf/train.yaml` can be found in the `conf/model` folder where a whole model configuration is stored (from preprocessing to postprocessing).
 When training is finished, the model is saved in the `tm` directory with a hash that depends on the specific pre-processing, pretraining steps + the model configurations.
 
-    - Command line arguments
-    - CUDA_VISIBLE_DEVICES: The GPU to use for training. If not specified it uses DataParallel to train on multiple GPUs.  If you have multiple GPUs, you can specify which one to use.
-- `submit.py`: This file does inference on the test data from the competition given trained model or an ensemble of trained models. 
+  - Command line arguments
+  - CUDA_VISIBLE_DEVICES: The GPU to use for training. If not specified it uses DataParallel to train on multiple GPUs.  If you have multiple GPUs, you can specify which one to use.
+
+- `submit.py`: This file does inference on the test data from the competition given trained model or an ensemble of trained models.
 It reads a configuration file from `conf/submit.yaml` which contains the model/ensemble configuration to use for inference.
 Model configs can be found in the `conf/model` folder and ensemble configs in the `conf/ensemble` folder. The `conf/ensemble`
-folder specifies the models (`conf/model`) to use for the ensemble and the weights to use for each model. The `submit.py` 
+folder specifies the models (`conf/model`) to use for the ensemble and the weights to use for each model. The `submit.py`
 
 ### 6. Place the fitted models
-(For DrivenData) Any additional supplied trained models /scalers (.pt / .gbdt / .scaler) should be placed in the `tm` directory. 
+
+(For DrivenData) Any additional supplied trained models /scalers (.pt / .gbdt / .scaler) should be placed in the `tm` directory.
 When these models were trained, they are saved with a hash that depends on the specific pre-processing, pretraining steps + the model configurations.
 In this way, we ensure that we load the correct saved model automatically when running `submit.py`.
 
@@ -72,10 +77,8 @@ For reproducing our best submission, run `submit.py`. This will load the already
 run the inference on the test data from the competition. `submit.yaml` in configured to what whe think is our best and our
 most robust solution:
 
-
 If you get an error of that the path was not found of a model. Please ensure that you have the correct trained model in the `tm` directory.
 If you don't have the trained models, you can train them 1 by 1 using `train.py` and the `conf/train.yaml` file.
-
 
 ## Quality Checks
 
@@ -90,7 +93,6 @@ To run the pre-commit hooks locally, do:
 ```shell
 pre-commit run --all-files
 ```
-
 
 ## Documentation
 

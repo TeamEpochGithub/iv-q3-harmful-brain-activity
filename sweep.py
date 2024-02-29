@@ -11,16 +11,15 @@ from typing import NamedTuple
 import dask.array as da
 import hydra
 import randomname
+import wandb
 from distributed import Client
+from epochalyst.logging.section_separator import print_section_separator
 from hydra.core.config_store import ConfigStore
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 
-import wandb
 from src.config.cross_validation_config import CVConfig
 from src.logging_utils.logger import logger
-from epochalyst.logging.section_separator import print_section_separator
-from src.utils.script.generate_params import generate_cv_params
 from src.utils.script.lock import Lock
 from src.utils.script.reset_wandb_env import reset_wandb_env
 from src.utils.seed_torch import set_torch_seed
@@ -237,7 +236,7 @@ def _one_fold(cfg: DictConfig, output_dir: Path, fold: int, wandb_group_name: st
     model_pipeline = setup_pipeline(cfg, output_dir, is_train=True)
 
     # Generate the parameters for training
-    fit_params = generate_cv_params(cfg, model_pipeline, train_indices, test_indices)
+    fit_params = {}  # generate_cv_params(cfg, model_pipeline, train_indices, test_indices)
 
     # Fit the pipeline
     target_pipeline = model_pipeline.get_target_pipeline()

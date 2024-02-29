@@ -7,15 +7,15 @@ from pathlib import Path
 
 import hydra
 import randomname
+import wandb
 from distributed import Client
+from epochalyst.logging.section_separator import print_section_separator
 from hydra.core.config_store import ConfigStore
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 
-import wandb
 from src.config.cross_validation_config import CVConfig
 from src.logging_utils.logger import logger
-from epochalyst.logging.section_separator import print_section_separator
 from src.utils.script.generate_params import generate_cv_params
 from src.utils.script.lock import Lock
 from src.utils.script.reset_wandb_env import reset_wandb_env
