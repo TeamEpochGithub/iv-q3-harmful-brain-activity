@@ -41,7 +41,7 @@ def run_train(cfg: DictConfig) -> None:
 
 def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig instead of DictConfig
     """Train a model pipeline with a train-test split."""
-    print_section_separator("Q2 Detect Kelp States - Training")
+    print_section_separator("Q3 Detect Harmful Brain Activity - Training")
     set_torch_seed()
 
     import coloredlogs

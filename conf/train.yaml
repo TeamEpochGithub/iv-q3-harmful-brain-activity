@@ -4,8 +4,8 @@ defaults:
   - model: test
   - wandb: train
 
-raw_data_path: data/raw/train_satellite
-raw_target_path: data/raw/train_kelp
+raw_data_path: data/...
+raw_target_path: data/...
 scorer:
   _target_: src.scoring.dice_coefficient.DiceCoefficient
 test_size: 0

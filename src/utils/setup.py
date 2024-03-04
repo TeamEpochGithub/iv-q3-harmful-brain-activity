@@ -156,7 +156,8 @@ def setup_wandb(
     config = OmegaConf.to_container(cfg, resolve=True)
     run = wandb.init(
         config=replace_list_with_dict(config),  # type: ignore[arg-type]
-        project="detect-kelp",
+        project="detect-harmful-brain-activity",
+        entity="team-epoch-iv",
         name=name,
         group=group,
         job_type=job_type,

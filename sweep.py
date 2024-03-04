@@ -90,7 +90,7 @@ def run_cv(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use CVConfig instead of D
 
 def run_cv_cfg(cfg: DictConfig) -> None:
     """Do cv on a model pipeline with K fold split."""
-    print_section_separator("Q2 Detect Kelp States -- CV")
+    print_section_separator("Q3 Detect Harmful Brain Activity - CV")
 
     import coloredlogs
 

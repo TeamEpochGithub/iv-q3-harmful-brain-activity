@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 py-modules = ["dashboard", "external", "src", "cv", "run_dashboard", "submit", "train"]
 
 [project]
-name = "detect_kelp"
+name = "detect-harmful-brain-activity"
 version = "0.0.1"
 authors = [
     { name = "Emiel Witting", email = "emiel.witting@gmail.com" },
@@ -15,7 +15,7 @@ authors = [
     { name = "Jeffrey Lim", email = "jeffrey-lim@outlook.com" },
     { name = "Tolga Kopar", email = "cahittolgakopar@gmail.com" },
 ]
-description = "Team Epoch's solution to the \"Kelp Wanted: Segmenting Kelp Forests\" competition."
+description = "Team Epoch's solution to the \"HMS - Harmful Brain Activity Classification\" competition."
 license = { file = "LICENSE" }
 readme = "README.md"
 requires-python = ">=3.10"

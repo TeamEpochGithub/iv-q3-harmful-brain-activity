@@ -29,7 +29,7 @@ cs.store(name="base_submit", node=SubmitConfig)
 def run_submit(cfg: DictConfig) -> None:
     """Run the main script for submitting the predictions."""
     # Print section separator
-    print_section_separator("Q2 Detect Kelp States - Submit")
+    print_section_separator("Q3 Detect Harmful Brain Activity - Submit")
     output_dir = Path(hydra.core.hydra_config.HydraConfig.get().runtime.output_dir)
 
     # Set up logging
