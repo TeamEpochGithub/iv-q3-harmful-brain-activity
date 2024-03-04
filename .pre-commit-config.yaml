@@ -50,8 +50,7 @@ repos:
       - id: mypy
         additional_dependencies:
           - numpy
-          - scikit-learn
-          - scikit-image
+          - epochalyst
           - scipy
           - tqdm
           - polars
@@ -90,5 +89,4 @@ repos:
           - coloredlogs
           - kornia
           - einops
-          - agogos
         args: [ --disallow-any-generics, --disallow-untyped-defs, --disable-error-code=import-untyped]
