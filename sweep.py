@@ -6,7 +6,7 @@ import warnings
 from contextlib import nullcontext
 from multiprocessing import Queue
 from pathlib import Path
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
 import dask.array as da
 import hydra
@@ -236,7 +236,7 @@ def _one_fold(cfg: DictConfig, output_dir: Path, fold: int, wandb_group_name: st
     model_pipeline = setup_pipeline(cfg, output_dir, is_train=True)
 
     # Generate the parameters for training
-    fit_params = {}  # generate_cv_params(cfg, model_pipeline, train_indices, test_indices)
+    fit_params: dict[str, Any] = {}  # generate_cv_params(cfg, model_pipeline, train_indices, test_indices)
 
     # Fit the pipeline
     target_pipeline = model_pipeline.get_target_pipeline()

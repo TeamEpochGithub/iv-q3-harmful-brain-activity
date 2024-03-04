@@ -73,7 +73,7 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
     # Generate the parameters for training
     # fit_params = generate_train_params(cfg, model_pipeline, train_indices=train_indices, test_indices=test_indices)
 
-    print_section_separator("Fit_transform model pipeline")
+    print_section_separator("Train model pipeline")
     predictions, _ = model_pipeline.train(X, y)  # , **fit_params)
 
     if len(test_indices) > 0:

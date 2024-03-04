@@ -1,30 +1,28 @@
-"""Example training block for the pipeline."""
+"""Module for example training block."""
+
 import dask.array as da
-from agogos.trainer import Trainer
 
-from src.logging_utils.logger import logger
+from src.modules.training.verbose_training_block import VerboseTrainingBlock
 
 
-class ExampleTrainingBlock(Trainer):
-    """Example training block, there are no init blocks in the base Trainer class.
-
-    Both train and predict methods should be overridden in the child class.
-    """
+class ExampleTrainingBlock(VerboseTrainingBlock):
+    """An example training block."""
 
     def train(self, x: da.Array, y: da.Array) -> tuple[da.Array, da.Array]:
-        """Train the block.
+        """Train the model.
 
-        :param x: The input data.
-        :param y: The target variable.
+        :param x: The input data
+        :param y: The target data
+        :return: The predictions and the target data
         """
-        logger.info("Training the block")
-        return x * 2, y
+        # ("Training")
+        return x, y
 
     def predict(self, x: da.Array) -> da.Array:
-        """Predict the target variable.
+        """Predict using the model.
 
-        :param x: The input data.
-        :return: The predictions.
+        :param x: The input data
+        :return: The predictions
         """
-        logger.info("Predicting the target variable")
-        return x * 2
+        # ("Predicting")
+        return x
