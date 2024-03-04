@@ -168,7 +168,6 @@ cython_debug/
 data/
 
 # Ignore logs
-logging/
 wandb/
 
 # Ignore zip files

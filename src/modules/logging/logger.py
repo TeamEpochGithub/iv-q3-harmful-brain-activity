@@ -1,12 +1,15 @@
-from epochalyst._core._logging._logger import _Logger
-from src.logging_utils.logger import logger
+"""A logger that logs to the terminal and to W&B."""
 from typing import Any
+
 import wandb
+from epochalyst._core._logging._logger import _Logger
+
+from src.logging_utils.logger import logger
 
 
 class Logger(_Logger):
     """A logger that logs to the terminal and to W&B.
-    
+
     To use this logger, inherit, this will make the following methods available:
     - log_to_terminal(message: str) -> None
     - log_to_debug(message: str) -> None
@@ -16,21 +19,40 @@ class Logger(_Logger):
     """
 
     def log_to_terminal(self, message: str) -> None:
-        """Log a message to the terminal."""
+        """Log a message to the terminal.
+
+        :param message: The message to log
+        """
         logger.info(message)
 
     def log_to_debug(self, message: str) -> None:
-        """Log a message to the debug level."""
+        """Log a message to the debug level.
+
+        :param message: The message to log
+        """
         logger.debug(message)
 
     def log_to_warning(self, message: str) -> None:
-        """Log a message to the warning level."""
+        """Log a message to the warning level.
+
+        :param message: The message to log
+        """
         logger.warning(message)
 
-    def log_to_external(self, message: dict[str, Any], **kwargs: Any) -> None:
+    def log_to_external(self, message: dict[str, Any], **kwargs: Any) -> None:  # noqa: ANN401
+        """Log a message to an external service.
+
+        :param message: The message to log
+        :param kwargs: Any additional arguments
+        """
         if wandb.run:
             wandb.log(message, **kwargs)
 
     def external_define_metric(self, metric: str, metric_type: str) -> None:
+        """Define a metric in an external service.
+
+        :param metric: The metric to define
+        :param metric_type: The type of the metric
+        """
         if wandb.run:
             wandb.define_metric(metric, summary=metric_type)
