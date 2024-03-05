@@ -4,6 +4,7 @@ import os
 import warnings
 from contextlib import nullcontext
 from pathlib import Path
+from typing import Any
 
 import hydra
 import randomname
@@ -16,7 +17,6 @@ from omegaconf import DictConfig
 
 from src.config.cross_validation_config import CVConfig
 from src.logging_utils.logger import logger
-from src.utils.script.generate_params import generate_cv_params
 from src.utils.script.lock import Lock
 from src.utils.script.reset_wandb_env import reset_wandb_env
 from src.utils.seed_torch import set_torch_seed
@@ -78,7 +78,7 @@ def run_cv_cfg(cfg: DictConfig) -> None:
         model_pipeline = setup_pipeline(cfg, output_dir, is_train=True)
 
         # Generate the parameters for training
-        fit_params = generate_cv_params(cfg, model_pipeline, train_indices, test_indices)
+        fit_params: dict[str, Any] = {}  # generate_cv_params(cfg, model_pipeline, train_indices, test_indices)
 
         # Fit the pipeline
         target_pipeline = model_pipeline.get_target_pipeline()
