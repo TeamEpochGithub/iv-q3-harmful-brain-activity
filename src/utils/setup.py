@@ -1,4 +1,5 @@
 """Common functions used at the start of the main scripts train.py, cv.py, and submit.py."""
+import itertools
 import os
 import re
 from collections.abc import Callable
@@ -6,6 +7,9 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, cast
 
+import pandas as pd
+import numpy as np
+import pyarrow.parquet as pq
 import dask.array
 import wandb
 from dask_image.imread import imread
@@ -14,6 +18,9 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 from sklearn import set_config
 from sklearn.utils import estimator_html_repr
+from tqdm import tqdm
+import pickle
+import concurrent.futures
 
 from src.logging_utils.logger import logger
 from src.utils.replace_list_with_dict import replace_list_with_dict
@@ -135,6 +142,71 @@ def setup_train_data(data_path: str, target_path: str) -> tuple[dask.array.Array
 
     return X, y
 
+
+def setup_data(metadata_path: str, eeg_path: str, spectrogram_path: str) -> tuple[tuple[dict[str, pd.DataFrame], dict[str, pd.DataFrame], pd.DataFrame], np.ndarray]:
+    """Read the metadata and return the data and target in the proper format.
+    
+    :param metadata_path: Path to the metadata.
+    :param eeg_path: Path to the EEG data.
+    :param spectrogram_path: Path to the spectrogram data.
+    """
+    # Read the metadata
+    metadata = pd.read_csv(metadata_path)
+    # Now split the metadata into the 3 parts: ids, offsets, and labels
+    ids = metadata[['patient_id', 'eeg_id', 'spectrogram_id']]
+
+    if 'eeg_label_offset_seconds' in metadata.columns and 'spectrogram_label_offset_seconds' in metadata.columns:
+        # If the offsets exist in metadata, use them 
+        offsets = metadata[['eeg_label_offset_seconds', 'spectrogram_label_offset_seconds']]
+    else:
+        # Ifthe offsets do not exist fill them with zeros
+        offsets = pd.DataFrame(np.zeros((metadata.shape[0], 2)), columns=['eeg_label_offset_seconds', 'spectrogram_label_offset_seconds'])
+    label_columns = ["seizure_vote","lpd_vote","gpd_vote","lrda_vote","grda_vote","other_vote"] 
+
+    if all(column in metadata.columns for column in label_columns):
+        labels = metadata[label_columns]
+    else:
+        labels = None
+    
+
+    # Initialize the dictionaries
+    all_eegs = dict()
+    all_spectrograms = dict()
+
+    # Read the EEG data
+    logger.info("Reading the EEG data")
+    if os.path.exists(eeg_path + "/eeg_cache.pkl"):
+        logger.info("Found pickle cache for EEG data")
+        all_eegs = pickle.load(open(eeg_path + "/eeg_cache.pkl", "rb"))
+        logger.info("Loaded pickle cache for EEG data")
+    else:
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            all_eegs = dict(executor.map(load_eeg, itertools.repeat(eeg_path), ids['eeg_id'].unique()))
+        logger.info("Finished reading the EEG data")
+        pickle.dump(all_eegs, open(eeg_path + "/eeg_cache.pkl", "wb"))
+
+    # Read the spectrogram data
+    logger.info("Reading the spectrogram data")
+    if os.path.exists(spectrogram_path + "/spectrogram_cache.pkl"):
+        logger.info("Found pickle cache for spectrogram data")
+        all_spectrograms = pickle.load(open(spectrogram_path + "/spectrogram_cache.pkl", "rb"))
+        logger.info("Loaded pickle cache for spectrogram data")
+    else:
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            all_spectrograms = dict(executor.map(load_spectrogram, itertools.repeat(spectrogram_path), ids['spectrogram_id'].unique()))
+            executor.shutdown()
+        logger.info("Finished reading the spectrogram data")
+        pickle.dump(all_spectrograms, open(spectrogram_path + "/spectrogram_cache.pkl", "wb"))
+
+    X_meta = pd.concat([ids, offsets], axis=1)
+    
+    return (all_eegs, all_spectrograms, X_meta), labels
+
+def load_eeg(eeg_path,eeg_id):
+    return eeg_id, pq.read_table(f"{eeg_path}/{eeg_id}.parquet").to_pandas()
+
+def load_spectrogram(spectrogram_path,spectrogram_id):
+    return spectrogram_id, pq.read_table(f"{spectrogram_path}/{spectrogram_id}.parquet").to_pandas()
 
 def setup_wandb(
     cfg: DictConfig,
