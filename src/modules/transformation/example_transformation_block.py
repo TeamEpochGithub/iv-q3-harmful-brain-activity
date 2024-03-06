@@ -16,4 +16,3 @@ class ExampleTransformationBlock(VerboseTransformationBlock):
         :return: The transformed data
         """
         return data
-

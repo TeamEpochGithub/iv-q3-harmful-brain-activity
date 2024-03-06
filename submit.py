@@ -12,7 +12,7 @@ from omegaconf import DictConfig
 from src.config.submit_config import SubmitConfig
 from src.logging_utils.logger import logger
 from src.utils.make_submission import make_submission
-from src.utils.setup import setup_config, setup_pipeline, setup_test_data
+from src.utils.setup import setup_config, setup_data, setup_pipeline
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -45,7 +45,7 @@ def run_submit(cfg: DictConfig) -> None:
     model_pipeline = setup_pipeline(cfg, output_dir, is_train=False)
 
     # Load the test data
-    X, filenames = setup_test_data(cfg.raw_data_path)
+    X, filenames = setup_data(cfg.metadata_path, cfg.eeg_path, cfg.spectrogram_path)
 
     # Predict on the test data
     logger.info("Now transforming the pipeline...")

@@ -1,26 +1,23 @@
 """Common functions used at the start of the main scripts train.py, cv.py, and submit.py."""
+import concurrent.futures
 import itertools
 import os
+import pickle
 import re
 from collections.abc import Callable
 from enum import Enum
 from pathlib import Path
 from typing import Any, cast
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 import pyarrow.parquet as pq
-import dask.array
 import wandb
-from dask_image.imread import imread
 from epochalyst.pipeline.model.model import ModelPipeline
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 from sklearn import set_config
 from sklearn.utils import estimator_html_repr
-from tqdm import tqdm
-import pickle
-import concurrent.futures
 
 from src.logging_utils.logger import logger
 from src.utils.replace_list_with_dict import replace_list_with_dict
@@ -119,33 +116,13 @@ def update_model_cfg_test_size(
     return model_cfg_dict
 
 
-def setup_train_data(data_path: str, target_path: str) -> tuple[dask.array.Array, dask.array.Array]:
-    """Lazily read the raw data with dask, and find the shape after processing.
-
-    :param data_path: Path to the raw data.
-    :param target_path: Path to the raw target.
-    :param feature_pipeline: The feature pipeline.
-
-    :return: X, y, x_processed
-    """
-    logger.info("Lazily reading the raw data")
-    logger.debug(f"Data path: {data_path}, Target path: {target_path}")  # TODO(Jasper): Remove this line
-    # X = imread(f"{data_path}/*.tif").transpose(0, 3, 1, 2)
-    # y = imread(f"{target_path}/*.tif")
-
-    # TODO(Jasper): Remove fake data
-    X = dask.array.random.random((100, 5, 1000), chunks=(10, 5, 1000))
-    y = dask.array.random.random((100, 1000), chunks=(10, 1000))
-
-    logger.info(f"Raw data shape: {X.shape}")
-    logger.info(f"Raw target shape: {y.shape}")
-
-    return X, y
-
-
-def setup_data(metadata_path: str, eeg_path: str, spectrogram_path: str) -> tuple[tuple[dict[str, pd.DataFrame], dict[str, pd.DataFrame], pd.DataFrame], np.ndarray]:
+def setup_data(
+    metadata_path: str,
+    eeg_path: str,
+    spectrogram_path: str,
+) -> tuple[tuple[dict[int, pd.DataFrame] | None, dict[int, pd.DataFrame] | None, pd.DataFrame], pd.DataFrame | None]:
     """Read the metadata and return the data and target in the proper format.
-    
+
     :param metadata_path: Path to the metadata.
     :param eeg_path: Path to the EEG data.
     :param spectrogram_path: Path to the spectrogram data.
@@ -153,38 +130,35 @@ def setup_data(metadata_path: str, eeg_path: str, spectrogram_path: str) -> tupl
     # Check that metadata_path is not None
     if metadata_path is None:
         raise ValueError("metadata_path should not be None")
-    
+
     # Check that at least one of the paths is not None
     if eeg_path is None and spectrogram_path is None:
         raise ValueError("At least one of the paths should not be None")
-    
+
     # Read the metadata
     metadata = pd.read_csv(metadata_path)
     # Now split the metadata into the 3 parts: ids, offsets, and labels
-    ids = metadata[['patient_id', 'eeg_id', 'spectrogram_id']]
+    ids = metadata[["patient_id", "eeg_id", "spectrogram_id"]]
 
-    if 'eeg_label_offset_seconds' in metadata.columns and 'spectrogram_label_offset_seconds' in metadata.columns:
-        # If the offsets exist in metadata, use them 
-        offsets = metadata[['eeg_label_offset_seconds', 'spectrogram_label_offset_seconds']]
+    if "eeg_label_offset_seconds" in metadata.columns and "spectrogram_label_offset_seconds" in metadata.columns:
+        # If the offsets exist in metadata, use them
+        offsets = metadata[["eeg_label_offset_seconds", "spectrogram_label_offset_seconds"]]
     else:
         # Ifthe offsets do not exist fill them with zeros
-        offsets = pd.DataFrame(np.zeros((metadata.shape[0], 2)), columns=['eeg_label_offset_seconds', 'spectrogram_label_offset_seconds'])
-    label_columns = ["seizure_vote","lpd_vote","gpd_vote","lrda_vote","grda_vote","other_vote"] 
+        offsets = pd.DataFrame(np.zeros((metadata.shape[0], 2)), columns=["eeg_label_offset_seconds", "spectrogram_label_offset_seconds"])
+    label_columns = ["seizure_vote", "lpd_vote", "gpd_vote", "lrda_vote", "grda_vote", "other_vote"]
 
     if all(column in metadata.columns for column in label_columns):
         labels = metadata[label_columns]
     else:
         labels = None
-    
+
     # Determine if reading train and test data
-        
+
     # Get one of the paths that is not None
     path = eeg_path if eeg_path is not None else spectrogram_path
 
-    if 'train' in path:
-        cache_loc = 'train'
-    else:
-        cache_loc = 'test'
+    cache_loc = "train" if "train" in path else "test"
 
     # Get the cache path
     cache_path = "/".join(path.split("/")[:-1]) + "/cache/" + cache_loc
@@ -193,54 +167,93 @@ def setup_data(metadata_path: str, eeg_path: str, spectrogram_path: str) -> tupl
 
     if eeg_path is not None:
         # Initialize the dictionary to store the EEG data
-        all_eegs = dict()
-        # Read the EEG data
-        logger.info("Reading the EEG data")
-        if os.path.exists(cache_path + "/eeg_cache.pkl"):
-            logger.info("Found pickle cache for EEG data at: " + cache_path + "/eeg_cache.pkl")
-            all_eegs = pickle.load(open(cache_path + "/eeg_cache.pkl", "rb"))
-            logger.info("Loaded pickle cache for EEG data")
-        else:
-            with concurrent.futures.ProcessPoolExecutor() as executor:
-                all_eegs = dict(executor.map(load_eeg, itertools.repeat(eeg_path), ids['eeg_id'].unique()))
-                executor.shutdown()
-            logger.info("Finished reading the EEG data")
-            logger.info("Saving pickle cache for EEG data")
-            pickle.dump(all_eegs, open(cache_path + "/eeg_cache.pkl", "wb"))
-            logger.info("Saved pickle cache for EEG data to: " + cache_path + "/eeg_cache.pkl")
+        all_eegs = load_all_eegs(eeg_path, cache_path, ids)
     else:
         logger.info("No EEG data to read, skipping...")
         all_eegs = None
 
     if spectrogram_path is not None:
-        all_spectrograms = dict()
-        # Read the spectrogram data
-        logger.info("Reading the spectrogram data")
-        if os.path.exists(cache_path + "/spectrogram_cache.pkl"):
-            logger.info("Found pickle cache for spectrogram data at: " + cache_path + "/spectrogram_cache.pkl")
-            all_spectrograms = pickle.load(open(cache_path + "/spectrogram_cache.pkl", "rb"))
-            logger.info("Loaded pickle cache for spectrogram data")
-        else:
-            with concurrent.futures.ProcessPoolExecutor() as executor:
-                all_spectrograms = dict(executor.map(load_spectrogram, itertools.repeat(spectrogram_path), ids['spectrogram_id'].unique()))
-                executor.shutdown()
-            logger.info("Finished reading the spectrogram data")
-            logger.info("Saving pickle cache for spectrogram data")
-            pickle.dump(all_spectrograms, open(cache_path + "/spectrogram_cache.pkl", "wb"))
-            logger.info("Saved pickle cache for spectrogram data to: " + cache_path + "/spectrogram_cache.pkl")
+        all_spectrograms = load_all_spectrograms(spectrogram_path, cache_path, ids)
     else:
         logger.info("No spectrogram data to read, skipping...")
         all_spectrograms = None
 
     X_meta = pd.concat([ids, offsets], axis=1)
-    
+
     return (all_eegs, all_spectrograms, X_meta), labels
 
-def load_eeg(eeg_path,eeg_id):
+
+def load_eeg(eeg_path: str, eeg_id: int) -> tuple[int, pd.DataFrame]:
+    """Load the EEG data from the parquet file.
+
+    :param eeg_path: The path to the EEG data.
+    :param eeg_id: The EEG id.
+    """
     return eeg_id, pq.read_table(f"{eeg_path}/{eeg_id}.parquet").to_pandas()
 
-def load_spectrogram(spectrogram_path,spectrogram_id):
+
+def load_spectrogram(spectrogram_path: str, spectrogram_id: int) -> tuple[int, pd.DataFrame]:
+    """Load the spectrogram data from the parquet file.
+
+    :param spectrogram_path: The path to the spectrogram data.
+    :param spectrogram_id: The spectrogram id.
+    """
     return spectrogram_id, pq.read_table(f"{spectrogram_path}/{spectrogram_id}.parquet").to_pandas()
+
+
+def load_all_eegs(eeg_path: str, cache_path: str, ids: pd.DataFrame) -> dict[int, pd.DataFrame]:
+    """Read the EEG data and return it as a dictionary.
+
+    :param eeg_path: Path to the EEG data.
+    :param eeg_ids: The EEG ids.
+    """
+    all_eegs = {}
+    # Read the EEG data
+    logger.info("Reading the EEG data")
+    if os.path.exists(cache_path + "/eeg_cache.pkl"):
+        logger.info("Found pickle cache for EEG data at: " + cache_path + "/eeg_cache.pkl")
+        with open(cache_path + "/eeg_cache.pkl", "rb") as f:
+            all_eegs = pickle.load(f)  # noqa: S301
+        logger.info("Loaded pickle cache for EEG data")
+    else:
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            all_eegs = dict(executor.map(load_eeg, itertools.repeat(eeg_path), ids["eeg_id"].unique()))
+            executor.shutdown()
+        logger.info("Finished reading the EEG data")
+        logger.info("Saving pickle cache for EEG data")
+        with open(cache_path + "/eeg_cache.pkl", "wb") as f:
+            pickle.dump(all_eegs, f)
+        logger.info("Saved pickle cache for EEG data to: " + cache_path + "/eeg_cache.pkl")
+
+    return all_eegs
+
+
+def load_all_spectrograms(spectrogram_path: str, cache_path: str, ids: pd.DataFrame) -> dict[int, pd.DataFrame]:
+    """Read the spectrogram data and return it as a dictionary.
+
+    :param spectrogram_path: Path to the spectrogram data.
+    :param spectrogram_ids: The spectrogram ids.
+    """
+    all_spec = {}
+    # Read the spectrogram data
+    logger.info("Reading the spectrogram data")
+    if os.path.exists(cache_path + "/spectrogram_cache.pkl"):
+        logger.info("Found pickle cache for spectrogram data at: " + cache_path + "/spectrogram_cache.pkl")
+        with open(cache_path + "/spectrogram_cache.pkl", "rb") as f:
+            all_spec = pickle.load(f)  # noqa: S301
+        logger.info("Loaded pickle cache for spectrogram data")
+    else:
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            all_spec = dict(executor.map(load_spectrogram, itertools.repeat(spectrogram_path), ids["spectrogram_id"].unique()))
+            executor.shutdown()
+        logger.info("Finished reading the spectrogram data")
+        logger.info("Saving pickle cache for spectrogram data")
+        with open(cache_path + "/spectrogram_cache.pkl", "wb") as f:
+            pickle.dump(all_spec, f)
+        logger.info("Saved pickle cache for spectrogram data to: " + cache_path + "/spectrogram_cache.pkl")
+
+    return all_spec
+
 
 def setup_wandb(
     cfg: DictConfig,
