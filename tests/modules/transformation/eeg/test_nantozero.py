@@ -1,11 +1,10 @@
 from unittest import TestCase
 
+import numpy as np
 import pandas as pd
 
-from src.typing.typing import XData
-
 from src.modules.transformation.eeg.nantozero import NaNToZero
-import numpy as np
+from src.typing.typing import XData
 
 
 def setup_data_nan() -> XData:
@@ -37,7 +36,6 @@ def expected_data_nan() -> XData:
 
 
 class TestNaNToZero(TestCase):
-
     def test_transform(self):
         data = setup_data_nan()
         nan_to_zero = NaNToZero()

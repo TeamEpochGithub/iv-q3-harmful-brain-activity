@@ -2,9 +2,8 @@ from unittest import TestCase
 
 import pandas as pd
 
-from src.typing.typing import XData
-
 from src.modules.transformation.eeg.divide import Divide
+from src.typing.typing import XData
 
 
 def setup_data() -> XData:
@@ -34,7 +33,6 @@ def expected_data() -> XData:
 
 
 class TestDivide(TestCase):
-
     def test_transform(self):
         data = setup_data()
         divide = Divide(value=2)

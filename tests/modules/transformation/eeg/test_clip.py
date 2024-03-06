@@ -2,9 +2,8 @@ from unittest import TestCase
 
 import pandas as pd
 
-from src.typing.typing import XData
-
 from src.modules.transformation.eeg.clip import ClipEEG
+from src.typing.typing import XData
 
 
 def setup_data() -> XData:
@@ -21,10 +20,9 @@ def setup_data() -> XData:
 
 
 class TestClipEEG(TestCase):
-
     def test_transform(self):
         data = setup_data()
-        clip = ClipEEG(min=2, max=8)
+        clip = ClipEEG(lower=2, upper=8)
         transformed_data = clip.transform(data)
         eeg, spec, meta = transformed_data
         for key in eeg.keys():

@@ -7,7 +7,7 @@ from src.typing.typing import XData
 
 @dataclass
 class Divide(VerboseTransformationBlock):
-    """Divide EEG signals by a constant value
+    """Divide EEG signals by a constant value.
 
     :param value: The constant value to divide the EEG data by
     """
@@ -15,12 +15,14 @@ class Divide(VerboseTransformationBlock):
     value: float
 
     def custom_transform(self, data: XData) -> XData:
-        """Divide the EEG data by a constant value
+        """Divide the EEG data by a constant value.
 
         :param data: The X data to transform, as tuple (eeg, spec, meta)
         :return: The transformed data
         """
         eeg, spec, meta = data
-        for key in eeg.keys():
+        if eeg is None:
+            raise ValueError("No EEG data to transform")
+        for key in eeg:
             eeg[key] = eeg[key] / self.value
         return data
