@@ -168,16 +168,27 @@ def setup_data(metadata_path: str, eeg_path: str, spectrogram_path: str) -> tupl
     else:
         labels = None
     
+    # Determine if reading train and test data
+    if 'train' in eeg_path:
+        mode = 'train'
+    else:
+        mode = 'test'
 
+    # Get the cache path
+    cache_path = "/".join(eeg_path.split("/")[:-1]) + "/cache/" + mode
+    if not os.path.exists(cache_path):
+        os.makedirs(cache_path)
+
+    
     # Initialize the dictionaries
     all_eegs = dict()
     all_spectrograms = dict()
 
     # Read the EEG data
     logger.info("Reading the EEG data")
-    if os.path.exists(eeg_path + "/eeg_cache.pkl"):
+    if os.path.exists(cache_path + "/eeg_cache.pkl"):
         logger.info("Found pickle cache for EEG data")
-        all_eegs = pickle.load(open(eeg_path + "/eeg_cache.pkl", "rb"))
+        all_eegs = pickle.load(open(cache_path + "/eeg_cache.pkl", "rb"))
         logger.info("Loaded pickle cache for EEG data")
     else:
         with concurrent.futures.ProcessPoolExecutor() as executor:
@@ -185,14 +196,14 @@ def setup_data(metadata_path: str, eeg_path: str, spectrogram_path: str) -> tupl
             executor.shutdown()
         logger.info("Finished reading the EEG data")
         logger.info("Saving pickle cache for EEG data")
-        pickle.dump(all_eegs, open(eeg_path + "/eeg_cache.pkl", "wb"))
+        pickle.dump(all_eegs, open(cache_path + "/eeg_cache.pkl", "wb"))
         logger.info("Saved pickle cache for EEG data")
 
     # Read the spectrogram data
     logger.info("Reading the spectrogram data")
     if os.path.exists(spectrogram_path + "/spectrogram_cache.pkl"):
         logger.info("Found pickle cache for spectrogram data")
-        all_spectrograms = pickle.load(open(spectrogram_path + "/spectrogram_cache.pkl", "rb"))
+        all_spectrograms = pickle.load(open(cache_path + "/spectrogram_cache.pkl", "rb"))
         logger.info("Loaded pickle cache for spectrogram data")
     else:
         with concurrent.futures.ProcessPoolExecutor() as executor:
@@ -200,7 +211,7 @@ def setup_data(metadata_path: str, eeg_path: str, spectrogram_path: str) -> tupl
             executor.shutdown()
         logger.info("Finished reading the spectrogram data")
         logger.info("Saving pickle cache for spectrogram data")
-        pickle.dump(all_spectrograms, open(spectrogram_path + "/spectrogram_cache.pkl", "wb"))
+        pickle.dump(all_spectrograms, open(cache_path + "/spectrogram_cache.pkl", "wb"))
         logger.info("Saved pickle cache for spectrogram data")
 
     X_meta = pd.concat([ids, offsets], axis=1)
