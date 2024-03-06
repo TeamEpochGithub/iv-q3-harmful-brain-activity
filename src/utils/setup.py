@@ -182,8 +182,11 @@ def setup_data(metadata_path: str, eeg_path: str, spectrogram_path: str) -> tupl
     else:
         with concurrent.futures.ProcessPoolExecutor() as executor:
             all_eegs = dict(executor.map(load_eeg, itertools.repeat(eeg_path), ids['eeg_id'].unique()))
+            executor.shutdown()
         logger.info("Finished reading the EEG data")
+        logger.info("Saving pickle cache for EEG data")
         pickle.dump(all_eegs, open(eeg_path + "/eeg_cache.pkl", "wb"))
+        logger.info("Saved pickle cache for EEG data")
 
     # Read the spectrogram data
     logger.info("Reading the spectrogram data")
@@ -196,7 +199,9 @@ def setup_data(metadata_path: str, eeg_path: str, spectrogram_path: str) -> tupl
             all_spectrograms = dict(executor.map(load_spectrogram, itertools.repeat(spectrogram_path), ids['spectrogram_id'].unique()))
             executor.shutdown()
         logger.info("Finished reading the spectrogram data")
+        logger.info("Saving pickle cache for spectrogram data")
         pickle.dump(all_spectrograms, open(spectrogram_path + "/spectrogram_cache.pkl", "wb"))
+        logger.info("Saved pickle cache for spectrogram data")
 
     X_meta = pd.concat([ids, offsets], axis=1)
     
