@@ -62,7 +62,7 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
     # Lazily read the raw data with dask, and find the shape after processing
     X, y = setup_data(cfg.metadata_path, cfg.eeg_path, cfg.spectrogram_path)
     indices = np.arange(len(X[2]))
-    print(indices)
+    print(X[0][list(X[0].keys())[119]], X[2].head(10), y.head())
     # Split indices into train and test
     if cfg.test_size == 0:
         train_indices, test_indices = list(indices), []

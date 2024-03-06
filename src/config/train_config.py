@@ -23,9 +23,9 @@ class TrainConfig:
     model: Any
     ensemble: Any
     test_size: float
-    metadata_path: str
-    eeg_path: str
-    spectrogram_path: str
+    metadata_path: str | None
+    eeg_path: str | None
+    spectrogram_path: str | None
     scorer: Any
     cache_size: int
     wandb: WandBConfig

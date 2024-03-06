@@ -150,6 +150,14 @@ def setup_data(metadata_path: str, eeg_path: str, spectrogram_path: str) -> tupl
     :param eeg_path: Path to the EEG data.
     :param spectrogram_path: Path to the spectrogram data.
     """
+    # Check that metadata_path is not None
+    if metadata_path is None:
+        raise ValueError("metadata_path should not be None")
+    
+    # Check that at least one of the paths is not None
+    if eeg_path is None and spectrogram_path is None:
+        raise ValueError("At least one of the paths should not be None")
+    
     # Read the metadata
     metadata = pd.read_csv(metadata_path)
     # Now split the metadata into the 3 parts: ids, offsets, and labels
@@ -169,50 +177,60 @@ def setup_data(metadata_path: str, eeg_path: str, spectrogram_path: str) -> tupl
         labels = None
     
     # Determine if reading train and test data
-    if 'train' in eeg_path:
-        mode = 'train'
+        
+    # Get one of the paths that is not None
+    path = eeg_path if eeg_path is not None else spectrogram_path
+
+    if 'train' in path:
+        cache_loc = 'train'
     else:
-        mode = 'test'
+        cache_loc = 'test'
 
     # Get the cache path
-    cache_path = "/".join(eeg_path.split("/")[:-1]) + "/cache/" + mode
+    cache_path = "/".join(path.split("/")[:-1]) + "/cache/" + cache_loc
     if not os.path.exists(cache_path):
         os.makedirs(cache_path)
 
-    
-    # Initialize the dictionaries
-    all_eegs = dict()
-    all_spectrograms = dict()
-
-    # Read the EEG data
-    logger.info("Reading the EEG data")
-    if os.path.exists(cache_path + "/eeg_cache.pkl"):
-        logger.info("Found pickle cache for EEG data")
-        all_eegs = pickle.load(open(cache_path + "/eeg_cache.pkl", "rb"))
-        logger.info("Loaded pickle cache for EEG data")
+    if eeg_path is not None:
+        # Initialize the dictionary to store the EEG data
+        all_eegs = dict()
+        # Read the EEG data
+        logger.info("Reading the EEG data")
+        if os.path.exists(cache_path + "/eeg_cache.pkl"):
+            logger.info("Found pickle cache for EEG data at: " + cache_path + "/eeg_cache.pkl")
+            all_eegs = pickle.load(open(cache_path + "/eeg_cache.pkl", "rb"))
+            logger.info("Loaded pickle cache for EEG data")
+        else:
+            with concurrent.futures.ProcessPoolExecutor() as executor:
+                all_eegs = dict(executor.map(load_eeg, itertools.repeat(eeg_path), ids['eeg_id'].unique()))
+                executor.shutdown()
+            logger.info("Finished reading the EEG data")
+            logger.info("Saving pickle cache for EEG data")
+            pickle.dump(all_eegs, open(cache_path + "/eeg_cache.pkl", "wb"))
+            logger.info("Saved pickle cache for EEG data to: " + cache_path + "/eeg_cache.pkl")
     else:
-        with concurrent.futures.ProcessPoolExecutor() as executor:
-            all_eegs = dict(executor.map(load_eeg, itertools.repeat(eeg_path), ids['eeg_id'].unique()))
-            executor.shutdown()
-        logger.info("Finished reading the EEG data")
-        logger.info("Saving pickle cache for EEG data")
-        pickle.dump(all_eegs, open(cache_path + "/eeg_cache.pkl", "wb"))
-        logger.info("Saved pickle cache for EEG data")
+        logger.info("No EEG data to read, skipping...")
+        all_eegs = None
 
-    # Read the spectrogram data
-    logger.info("Reading the spectrogram data")
-    if os.path.exists(spectrogram_path + "/spectrogram_cache.pkl"):
-        logger.info("Found pickle cache for spectrogram data")
-        all_spectrograms = pickle.load(open(cache_path + "/spectrogram_cache.pkl", "rb"))
-        logger.info("Loaded pickle cache for spectrogram data")
+    if spectrogram_path is not None:
+        all_spectrograms = dict()
+        # Read the spectrogram data
+        logger.info("Reading the spectrogram data")
+        if os.path.exists(cache_path + "/spectrogram_cache.pkl"):
+            logger.info("Found pickle cache for spectrogram data at: " + cache_path + "/spectrogram_cache.pkl")
+            all_spectrograms = pickle.load(open(cache_path + "/spectrogram_cache.pkl", "rb"))
+            logger.info("Loaded pickle cache for spectrogram data")
+        else:
+            with concurrent.futures.ProcessPoolExecutor() as executor:
+                all_spectrograms = dict(executor.map(load_spectrogram, itertools.repeat(spectrogram_path), ids['spectrogram_id'].unique()))
+                executor.shutdown()
+            logger.info("Finished reading the spectrogram data")
+            logger.info("Saving pickle cache for spectrogram data")
+            pickle.dump(all_spectrograms, open(cache_path + "/spectrogram_cache.pkl", "wb"))
+            logger.info("Saved pickle cache for spectrogram data to: " + cache_path + "/spectrogram_cache.pkl")
     else:
-        with concurrent.futures.ProcessPoolExecutor() as executor:
-            all_spectrograms = dict(executor.map(load_spectrogram, itertools.repeat(spectrogram_path), ids['spectrogram_id'].unique()))
-            executor.shutdown()
-        logger.info("Finished reading the spectrogram data")
-        logger.info("Saving pickle cache for spectrogram data")
-        pickle.dump(all_spectrograms, open(cache_path + "/spectrogram_cache.pkl", "wb"))
-        logger.info("Saved pickle cache for spectrogram data")
+        logger.info("No spectrogram data to read, skipping...")
+        all_spectrograms = None
 
     X_meta = pd.concat([ids, offsets], axis=1)
     
@@ -293,18 +311,3 @@ def setup_wandb(
 
     logger.info("Done initializing Weights & Biases")
     return run
-
-
-def setup_test_data(data_path: str) -> tuple[dask.array.Array, list[str]]:
-    """Lazily read the raw data with dask, and find the shape after processing the test data.
-
-    :param data_path: Path to the raw data.
-
-    :return: X, filenames
-    """
-    logger.info("Lazily reading the raw test data")
-    X = imread(f"{data_path}/*.tif").transpose(0, 3, 1, 2)
-    filenames = [file for file in os.listdir(data_path) if file.endswith(".tif")]
-    logger.info(f"Raw test data shape: {X.shape}")
-
-    return X, filenames
