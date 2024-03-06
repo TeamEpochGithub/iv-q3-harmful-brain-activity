@@ -180,8 +180,8 @@ def setup_data(metadata_path: str, eeg_path: str, spectrogram_path: str) -> tupl
         all_eegs = pickle.load(open(eeg_path + "/eeg_cache.pkl", "rb"))
         logger.info("Loaded pickle cache for EEG data")
     else:
-        with concurrent.futures.ProcessPoolExecutor() as executor:
-            all_eegs = dict(executor.map(load_eeg, itertools.repeat(eeg_path), ids['eeg_id'].unique()))
+        for eeg_id in ids['eeg_id'].unique():
+            all_eegs[eeg_id] = pq.read_table(f"{eeg_path}/{eeg_id}.parquet").to_pandas()
         logger.info("Finished reading the EEG data")
         pickle.dump(all_eegs, open(eeg_path + "/eeg_cache.pkl", "wb"))
 
@@ -192,9 +192,8 @@ def setup_data(metadata_path: str, eeg_path: str, spectrogram_path: str) -> tupl
         all_spectrograms = pickle.load(open(spectrogram_path + "/spectrogram_cache.pkl", "rb"))
         logger.info("Loaded pickle cache for spectrogram data")
     else:
-        with concurrent.futures.ProcessPoolExecutor() as executor:
-            all_spectrograms = dict(executor.map(load_spectrogram, itertools.repeat(spectrogram_path), ids['spectrogram_id'].unique()))
-            executor.shutdown()
+        for spectrogram_id in ids['spectrogram_id'].unique():
+            all_spectrograms[spectrogram_id] = pq.read_table(f"{spectrogram_path}/{spectrogram_id}.parquet").to_pandas()
         logger.info("Finished reading the spectrogram data")
         pickle.dump(all_spectrograms, open(spectrogram_path + "/spectrogram_cache.pkl", "wb"))
 
