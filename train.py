@@ -72,7 +72,16 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
     # fit_params = generate_train_params(cfg, model_pipeline, train_indices=train_indices, test_indices=test_indices)
 
     print_section_separator("Train model pipeline")
-    predictions, _ = model_pipeline.train(X, y)  # , **fit_params)
+    train_args = {
+        'x_sys': {
+            'cache_args': {
+                "output_data_type": "numpy_array",
+                "storage_type": ".pkl",
+                "storage_path": "data/processed",
+            }
+        }
+    }
+    predictions, _ = model_pipeline.train(X, y, **train_args)  
 
     if len(test_indices) > 0:
         print_section_separator("Scoring")

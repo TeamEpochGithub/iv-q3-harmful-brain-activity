@@ -161,7 +161,7 @@ def setup_data(
     cache_loc = "train" if "train" in path else "test"
 
     # Get the cache path
-    cache_path = "/".join(path.split("/")[:-1]) + "/cache/" + cache_loc
+    cache_path = f"data/processed/{cache_loc}"
     if not os.path.exists(cache_path):
         os.makedirs(cache_path)
 
