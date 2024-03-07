@@ -10,16 +10,18 @@ from typing import Any, NamedTuple
 
 import dask.array as da
 import hydra
+import pandas as pd
 import randomname
-import wandb
 from distributed import Client
 from epochalyst.logging.section_separator import print_section_separator
 from hydra.core.config_store import ConfigStore
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 
+import wandb
 from src.config.cross_validation_config import CVConfig
 from src.logging_utils.logger import logger
+from src.typing.typing import XData
 from src.utils.script.lock import Lock
 from src.utils.script.reset_wandb_env import reset_wandb_env
 from src.utils.seed_torch import set_torch_seed
@@ -56,8 +58,8 @@ class WorkerInitData(NamedTuple):
     i: int
     train_indices: list[int]
     test_indices: list[int]
-    X: da.Array
-    y: da.Array
+    X: XData
+    y: pd.DataFrame
 
 
 class WorkerDoneData(NamedTuple):
@@ -105,6 +107,8 @@ def run_cv_cfg(cfg: DictConfig) -> None:
 
     # Lazily read the raw data with dask, and find the shape after processing
     X, y = setup_data(cfg.metadata_path, cfg.eeg_path, cfg.spectrogram_path)
+    if y is None:
+        raise ValueError("No labels loaded to train with")
 
     # Set up Weights & Biases group name
     wandb_group_name = randomname.get_name()

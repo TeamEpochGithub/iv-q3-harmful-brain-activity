@@ -6,7 +6,6 @@ from pathlib import Path
 
 import hydra
 import numpy as np
-import wandb
 from distributed import Client
 from epochalyst.logging.section_separator import print_section_separator
 from hydra.core.config_store import ConfigStore
@@ -14,6 +13,7 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig
 from sklearn.model_selection import train_test_split
 
+import wandb
 from src.config.train_config import TrainConfig
 from src.logging_utils.logger import logger
 from src.utils.script.lock import Lock
@@ -60,7 +60,9 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
 
     # Lazily read the raw data with dask, and find the shape after processing
     X, y = setup_data(cfg.metadata_path, cfg.eeg_path, cfg.spectrogram_path)
-    indices = np.arange(len(X[2]))
+    if y is None:
+        raise ValueError("No labels loaded to train with")
+    indices = np.arange(len(X.meta))
     # Split indices into train and test
     if cfg.test_size == 0:
         train_indices, test_indices = list(indices), []

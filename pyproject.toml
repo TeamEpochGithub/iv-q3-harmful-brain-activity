@@ -166,3 +166,9 @@ ignore = [
 
 [tool.ruff.format]
 docstring-code-format = true
+
+# allow unsused **kwargs of type Any
+[tool.ruff.lint.flake8-annotations]
+allow-star-arg-any = true
+[tool.ruff.lint.flake8-unused-arguments]
+ignore-variadic-names = true

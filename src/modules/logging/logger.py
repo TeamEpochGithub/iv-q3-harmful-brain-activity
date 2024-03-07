@@ -1,9 +1,9 @@
 """A logger that logs to the terminal and to W&B."""
 from typing import Any
 
-import wandb
 from epochalyst._core._logging._logger import _Logger
 
+import wandb
 from src.logging_utils.logger import logger
 
 
@@ -39,7 +39,7 @@ class Logger(_Logger):
         """
         logger.warning(message)
 
-    def log_to_external(self, message: dict[str, Any], **kwargs: Any) -> None:  # noqa: ANN401
+    def log_to_external(self, message: dict[str, Any], **kwargs: Any) -> None:
         """Log a message to an external service.
 
         :param message: The message to log
