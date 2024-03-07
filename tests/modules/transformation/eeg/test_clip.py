@@ -23,3 +23,17 @@ class TestClipEEG(TestCase):
         for key in eeg.keys():
             self.assertTrue((eeg[key] >= 2).all().all())
             self.assertTrue((eeg[key] <= 8).all().all())
+
+    def test_transform_no_upper(self):
+        data = setup_data()
+        clip = ClipEEG(lower=2, upper=None)
+        eeg = clip.transform(data).eeg
+        for key in eeg.keys():
+            self.assertTrue((eeg[key] >= 2).all().all())
+
+    def test_transform_no_lower(self):
+        data = setup_data()
+        clip = ClipEEG(lower=None, upper=8)
+        eeg = clip.transform(data).eeg
+        for key in eeg.keys():
+            self.assertTrue((eeg[key] <= 8).all().all())
