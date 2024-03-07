@@ -1,11 +1,11 @@
 """Butter filter for eeg signals."""
-
 from typing import Any
 
 import numpy as np
 import pandas as pd
 from numpy import typing as npt
 from scipy.signal import butter, lfilter
+from tqdm import tqdm
 
 from src.modules.transformation.verbose_transformation_block import VerboseTransformationBlock
 from src.typing.typing import XData
@@ -38,6 +38,6 @@ class ButterFilter(VerboseTransformationBlock):
         eeg = data.eeg
         if eeg is None:
             raise ValueError("No EEG data to transform")
-        for key in eeg:
+        for key in tqdm(eeg.keys(), desc="Butter Filtering EEG data"):
             eeg[key] = eeg[key].apply(butter_lowpass_filter)
         return data
