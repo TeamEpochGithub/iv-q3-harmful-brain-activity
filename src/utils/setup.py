@@ -10,16 +10,17 @@ from pathlib import Path
 from typing import Any, cast
 
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 import pyarrow.parquet as pq
 import torch
-import wandb
 from epochalyst.pipeline.model.model import ModelPipeline
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 from sklearn import set_config
 from sklearn.utils import estimator_html_repr
 
+import wandb
 from src.logging_utils.logger import logger
 from src.typing.typing import XData
 from src.utils.replace_list_with_dict import replace_list_with_dict
@@ -192,7 +193,7 @@ def load_eeg(eeg_path: str, eeg_id: int) -> tuple[int, pd.DataFrame]:
     return eeg_id, pq.read_table(f"{eeg_path}/{eeg_id}.parquet").to_pandas()
 
 
-def load_spectrogram(spectrogram_path: str, spectrogram_id: int) -> tuple[int, torch.Tensor]:
+def load_spectrogram(spectrogram_path: str, spectrogram_id: int) -> tuple[int, npt.NDArray[np.float32]]:
     """Load the spectrogram data from the parquet file.
 
     :param spectrogram_path: The path to the spectrogram data.
@@ -203,14 +204,16 @@ def load_spectrogram(spectrogram_path: str, spectrogram_id: int) -> tuple[int, t
     LP = data.filter(regex="^LP")
     RP = data.filter(regex="^RP")
     RL = data.filter(regex="^RL")
-    spectrogram = torch.stack(
+
+    spectrogram = np.stack(
         [
-            torch.tensor(LL.values).T,
-            torch.tensor(LP.values).T,
-            torch.tensor(RP.values).T,
-            torch.tensor(RL.values).T,
+            LL.to_numpy().T,
+            LP.to_numpy().T,
+            RP.to_numpy().T,
+            RL.to_numpy().T,
         ],
     )
+
     return spectrogram_id, spectrogram
 
 
@@ -259,6 +262,8 @@ def load_all_spectrograms(spectrogram_path: str, cache_path: str, ids: pd.DataFr
         with concurrent.futures.ProcessPoolExecutor() as executor:
             all_spec = dict(executor.map(load_spectrogram, itertools.repeat(spectrogram_path), ids["spectrogram_id"].unique()))
             executor.shutdown()
+        for spectrogram_id in all_spec:
+            all_spec[spectrogram_id] = torch.tensor(all_spec[spectrogram_id])
         logger.info("Finished reading the spectrogram data")
         logger.info("Saving pickle cache for spectrogram data")
         with open(cache_path + "/spectrogram_cache.pkl", "wb") as f:
