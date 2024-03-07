@@ -20,7 +20,7 @@ from src.logging_utils.logger import logger
 from src.utils.script.lock import Lock
 from src.utils.script.reset_wandb_env import reset_wandb_env
 from src.utils.seed_torch import set_torch_seed
-from src.utils.setup import setup_config, setup_pipeline, setup_train_data, setup_wandb
+from src.utils.setup import setup_config, setup_data, setup_pipeline, setup_wandb
 
 warnings.filterwarnings("ignore", category=UserWarning)
 # Makes hydra give full error messages
@@ -57,7 +57,7 @@ def run_cv_cfg(cfg: DictConfig) -> None:
     output_dir = Path(hydra.core.hydra_config.HydraConfig.get().runtime.output_dir)
 
     # Lazily read the raw data with dask, and find the shape after processing
-    X, y = setup_train_data(cfg.raw_data_path, cfg.raw_target_path)
+    X, y = setup_data(cfg.metadata_path, cfg.eeg_path, cfg.spectrogram_path)
 
     # Set up Weights & Biases group name
     wandb_group_name = randomname.get_name()
@@ -91,7 +91,7 @@ def run_cv_cfg(cfg: DictConfig) -> None:
         # Fit the pipeline and get predictions
         predictions = model_pipeline.fit_transform(X, y, **fit_params)
         scorer = instantiate(cfg.scorer)
-        score = scorer(original_y[test_indices].compute(), predictions[test_indices])
+        score = scorer(original_y[test_indices], predictions[test_indices])
         logger.info(f"Score: {score}")
         wandb.log({"Score": score})
 

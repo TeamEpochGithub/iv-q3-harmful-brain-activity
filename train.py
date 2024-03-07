@@ -18,7 +18,7 @@ from src.config.train_config import TrainConfig
 from src.logging_utils.logger import logger
 from src.utils.script.lock import Lock
 from src.utils.seed_torch import set_torch_seed
-from src.utils.setup import setup_config, setup_pipeline, setup_train_data, setup_wandb
+from src.utils.setup import setup_config, setup_data, setup_pipeline, setup_wandb
 
 warnings.filterwarnings("ignore", category=UserWarning)
 # Makes hydra give full error messages
@@ -26,7 +26,6 @@ os.environ["HYDRA_FULL_ERROR"] = "1"
 # Set up the config store, necessary for type checking of config yaml
 cs = ConfigStore.instance()
 cs.store(name="base_train", node=TrainConfig)
-count = 0
 
 
 @hydra.main(version_base=None, config_path="conf", config_name="train")
@@ -60,9 +59,8 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
     model_pipeline = setup_pipeline(cfg, output_dir, is_train=True)
 
     # Lazily read the raw data with dask, and find the shape after processing
-    X, y = setup_train_data(cfg.raw_data_path, cfg.raw_target_path)
-    indices = np.arange(X.shape[0])
-
+    X, y = setup_data(cfg.metadata_path, cfg.eeg_path, cfg.spectrogram_path)
+    indices = np.arange(len(X[2]))
     # Split indices into train and test
     if cfg.test_size == 0:
         train_indices, test_indices = list(indices), []
@@ -79,7 +77,7 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
     if len(test_indices) > 0:
         print_section_separator("Scoring")
         scorer = instantiate(cfg.scorer)
-        score = scorer(y[test_indices].compute(), predictions[test_indices])
+        score = scorer(y[test_indices], predictions[test_indices])
         logger.info(f"Score: {score}")
 
         if wandb.run:
