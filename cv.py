@@ -83,6 +83,8 @@ def run_cv_cfg(cfg: DictConfig) -> None:
         # Fit the pipeline
         target_pipeline = model_pipeline.get_target_pipeline()
         original_y = copy.deepcopy(y)
+        if original_y is None:
+            raise ValueError("No labels loaded to train with")
 
         if target_pipeline is not None:
             print_section_separator("Target pipeline")

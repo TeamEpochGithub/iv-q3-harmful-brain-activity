@@ -2,6 +2,8 @@
 from dataclasses import dataclass
 from typing import Any
 
+from tqdm import tqdm
+
 from src.modules.transformation.verbose_transformation_block import VerboseTransformationBlock
 from src.typing.typing import XData
 
@@ -23,10 +25,10 @@ class ClipEEG(VerboseTransformationBlock):
         :param data: The X data to transform, as tuple (eeg, spec, meta)
         :return: The transformed data
         """
-        eeg, spec, meta = data
+        eeg = data.eeg
         if eeg is None:
             raise ValueError("No EEG data to transform")
         if self.lower is not None and self.upper is not None:
-            for key in eeg:
+            for key in tqdm(eeg, desc="Clipping EEG data"):
                 eeg[key] = eeg[key].clip(self.lower, self.upper)
         return data

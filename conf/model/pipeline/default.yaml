@@ -3,15 +3,19 @@ _convert_: partial
 
 x_sys:
   _target_: epochalyst.pipeline.model.transformation.transformation.TransformationPipeline
+  title: x_sys
 
 y_sys:
   _target_: epochalyst.pipeline.model.transformation.transformation.TransformationPipeline
+  title: y_sys
 
 train_sys:
   _target_: epochalyst.pipeline.model.training.training.TrainingPipeline
 
 pred_sys:
   _target_: epochalyst.pipeline.model.transformation.transformation.TransformationPipeline
+  title: pred_sys
 
 label_sys:
   _target_: epochalyst.pipeline.model.transformation.transformation.TransformationPipeline
+  title: label_sys

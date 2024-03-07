@@ -8,39 +8,32 @@ from src.typing.typing import XData
 
 
 def setup_data_nan() -> XData:
-    # set up data with some nan values
     eeg = {
-        "eeg1": pd.DataFrame([1, 2, 3, 4, 5], dtype=float),
-        "eeg2": pd.DataFrame([6, np.nan, 8, 9, 10], dtype=float),
+        0: pd.DataFrame([1, 2, 3, 4, 5], dtype=float),
+        1: pd.DataFrame([6, 7, 8, 9, 10], dtype=float),
     }
-    spec = {
-        "spec1": pd.DataFrame([1, 2, 3, 4, 5]),
-        "spec2": pd.DataFrame([6, 7, 8, 9, 10]),
-    }
+    eeg[0].iloc[1] = np.nan
+    eeg[1].iloc[3] = np.nan
     meta = pd.DataFrame([1, 2, 3, 4, 5])
-    return eeg, spec, meta
+    return XData(eeg=eeg, kaggle_spec=None, eeg_spec=None, meta=meta)
 
 
-def expected_data_nan() -> XData:
-    # expected data with nan values set to zero
+def expected_data_zero() -> XData:
     eeg = {
-        "eeg1": pd.DataFrame([1, 2, 3, 4, 5], dtype=float),
-        "eeg2": pd.DataFrame([6, 0, 8, 9, 10], dtype=float),
+        0: pd.DataFrame([1, 2, 3, 4, 5], dtype=float),
+        1: pd.DataFrame([6, 7, 8, 9, 10], dtype=float),
     }
-    spec = {
-        "spec1": pd.DataFrame([1, 2, 3, 4, 5]),
-        "spec2": pd.DataFrame([6, 7, 8, 9, 10]),
-    }
+    eeg[0].iloc[1] = 0
+    eeg[1].iloc[3] = 0
     meta = pd.DataFrame([1, 2, 3, 4, 5])
-    return eeg, spec, meta
+    return XData(eeg=eeg, kaggle_spec=None, eeg_spec=None, meta=meta)
 
 
 class TestNaNToZero(TestCase):
     def test_transform(self):
         data = setup_data_nan()
         nan_to_zero = NaNToZero()
-        transformed_data = nan_to_zero.transform(data)
-        expected = expected_data_nan()
-        eeg, spec, meta = transformed_data
+        eeg = nan_to_zero.transform(data).eeg
+        expected = expected_data_zero().eeg
         for key in eeg.keys():
-            pd.testing.assert_frame_equal(eeg[key], expected[0][key])
+            pd.testing.assert_frame_equal(eeg[key], expected[key])

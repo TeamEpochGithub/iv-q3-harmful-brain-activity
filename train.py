@@ -60,7 +60,9 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
 
     # Lazily read the raw data with dask, and find the shape after processing
     X, y = setup_data(cfg.metadata_path, cfg.eeg_path, cfg.spectrogram_path)
-    indices = np.arange(len(X[2]))
+    if y is None:
+        raise ValueError("No labels loaded to train with")
+    indices = np.arange(len(X.meta))
     # Split indices into train and test
     if cfg.test_size == 0:
         train_indices, test_indices = list(indices), []

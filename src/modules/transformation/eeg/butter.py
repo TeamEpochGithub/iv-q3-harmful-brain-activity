@@ -11,7 +11,7 @@ from src.modules.transformation.verbose_transformation_block import VerboseTrans
 from src.typing.typing import XData
 
 
-def butter_lowpass_filter(data: pd.Series[float], cutoff_freq: float = 20, sampling_rate: int = 200, order: int = 4) -> npt.NDArray[np.float32]:
+def butter_lowpass_filter(data: pd.DataFrame, cutoff_freq: float = 20, sampling_rate: int = 200, order: int = 4) -> npt.NDArray[np.float32]:
     """Filter the data with a butter filter.
 
     Taken from "https://www.kaggle.com/code/nartaa/features-head-starter.
@@ -35,7 +35,7 @@ class ButterFilter(VerboseTransformationBlock):
         :param data: The X data to transform, as tuple (eeg, spec, meta)
         :return: The transformed data
         """
-        eeg, spec, meta = data
+        eeg = data.eeg
         if eeg is None:
             raise ValueError("No EEG data to transform")
         for key in eeg:

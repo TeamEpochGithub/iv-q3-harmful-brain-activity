@@ -12,6 +12,7 @@ from typing import Any, cast
 import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
+import torch
 import wandb
 from epochalyst.pipeline.model.model import ModelPipeline
 from hydra.utils import instantiate
@@ -20,6 +21,7 @@ from sklearn import set_config
 from sklearn.utils import estimator_html_repr
 
 from src.logging_utils.logger import logger
+from src.typing.typing import XData
 from src.utils.replace_list_with_dict import replace_list_with_dict
 
 
@@ -120,7 +122,7 @@ def setup_data(
     metadata_path: str,
     eeg_path: str,
     spectrogram_path: str,
-) -> tuple[tuple[dict[int, pd.DataFrame] | None, dict[int, pd.DataFrame] | None, pd.DataFrame], pd.DataFrame | None]:
+) -> tuple[XData, pd.DataFrame | None]:
     """Read the metadata and return the data and target in the proper format.
 
     :param metadata_path: Path to the metadata.
@@ -153,8 +155,6 @@ def setup_data(
     else:
         labels = None
 
-    # Determine if reading train and test data
-
     # Get one of the paths that is not None
     path = eeg_path if eeg_path is not None else spectrogram_path
 
@@ -180,7 +180,7 @@ def setup_data(
 
     X_meta = pd.concat([ids, offsets], axis=1)
 
-    return (all_eegs, all_spectrograms, X_meta), labels
+    return XData(eeg=all_eegs, kaggle_spec=all_spectrograms, eeg_spec=None, meta=X_meta), labels
 
 
 def load_eeg(eeg_path: str, eeg_id: int) -> tuple[int, pd.DataFrame]:
@@ -192,13 +192,26 @@ def load_eeg(eeg_path: str, eeg_id: int) -> tuple[int, pd.DataFrame]:
     return eeg_id, pq.read_table(f"{eeg_path}/{eeg_id}.parquet").to_pandas()
 
 
-def load_spectrogram(spectrogram_path: str, spectrogram_id: int) -> tuple[int, pd.DataFrame]:
+def load_spectrogram(spectrogram_path: str, spectrogram_id: int) -> tuple[int, torch.Tensor]:
     """Load the spectrogram data from the parquet file.
 
     :param spectrogram_path: The path to the spectrogram data.
     :param spectrogram_id: The spectrogram id.
     """
-    return spectrogram_id, pq.read_table(f"{spectrogram_path}/{spectrogram_id}.parquet").to_pandas()
+    data = pd.read_parquet(f"{spectrogram_path}/{spectrogram_id}.parquet")
+    LL = data.filter(regex="^LL")
+    LP = data.filter(regex="^LP")
+    RP = data.filter(regex="^RP")
+    RL = data.filter(regex="^RL")
+    spectrogram = torch.stack(
+        [
+            torch.tensor(LL.values).T,
+            torch.tensor(LP.values).T,
+            torch.tensor(RP.values).T,
+            torch.tensor(RL.values).T,
+        ],
+    )
+    return spectrogram_id, spectrogram
 
 
 def load_all_eegs(eeg_path: str, cache_path: str, ids: pd.DataFrame) -> dict[int, pd.DataFrame]:
@@ -228,7 +241,7 @@ def load_all_eegs(eeg_path: str, cache_path: str, ids: pd.DataFrame) -> dict[int
     return all_eegs
 
 
-def load_all_spectrograms(spectrogram_path: str, cache_path: str, ids: pd.DataFrame) -> dict[int, pd.DataFrame]:
+def load_all_spectrograms(spectrogram_path: str, cache_path: str, ids: pd.DataFrame) -> dict[int, torch.Tensor]:
     """Read the spectrogram data and return it as a dictionary.
 
     :param spectrogram_path: Path to the spectrogram data.
