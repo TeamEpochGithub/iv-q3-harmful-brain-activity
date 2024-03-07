@@ -8,13 +8,13 @@ from typing import Any
 
 import hydra
 import randomname
-import wandb
 from distributed import Client
 from epochalyst.logging.section_separator import print_section_separator
 from hydra.core.config_store import ConfigStore
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 
+import wandb
 from src.config.cross_validation_config import CVConfig
 from src.logging_utils.logger import logger
 from src.utils.script.lock import Lock
@@ -83,6 +83,8 @@ def run_cv_cfg(cfg: DictConfig) -> None:
         # Fit the pipeline
         target_pipeline = model_pipeline.get_target_pipeline()
         original_y = copy.deepcopy(y)
+        if original_y is None:
+            raise ValueError("No labels loaded to train with")
 
         if target_pipeline is not None:
             print_section_separator("Target pipeline")

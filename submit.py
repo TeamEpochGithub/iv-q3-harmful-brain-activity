@@ -11,7 +11,6 @@ from omegaconf import DictConfig
 
 from src.config.submit_config import SubmitConfig
 from src.logging_utils.logger import logger
-from src.utils.make_submission import make_submission
 from src.utils.setup import setup_config, setup_data, setup_pipeline
 
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -53,7 +52,8 @@ def run_submit(cfg: DictConfig) -> None:
 
     # Make submission
     if predictions is not None:
-        make_submission(output_dir, predictions, filenames)
+        # TODO(For issue #34): make_submission(output_dir, predictions, filenames)
+        pass
     else:
         raise ValueError("Predictions are None")
 
