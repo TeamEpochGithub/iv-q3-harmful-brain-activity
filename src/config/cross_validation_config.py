@@ -1,6 +1,5 @@
 """Schema for the cross validation configuration."""
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
 
 from src.config.wandb_config import WandBConfig
@@ -23,9 +22,9 @@ class CVConfig:
 
     model: Any
     ensemble: Any
-    raw_data_path: Path
-    raw_target_path: Path
-    metadata_path: Path
+    metadata_path: str | None
+    eeg_path: str | None
+    spectrogram_path: str | None
     scorer: Any
     cache_size: int
     wandb: WandBConfig

@@ -4,8 +4,9 @@ defaults:
   - model: test
   - wandb: train
 
-raw_data_path: data/...
-raw_target_path: data/...
+metadata_path: data/raw/train.csv
+eeg_path: data/raw/train_eegs
+spectrogram_path: data/raw/train_spectrograms
 scorer:
   _target_: src.scoring.dice_coefficient.DiceCoefficient
 test_size: 0
