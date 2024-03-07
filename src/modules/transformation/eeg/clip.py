@@ -28,7 +28,7 @@ class ClipEEG(VerboseTransformationBlock):
         eeg = data.eeg
         if eeg is None:
             raise ValueError("No EEG data to transform")
-        if self.lower is not None and self.upper is not None:
+        if self.lower is not None or self.upper is not None:
             for key in tqdm(eeg, desc="Clipping EEG data"):
                 eeg[key] = eeg[key].clip(self.lower, self.upper)
         return data
