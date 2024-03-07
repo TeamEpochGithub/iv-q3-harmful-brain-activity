@@ -1,7 +1,6 @@
 """Submit.py is the main script for running inference on the test set and creating a submission."""
 import os
 import warnings
-from pathlib import Path
 
 import hydra
 from distributed import Client
@@ -29,7 +28,7 @@ def run_submit(cfg: DictConfig) -> None:
     """Run the main script for submitting the predictions."""
     # Print section separator
     print_section_separator("Q3 Detect Harmful Brain Activity - Submit")
-    output_dir = Path(hydra.core.hydra_config.HydraConfig.get().runtime.output_dir)
+    # output_dir = Path(hydra.core.hydra_config.HydraConfig.get().runtime.output_dir)
 
     # Set up logging
     import coloredlogs
@@ -41,7 +40,7 @@ def run_submit(cfg: DictConfig) -> None:
 
     # Preload the pipeline and save it to HTML
     print_section_separator("Setup pipeline")
-    model_pipeline = setup_pipeline(cfg, output_dir, is_train=False)
+    model_pipeline = setup_pipeline(cfg, is_train=False)
 
     # Load the test data
     X, filenames = setup_data(cfg.metadata_path, cfg.eeg_path, cfg.spectrogram_path)

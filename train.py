@@ -6,6 +6,7 @@ from pathlib import Path
 
 import hydra
 import numpy as np
+import wandb
 from distributed import Client
 from epochalyst.logging.section_separator import print_section_separator
 from hydra.core.config_store import ConfigStore
@@ -13,7 +14,6 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig
 from sklearn.model_selection import train_test_split
 
-import wandb
 from src.config.train_config import TrainConfig
 from src.logging_utils.logger import logger
 from src.utils.script.lock import Lock
@@ -56,7 +56,7 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
 
     # Preload the pipeline and save it to HTML
     print_section_separator("Setup pipeline")
-    model_pipeline = setup_pipeline(cfg, output_dir, is_train=True)
+    model_pipeline = setup_pipeline(cfg, is_train=True)
 
     # Lazily read the raw data with dask, and find the shape after processing
     X, y = setup_data(cfg.metadata_path, cfg.eeg_path, cfg.spectrogram_path)
@@ -74,7 +74,16 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
     # fit_params = generate_train_params(cfg, model_pipeline, train_indices=train_indices, test_indices=test_indices)
 
     print_section_separator("Train model pipeline")
-    predictions, _ = model_pipeline.train(X, y)  # , **fit_params)
+    train_args = {
+        "x_sys": {
+            "cache_args": {
+                "output_data_type": "numpy_array",
+                "storage_type": ".pkl",
+                "storage_path": "data/processed",
+            },
+        },
+    }
+    predictions, _ = model_pipeline.train(X, y, **train_args)
 
     if len(test_indices) > 0:
         print_section_separator("Scoring")

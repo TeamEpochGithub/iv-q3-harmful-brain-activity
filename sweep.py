@@ -12,13 +12,13 @@ import dask.array as da
 import hydra
 import pandas as pd
 import randomname
+import wandb
 from distributed import Client
 from epochalyst.logging.section_separator import print_section_separator
 from hydra.core.config_store import ConfigStore
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 
-import wandb
 from src.config.cross_validation_config import CVConfig
 from src.logging_utils.logger import logger
 from src.typing.typing import XData
@@ -237,7 +237,7 @@ def _one_fold(cfg: DictConfig, output_dir: Path, fold: int, wandb_group_name: st
         wandb_fold_run = setup_wandb(cfg, "cv", output_dir, name=f"{wandb_group_name}_{fold}", group=wandb_group_name)
 
     logger.info("Creating clean pipeline for this fold")
-    model_pipeline = setup_pipeline(cfg, output_dir, is_train=True)
+    model_pipeline = setup_pipeline(cfg, is_train=True)
 
     # Generate the parameters for training
     fit_params: dict[str, Any] = {}  # generate_cv_params(cfg, model_pipeline, train_indices, test_indices)

@@ -14,13 +14,11 @@ import numpy.typing as npt
 import pandas as pd
 import pyarrow.parquet as pq
 import torch
+import wandb
 from epochalyst.pipeline.model.model import ModelPipeline
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
-from sklearn import set_config
-from sklearn.utils import estimator_html_repr
 
-import wandb
 from src.logging_utils.logger import logger
 from src.typing.typing import XData
 from src.utils.replace_list_with_dict import replace_list_with_dict
@@ -51,7 +49,7 @@ def setup_config(cfg: DictConfig) -> None:
         raise ValueError(f"Missing keys in config: {missing}")
 
 
-def setup_pipeline(pipeline_cfg: DictConfig, output_dir: Path, is_train: bool | None) -> ModelPipeline:
+def setup_pipeline(pipeline_cfg: DictConfig, is_train: bool | None) -> ModelPipeline:
     """Instantiate the pipeline and log it to HTML.
 
     :param pipeline_cfg: The model pipeline config. Root node should be a ModelPipeline
@@ -84,12 +82,6 @@ def setup_pipeline(pipeline_cfg: DictConfig, output_dir: Path, is_train: bool | 
     model_pipeline = instantiate(cfg)
 
     logger.debug(f"Pipeline: \n{model_pipeline}")
-
-    logger.info("Saving pipeline to HTML")
-    set_config(display="diagram")
-    pipeline_html = estimator_html_repr(model_pipeline)
-    with open(output_dir / "pipeline.html", "w", encoding="utf-8") as f:
-        f.write(pipeline_html)
 
     return model_pipeline
 
@@ -162,7 +154,7 @@ def setup_data(
     cache_loc = "train" if "train" in path else "test"
 
     # Get the cache path
-    cache_path = "/".join(path.split("/")[:-1]) + "/cache/" + cache_loc
+    cache_path = f"data/processed/{cache_loc}"
     if not os.path.exists(cache_path):
         os.makedirs(cache_path)
 

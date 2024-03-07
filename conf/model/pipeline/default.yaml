@@ -2,16 +2,19 @@ _target_: epochalyst.pipeline.model.model.ModelPipeline
 _convert_: partial
 
 x_sys:
-  _target_: epochalyst.pipeline.model.transformation.transformation.TransformationPipeline
+  _target_: src.modules.transformation.verbose_transformation_pipeline.VerboseTransformationPipeline
+  title: "Preprocessing pipeline"
 
 y_sys:
-  _target_: epochalyst.pipeline.model.transformation.transformation.TransformationPipeline
+  _target_: src.modules.transformation.verbose_transformation_pipeline.VerboseTransformationPipeline
+  title: "Label processing pipeline"
 
 train_sys:
-  _target_: epochalyst.pipeline.model.training.training.TrainingPipeline
+  _target_: src.modules.training.verbose_training_pipeline.VerboseTrainingPipeline
 
 pred_sys:
-  _target_: epochalyst.pipeline.model.transformation.transformation.TransformationPipeline
+  _target_: src.modules.transformation.verbose_transformation_pipeline.VerboseTransformationPipeline
+  title: "Postprocessing pipeline"
 
 label_sys:
-  _target_: epochalyst.pipeline.model.transformation.transformation.TransformationPipeline
+  _target_: src.modules.transformation.verbose_transformation_pipeline.VerboseTransformationPipeline

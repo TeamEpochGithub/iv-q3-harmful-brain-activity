@@ -48,6 +48,7 @@ docutils==0.20.1
 efficientnet-pytorch==0.7.1
 exceptiongroup==1.2.0
 executing==2.0.1
+epochalyst>=0.1.0
 fasteners==0.19
 fastjsonschema==2.19.0
 filelock==3.13.1
@@ -203,9 +204,9 @@ tinycss2==1.2.1
 tomli==2.0.1
 toolz==0.12.0
 --find-links https://download.pytorch.org/whl/torch_stable.html
-torch==2.1.2+cu118
-torchaudio==2.1.2+cu118
-torchvision==0.16.2+cu118
+torch>=2.1.2+cu118
+torchaudio>=2.1.2+cu118
+torchvision>=0.16.2+cu118
 torch-summary==1.4.5
 torchviz==0.0.2
 tornado==6.4
