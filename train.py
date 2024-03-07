@@ -56,7 +56,7 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
 
     # Preload the pipeline and save it to HTML
     print_section_separator("Setup pipeline")
-    model_pipeline = setup_pipeline(cfg, output_dir, is_train=True)
+    model_pipeline = setup_pipeline(cfg, is_train=True)
 
     # Lazily read the raw data with dask, and find the shape after processing
     X, y = setup_data(cfg.metadata_path, cfg.eeg_path, cfg.spectrogram_path)
@@ -73,15 +73,15 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
 
     print_section_separator("Train model pipeline")
     train_args = {
-        'x_sys': {
-            'cache_args': {
+        "x_sys": {
+            "cache_args": {
                 "output_data_type": "numpy_array",
                 "storage_type": ".pkl",
                 "storage_path": "data/processed",
-            }
-        }
+            },
+        },
     }
-    predictions, _ = model_pipeline.train(X, y, **train_args)  
+    predictions, _ = model_pipeline.train(X, y, **train_args)
 
     if len(test_indices) > 0:
         print_section_separator("Scoring")
