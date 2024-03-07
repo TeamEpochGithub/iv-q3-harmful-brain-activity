@@ -14,11 +14,11 @@ import numpy.typing as npt
 import pandas as pd
 import pyarrow.parquet as pq
 import torch
+import wandb
 from epochalyst.pipeline.model.model import ModelPipeline
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
-import wandb
 from src.logging_utils.logger import logger
 from src.typing.typing import XData
 from src.utils.replace_list_with_dict import replace_list_with_dict
