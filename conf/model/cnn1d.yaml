@@ -34,6 +34,9 @@ train_sys:
       epochs: 5
       batch_size: 32
       patience: 10
+      dataset:
+        _target_: src.modules.training.datasets.main_dataset.MainDataset
+        data_type: "eeg"
 
 
 
