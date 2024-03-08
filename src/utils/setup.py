@@ -175,6 +175,9 @@ def setup_data(
 
     return XData(eeg=all_eegs, kaggle_spec=all_spectrograms, eeg_spec=None, meta=X_meta), labels
 
+def setup_label_data(
+        
+)
 
 def load_eeg(eeg_path: str, eeg_id: int) -> tuple[int, pd.DataFrame]:
     """Load the EEG data from the parquet file.

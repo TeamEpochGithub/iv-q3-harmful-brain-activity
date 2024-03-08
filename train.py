@@ -58,7 +58,20 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
     print_section_separator("Setup pipeline")
     model_pipeline = setup_pipeline(cfg, is_train=True)
 
-    # Lazily read the raw data with dask, and find the shape after processing
+    # Cache arguments for x_sys
+    cache_args = {
+        "output_data_type": "numpy_array",
+        "storage_type": ".pkl",
+        "storage_path": "data/processed"
+    }
+
+    # Read the data if required and split it in X, y
+    if model_pipeline.x_sys._cache_exists(model_pipeline.x_sys.get_hash(), cache_args) and not model_pipeline.y_sys._cache_exists(model_pipeline.y_sys.get_hash(), cache_args):
+        # Only read y data
+        X = None
+        y = setup_label_data(cfg.raw_path)
+    else:
+    
     X, y = setup_data(cfg.metadata_path, cfg.eeg_path, cfg.spectrogram_path)
     if y is None:
         raise ValueError("No labels loaded to train with")
@@ -76,11 +89,7 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
     print_section_separator("Train model pipeline")
     train_args = {
         "x_sys": {
-            "cache_args": {
-                "output_data_type": "numpy_array",
-                "storage_type": ".pkl",
-                "storage_path": "data/processed",
-            },
+            "cache_args": cache_args 
         },
     }
     predictions, _ = model_pipeline.train(X, y, **train_args)
