@@ -68,14 +68,15 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
     # Read the data if required and split it in X, y
     if model_pipeline.x_sys._cache_exists(model_pipeline.x_sys.get_hash(), cache_args) and not model_pipeline.y_sys._cache_exists(model_pipeline.y_sys.get_hash(), cache_args):
         # Only read y data
+        logger.info("x_sys has an existing cache, only loading in labels")
         X = None
         y = setup_label_data(cfg.raw_path)
+        indices = np.arange(len(y))
     else:
-    
-    X, y = setup_data(raw_path=cfg.raw_path)
+        X, y = setup_data(raw_path=cfg.raw_path)
+        indices = np.arange(len(X.meta))
     if y is None:
         raise ValueError("No labels loaded to train with")
-    indices = np.arange(len(X.meta))
     # Split indices into train and test
     if cfg.test_size == 0:
         train_indices, test_indices = list(indices), []

@@ -179,9 +179,24 @@ def setup_data(
 
     return XData(eeg=all_eegs, kaggle_spec=all_spectrograms, eeg_spec=None, meta=X_meta), labels
 
-def setup_label_data(
-        
-)
+def setup_label_data(raw_path: str) -> pd.DataFrame:
+    raw_path = raw_path if raw_path[-1] == "/" else raw_path + "/"
+    metadata_path = raw_path + "train.csv"
+
+    if metadata_path is None:
+        raise ValueError("Metadata_path should not be None") 
+
+    # Read the metadata
+    metadata = pd.read_csv(metadata_path)
+
+    label_columns = ["seizure_vote", "lpd_vote", "gpd_vote", "lrda_vote", "grda_vote", "other_vote"]
+
+    if all(column in metadata.columns for column in label_columns):
+        labels = metadata[label_columns]
+    else:
+        labels = None
+
+    return labels
 
 def load_eeg(eeg_path: str, eeg_id: int) -> tuple[int, pd.DataFrame]:
     """Load the EEG data from the parquet file.
