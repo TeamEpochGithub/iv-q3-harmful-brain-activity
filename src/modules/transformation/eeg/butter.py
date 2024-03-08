@@ -23,7 +23,7 @@ def butter_lowpass_filter(data: pd.DataFrame, cutoff_freq: float = 20, sampling_
     nyquist = 0.5 * sampling_rate
     normal_cutoff = cutoff_freq / nyquist
     b, a = butter(order, normal_cutoff, btype="low", analog=False, output="ba")
-    return lfilter(b, a, data, axis=0)
+    return lfilter(b, a, data, axis=0).astype(np.float32)
 
 
 class ButterFilter(VerboseTransformationBlock):
