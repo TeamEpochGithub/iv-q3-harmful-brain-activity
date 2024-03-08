@@ -62,11 +62,11 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
     cache_args = {
         "output_data_type": "numpy_array",
         "storage_type": ".pkl",
-        "storage_path": "data/processed"
+        "storage_path": "data/processed",
     }
 
     # Read the data if required and split it in X, y
-    if model_pipeline.x_sys._cache_exists(model_pipeline.x_sys.get_hash(), cache_args) and not model_pipeline.y_sys._cache_exists(model_pipeline.y_sys.get_hash(), cache_args):
+    if model_pipeline.x_sys._cache_exists(model_pipeline.x_sys.get_hash(), cache_args) and not model_pipeline.y_sys._cache_exists(model_pipeline.y_sys.get_hash(), cache_args):  # noqa: SLF001
         # Only read y data
         logger.info("x_sys has an existing cache, only loading in labels")
         X = None
@@ -90,7 +90,7 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
     print_section_separator("Train model pipeline")
     train_args = {
         "x_sys": {
-            "cache_args": cache_args 
+            "cache_args": cache_args,
         },
     }
     predictions, _ = model_pipeline.train(X, y, **train_args)
