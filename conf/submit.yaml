@@ -3,6 +3,5 @@ defaults:
   - hydra/logging
   - ensemble: 21-02-1st
 
-raw_data_path: data/...
-raw_target_path: data/...
+raw_path: data/raw
 test_size: 0

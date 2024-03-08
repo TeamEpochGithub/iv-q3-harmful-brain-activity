@@ -18,7 +18,7 @@ from src.config.train_config import TrainConfig
 from src.logging_utils.logger import logger
 from src.utils.script.lock import Lock
 from src.utils.seed_torch import set_torch_seed
-from src.utils.setup import setup_config, setup_data, setup_pipeline, setup_wandb
+from src.utils.setup import setup_config, setup_data, setup_label_data, setup_pipeline, setup_wandb
 
 warnings.filterwarnings("ignore", category=UserWarning)
 # Makes hydra give full error messages
@@ -72,7 +72,7 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
         y = setup_label_data(cfg.raw_path)
     else:
     
-    X, y = setup_data(cfg.metadata_path, cfg.eeg_path, cfg.spectrogram_path)
+    X, y = setup_data(raw_path=cfg.raw_path)
     if y is None:
         raise ValueError("No labels loaded to train with")
     indices = np.arange(len(X.meta))
