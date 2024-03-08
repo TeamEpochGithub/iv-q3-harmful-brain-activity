@@ -15,15 +15,17 @@ class MainDataset(Dataset):
     data_type: str
     X: XData | None
     y: pd.DataFrame | None
+    indices: list[int] | None
 
-    def setup(self, X: XData, y: pd.DataFrame):
+    def setup(self, X: XData, y: pd.DataFrame, indices: list[int]):
         """Set up the dataset."""
         self.X = X
         self.y = y
+        self.indices = indices
 
     def __len__(self):
         """Get the length of the dataset."""
-        return len(getattr(self.X, self.data_type))
+        return len(self.indices)
 
     def __getitem__(self, idx):
         # Check if the data is set up
@@ -31,6 +33,8 @@ class MainDataset(Dataset):
             raise ValueError("X Data not set up.")
         if self.y is None:
             raise ValueError("y Data not set up.")
+        if self.indices is None:
+            raise ValueError("Indices not set up.")
 
         # Create a switch statement to handle the different data types
         match self.data_type:
@@ -49,6 +53,7 @@ class MainDataset(Dataset):
         :param idx: The index to get.
         :return: The EEG data and the labels.
         """
+        idx = self.indices[idx]
         metadata = self.X.meta
         all_eegs = self.X.eeg
         eeg_frequency = self.X.shared['eeg_frequency']
