@@ -4,9 +4,7 @@ defaults:
   - model: cnn1d
   - wandb: train
 
-metadata_path: data/raw/train.csv
-eeg_path: data/raw/train_eegs
-spectrogram_path: data/raw/train_spectrograms
+raw_path: data/raw
 
 scorer:
   _target_: src.scoring.kldiv.KLDiv
