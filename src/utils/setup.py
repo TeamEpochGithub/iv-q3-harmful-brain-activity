@@ -149,14 +149,6 @@ def setup_data(
         # Convert the labels to a numpy array
         labels = labels.to_numpy()
 
-        # For each row, make sure the sum of the labels is 1
-        labels = labels / labels.sum(axis=1)[:, None]
-
-        # Convert the labels to a float32
-
-
-
-
     else:
         labels = None
 

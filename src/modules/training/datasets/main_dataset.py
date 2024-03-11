@@ -76,11 +76,13 @@ class MainDataset(Dataset):
         eeg = eeg.iloc[start:end, :]
 
         if self.y is None:
-            return eeg.to_numpy()
+            return eeg.to_numpy(), None
 
         # Get the 6 labels of the experts, if they exist
         labels = self.y[idx, :]
-        return eeg.to_numpy(), labels.to_numpy()
+        # For each row, make sure the sum of the labels is 1
+        labels = labels / labels.sum(axis=1)[:, None]
+        return eeg.to_numpy(), labels
 
     def _kaggle_spec_getitem(self, idx):
         """Get an item from the Kaggle spectrogram dataset.
