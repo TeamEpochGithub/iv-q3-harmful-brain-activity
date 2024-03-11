@@ -1,5 +1,6 @@
 """Common type definitions for the project."""
 from dataclasses import dataclass
+from typing import Any
 
 import pandas as pd
 import torch
@@ -20,4 +21,4 @@ class XData:
     kaggle_spec: dict[int, torch.Tensor] | None
     eeg_spec: dict[int, torch.Tensor] | None
     meta: pd.DataFrame
-    shared: dict[str, any] | None
+    shared: dict[str, Any] | None

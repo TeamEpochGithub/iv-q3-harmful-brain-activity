@@ -1,4 +1,4 @@
-# Make a pytorch dataset
+"""Main dataset for EEG / Spectrogram data."""
 from dataclasses import dataclass
 
 import pandas as pd
@@ -9,45 +9,52 @@ from src.typing.typing import XData
 
 @dataclass
 class MainDataset(Dataset):
-    """
-    Main dataset for EEG data.
-    """
-    data_type: str
-    X: XData | None
-    y: pd.DataFrame | None
-    indices: list[int] | None
+    """Main dataset for EEG data."""
 
-    def setup(self, X: XData, y: pd.DataFrame, indices: list[int]):
+    data_type: str
+    X: XData | None = None
+    y: pd.DataFrame | None = None
+    indices: list[int] | None = None
+
+    def setup(self, X: XData, y: pd.DataFrame, indices: list[int]) -> None:
         """Set up the dataset."""
         self.X = X
         self.y = y
         self.indices = indices
 
-    def __len__(self):
+    def setup_prediction(self, X: XData) -> None:
+        """Set up the dataset for prediction."""
+        self.X = X
+        self.indices = list(range(len(X.meta)))
+
+    def __len__(self) -> int:
         """Get the length of the dataset."""
         return len(self.indices)
 
-    def __getitem__(self, idx):
-        # Check if the data is set up
+    def __getitem__(self, idx: int) -> tuple:
+        """Get an item from the dataset.
+
+        :param idx: The index to get.
+        :return: The data and the labels.
+        """
+        # Check if the data is set up, we need X.
         if self.X is None:
             raise ValueError("X Data not set up.")
-        if self.y is None:
-            raise ValueError("y Data not set up.")
         if self.indices is None:
             raise ValueError("Indices not set up.")
 
         # Create a switch statement to handle the different data types
         match self.data_type:
-            case 'eeg':
+            case "eeg":
                 return self._eeg_getitem(idx)
-            case 'kaggle_spec':
+            case "kaggle_spec":
                 return self._kaggle_spec_getitem(idx)
-            case 'eeg_spec':
+            case "eeg_spec":
                 return self._eeg_spec_getitem(idx)
             case _:
                 raise ValueError(f"Data type {self.data_type} not recognized.")
 
-    def _eeg_getitem(self, idx):
+    def _eeg_getitem(self, idx: int) -> tuple:
         """Get an item from the EEG dataset.
 
         :param idx: The index to get.
@@ -56,12 +63,12 @@ class MainDataset(Dataset):
         idx = self.indices[idx]
         metadata = self.X.meta
         all_eegs = self.X.eeg
-        eeg_frequency = self.X.shared['eeg_frequency']
-        offset = self.X.shared['offset']
+        eeg_frequency = self.X.shared["eeg_freq"]
+        offset = self.X.shared["eeg_label_offset_s"]
 
         # Get the eeg id from the idx in the metadata
-        eeg_id = metadata.iloc[idx]['eeg_id']
-        eeg_label_offset_seconds = int(metadata.iloc[idx]['eeg_label_offset_seconds'])
+        eeg_id = metadata.iloc[idx]["eeg_id"]
+        eeg_label_offset_seconds = int(metadata.iloc[idx]["eeg_label_offset_seconds"])
         eeg = all_eegs[eeg_id]
 
         # Get the start and end of the eeg data
@@ -71,24 +78,27 @@ class MainDataset(Dataset):
         # Get the correct 50 second window of eeg data
         eeg = eeg.iloc[start:end, :]
 
-        # Get the 6 labels of the experts.
-        labels = metadata.iloc[idx, -6:]
-        return eeg.to_numpy(), labels.to_numpy()
+        if self.y is None:
+            return eeg.to_numpy(), []
 
-    def _kaggle_spec_getitem(self, idx):
+        # Get the 6 labels of the experts, if they exist
+        labels = self.y[idx, :]
+        # For each row, make sure the sum of the labels is 1
+        labels = labels / labels.sum()
+        return eeg.to_numpy(), labels
+
+    def _kaggle_spec_getitem(self, idx: int) -> tuple:
         """Get an item from the Kaggle spectrogram dataset.
 
         :param idx: The index to get.
         :return: The Kaggle spectrogram data and the labels.
         """
-        # TODO: Implement this in a future issue
-        pass
+        # TODO(?): Implement this in a future issue
 
-    def _eeg_spec_getitem(self, idx):
+    def _eeg_spec_getitem(self, idx: int) -> tuple:
         """Get an item from the EEG spectrogram dataset.
 
         :param idx: The index to get.
         :return: The EEG spectrogram data and the labels.
         """
-        # TODO: Implement this in a future issue
-        pass
+        # TODO(?): Implement this in a future issue

@@ -39,10 +39,10 @@ class CNN1D(nn.Module):
             dropout=0.5)
         self.transformer_encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=1)
         self.dense = nn.Linear(out_channels, n_classes)
+        self.softmax = nn.Softmax(dim=-1)
 
     def forward(self, x):
-
-        self.n_channel, self.n_length = x.shape[-2], x.shape[-1]
+        self.n_channel, self.n_length = x.shape[-1], x.shape[-2]
         assert (self.n_length % self.n_len_seg == 0), "Input n_length should divided by n_len_seg"
         self.n_seg = self.n_length // self.n_len_seg
 
@@ -50,8 +50,6 @@ class CNN1D(nn.Module):
         if self.verbose:
             print(out.shape)
 
-        # (n_samples, n_channel, n_length) -> (n_samples, n_length, n_channel)
-        out = out.permute(0, 2, 1)
         if self.verbose:
             print(out.shape)
         # (n_samples, n_length, n_channel) -> (n_samples*n_seg, n_len_seg, n_channel)
@@ -82,5 +80,7 @@ class CNN1D(nn.Module):
         out = self.dense(out)
         if self.verbose:
             print(out.shape)
+
+        out = self.softmax(out)
 
         return out

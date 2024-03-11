@@ -149,8 +149,14 @@ def setup_data(
 
     if all(column in metadata.columns for column in label_columns):
         labels = metadata[label_columns]
+
+        # Convert the labels to a numpy array
+        labels = labels.to_numpy()
+
     else:
         labels = None
+
+
 
     # Get one of the paths that is not None
     path = eeg_path if eeg_path is not None else spectrogram_path
