@@ -59,7 +59,7 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
     model_pipeline = setup_pipeline(cfg, is_train=True)
 
     # Lazily read the raw data with dask, and find the shape after processing
-    X, y = setup_data(cfg.metadata_path, cfg.eeg_path, cfg.spectrogram_path)
+    X, y = setup_data(raw_path=cfg.raw_path)
     if y is None:
         raise ValueError("No labels loaded to train with")
     indices = np.arange(len(X.meta))

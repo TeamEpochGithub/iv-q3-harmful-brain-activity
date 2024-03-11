@@ -112,9 +112,7 @@ def update_model_cfg_test_size(
 
 
 def setup_data(
-    metadata_path: str,
-    eeg_path: str,
-    spectrogram_path: str,
+    raw_path: str,
 ) -> tuple[XData, pd.DataFrame | None]:
     """Read the metadata and return the data and target in the proper format.
 
@@ -122,6 +120,12 @@ def setup_data(
     :param eeg_path: Path to the EEG data.
     :param spectrogram_path: Path to the spectrogram data.
     """
+    # Turn raw path into separate paths
+    raw_path = raw_path if raw_path[-1] == "/" else raw_path + "/"
+    metadata_path = raw_path + "train.csv"
+    eeg_path = raw_path + "train_eegs"
+    spectrogram_path = raw_path + "train_spectrograms"
+
     # Check that metadata_path is not None
     if metadata_path is None:
         raise ValueError("metadata_path should not be None")
