@@ -22,9 +22,7 @@ class CVConfig:
 
     model: Any
     ensemble: Any
-    metadata_path: str | None
-    eeg_path: str | None
-    spectrogram_path: str | None
+    raw_path: str
     scorer: Any
     cache_size: int
     wandb: WandBConfig
