@@ -12,6 +12,10 @@ x_sys:
     - _target_: src.modules.transformation.eeg.divide.Divide
       value: 32
     - _target_: src.modules.transformation.eeg.butter.ButterFilter
+    - _target_: src.modules.transformation.spectrogram.eeg_to_spectrogram.EEGToSpectrogram
+      eeg_sample_rate: 200
+      size: [128, 320]
+      fitting_method: 'pad'
 
 train_sys:
   steps:
