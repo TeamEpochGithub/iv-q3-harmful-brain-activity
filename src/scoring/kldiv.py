@@ -17,6 +17,9 @@ class KLDiv(Scorer):
 
     def __call__(self, y_true: np.ndarray[Any, Any], y_pred: np.ndarray[Any, Any]) -> float:
         # Convert both to torch tensors
+
+        # For each row, make sure the sum of the labels is 1
+        y_true = y_true / y_true.sum(axis=1)[:, None]
         input = torch.tensor(y_pred)
         target = torch.tensor(y_true)
         criterion = KLDivLoss(reduction='batchmean')
