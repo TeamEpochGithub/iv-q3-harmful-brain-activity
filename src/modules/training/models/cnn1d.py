@@ -2,8 +2,7 @@ from torch import nn
 
 
 class CNN1D(nn.Module):
-    """
-    CNN1D model for 1D signal classification. Baseline model.
+    """CNN1D model for 1D signal classification. Baseline model.
     Input:
         X: (n_samples, n_channel, n_length)
         Y: (n_samples)
@@ -27,23 +26,16 @@ class CNN1D(nn.Module):
         self.verbose = verbose
 
         # (batch, channels, length)
-        self.cnn = nn.Conv1d(in_channels=self.in_channels,
-                             out_channels=self.out_channels,
-                             kernel_size=16,
-                             stride=2)
+        self.cnn = nn.Conv1d(in_channels=self.in_channels, out_channels=self.out_channels, kernel_size=16, stride=2)
         # (batch, channels, length)
-        self.encoder_layer = nn.TransformerEncoderLayer(
-            d_model=self.out_channels,
-            nhead=8,
-            dim_feedforward=128,
-            dropout=0.5)
+        self.encoder_layer = nn.TransformerEncoderLayer(d_model=self.out_channels, nhead=8, dim_feedforward=128, dropout=0.5)
         self.transformer_encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=1)
         self.dense = nn.Linear(out_channels, n_classes)
         self.softmax = nn.Softmax(dim=-1)
 
     def forward(self, x):
         self.n_channel, self.n_length = x.shape[-1], x.shape[-2]
-        assert (self.n_length % self.n_len_seg == 0), "Input n_length should divided by n_len_seg"
+        assert self.n_length % self.n_len_seg == 0, "Input n_length should divided by n_len_seg"
         self.n_seg = self.n_length // self.n_len_seg
 
         out = x

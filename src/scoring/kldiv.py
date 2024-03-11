@@ -1,4 +1,4 @@
-""" KLDiv scorer class. """
+"""KLDiv scorer class."""
 from typing import Any
 
 import numpy as np
@@ -24,8 +24,8 @@ class KLDiv(Scorer):
         target = torch.tensor(y_true)
 
         # Calculate the KLDivLoss
-        criterion = KLDivLoss(reduction='batchmean')
-        return criterion(torch.log(torch.clamp(input, min=10 ** -15, max=1 - 10 ** -15)), target)
+        criterion = KLDivLoss(reduction="batchmean")
+        return criterion(torch.log(torch.clamp(input, min=10**-15, max=1 - 10**-15)), target)
 
     def __str__(self) -> str:
         """Return the name of the scorer."""

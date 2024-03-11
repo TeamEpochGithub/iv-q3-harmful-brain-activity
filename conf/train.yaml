@@ -1,7 +1,7 @@
 defaults:
   - base_train
   - hydra/logging
-  - model: cnn1d
+  - model: gru_simple
   - wandb: train
 
 

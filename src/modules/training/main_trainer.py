@@ -18,9 +18,10 @@ class MainTrainer(TorchTrainer, Logger):
 
     :param dataset: The dataset to use for training.
     """
+
     dataset: Dataset | None = None
 
-    def create_datasets(self, x: XData, y: npt.NDArray[np.float32], train_indices: list[int], test_indices: list[int], cache_size: int = -1, ) -> tuple[Dataset, Dataset]:
+    def create_datasets(self, x: XData, y: npt.NDArray[np.float32], train_indices: list[int], test_indices: list[int], cache_size: int = -1) -> tuple[Dataset, Dataset]:
         """Override custom create_datasets to allow for for training and validation.
 
         :param x: The input data.
@@ -59,8 +60,7 @@ class MainTrainer(TorchTrainer, Logger):
         train_indices: list[int],
         test_indices: list[int],
     ) -> Dataset[tuple[Tensor, ...]]:
-        """
-        Concatenate the training and test datasets according to original order specified by train_indices and test_indices.
+        """Concatenate the training and test datasets according to original order specified by train_indices and test_indices.
 
         :param train_dataset: The training dataset.
         :param test_dataset: The test dataset.
@@ -71,7 +71,3 @@ class MainTrainer(TorchTrainer, Logger):
         indices = list(range(len(train_dataset.X.meta)))
         train_dataset.indices = indices
         return train_dataset
-
-
-
-

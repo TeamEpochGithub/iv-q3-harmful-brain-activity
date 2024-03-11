@@ -86,7 +86,7 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
             "MainTrainer": {
                 "train_indices": train_indices,
                 "test_indices": test_indices,
-            }
+            },
         },
     }
     predictions, _ = model_pipeline.train(X, y, **train_args)

@@ -87,10 +87,10 @@ def setup_pipeline(pipeline_cfg: DictConfig, is_train: bool | None) -> ModelPipe
 
 
 def update_model_cfg_test_size(
-        model_cfg_dict: dict[str | bytes | int | Enum | float | bool, Any] | list[Any] | str | None,
-        test_size: int = -1,
-        *,
-        is_train: bool | None,
+    model_cfg_dict: dict[str | bytes | int | Enum | float | bool, Any] | list[Any] | str | None,
+    test_size: int = -1,
+    *,
+    is_train: bool | None,
 ) -> dict[str | bytes | int | Enum | float | bool, Any] | list[Any] | str | None:
     """Update the test size in the model config.
 
@@ -155,8 +155,6 @@ def setup_data(
 
     else:
         labels = None
-
-
 
     # Get one of the paths that is not None
     path = eeg_path if eeg_path is not None else spectrogram_path
@@ -278,11 +276,11 @@ def load_all_spectrograms(spectrogram_path: str, cache_path: str, ids: pd.DataFr
 
 
 def setup_wandb(
-        cfg: DictConfig,
-        job_type: str,
-        output_dir: Path,
-        name: str | None = None,
-        group: str | None = None,
+    cfg: DictConfig,
+    job_type: str,
+    output_dir: Path,
+    name: str | None = None,
+    group: str | None = None,
 ) -> wandb.sdk.wandb_run.Run | wandb.sdk.lib.RunDisabled | None:
     """Initialize Weights & Biases and log the config and code.
 
