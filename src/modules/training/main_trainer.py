@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import numpy as np
 from epochalyst.pipeline.model.training.torch_trainer import TorchTrainer
 from numpy import typing as npt
+from torch import Tensor
 from torch.utils.data import Dataset
 
 from src.modules.logging.logger import Logger
@@ -50,3 +51,27 @@ class MainTrainer(TorchTrainer, Logger):
         predict_dataset = deepcopy(self.dataset)
         predict_dataset.setup_prediction(x)
         return predict_dataset
+
+    def _concat_datasets(
+        self,
+        train_dataset: Dataset[tuple[Tensor, ...]],
+        test_dataset: Dataset[tuple[Tensor, ...]],
+        train_indices: list[int],
+        test_indices: list[int],
+    ) -> Dataset[tuple[Tensor, ...]]:
+        """
+        Concatenate the training and test datasets according to original order specified by train_indices and test_indices.
+
+        :param train_dataset: The training dataset.
+        :param test_dataset: The test dataset.
+        :param train_indices: The indices for the training data.
+        :param test_indices: The indices for the test data.
+        :return: A new dataset containing the concatenated data in the original order.
+        """
+        indices = list(range(len(train_dataset.X.meta)))
+        train_dataset.indices = indices
+        return train_dataset
+
+
+
+

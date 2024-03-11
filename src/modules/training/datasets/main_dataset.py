@@ -23,7 +23,6 @@ class MainDataset(Dataset):
         self.X = X
         self.y = y
         self.indices = indices
-        print(y.shape)
 
     def setup_prediction(self, X: XData):
         """Set up the dataset for prediction."""
@@ -80,8 +79,7 @@ class MainDataset(Dataset):
             return eeg.to_numpy()
 
         # Get the 6 labels of the experts, if they exist
-        labels = self.y.iloc[idx, :]
-        labels = labels / labels.sum()
+        labels = self.y[idx, :]
         return eeg.to_numpy(), labels.to_numpy()
 
     def _kaggle_spec_getitem(self, idx):

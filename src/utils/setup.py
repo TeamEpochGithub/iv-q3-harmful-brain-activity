@@ -145,8 +145,22 @@ def setup_data(
 
     if all(column in metadata.columns for column in label_columns):
         labels = metadata[label_columns]
+
+        # Convert the labels to a numpy array
+        labels = labels.to_numpy()
+
+        # For each row, make sure the sum of the labels is 1
+        labels = labels / labels.sum(axis=1)[:, None]
+
+        # Convert the labels to a float32
+
+
+
+
     else:
         labels = None
+
+
 
     # Get one of the paths that is not None
     path = eeg_path if eeg_path is not None else spectrogram_path
@@ -174,6 +188,7 @@ def setup_data(
     X_meta = pd.concat([ids, offsets], axis=1)
 
     shared = {"eeg_freq": 200, "eeg_label_offset_s": 50}
+
     return XData(eeg=all_eegs, kaggle_spec=all_spectrograms, eeg_spec=None, meta=X_meta, shared=shared), labels
 
 
