@@ -13,15 +13,17 @@ class MainDataset(Dataset):
     Main dataset for EEG data.
     """
     data_type: str
-    X: XData | None
-    y: pd.DataFrame | None
-    indices: list[int] | None
+
+    X: XData | None = None
+    y: pd.DataFrame | None = None
+    indices: list[int] | None = None
 
     def setup(self, X: XData, y: pd.DataFrame, indices: list[int]):
         """Set up the dataset."""
         self.X = X
         self.y = y
         self.indices = indices
+        print(y.shape)
 
     def __len__(self):
         """Get the length of the dataset."""
@@ -56,8 +58,8 @@ class MainDataset(Dataset):
         idx = self.indices[idx]
         metadata = self.X.meta
         all_eegs = self.X.eeg
-        eeg_frequency = self.X.shared['eeg_frequency']
-        offset = self.X.shared['offset']
+        eeg_frequency = self.X.shared['eeg_freq']
+        offset = self.X.shared['eeg_label_offset_s']
 
         # Get the eeg id from the idx in the metadata
         eeg_id = metadata.iloc[idx]['eeg_id']
@@ -72,7 +74,8 @@ class MainDataset(Dataset):
         eeg = eeg.iloc[start:end, :]
 
         # Get the 6 labels of the experts.
-        labels = metadata.iloc[idx, -6:]
+        labels = self.y.iloc[idx, :]
+        labels = labels / labels.sum()
         return eeg.to_numpy(), labels.to_numpy()
 
     def _kaggle_spec_getitem(self, idx):

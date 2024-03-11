@@ -174,7 +174,6 @@ def setup_data(
     X_meta = pd.concat([ids, offsets], axis=1)
 
     shared = {"eeg_freq": 200, "eeg_label_offset_s": 50}
-
     return XData(eeg=all_eegs, kaggle_spec=all_spectrograms, eeg_spec=None, meta=X_meta, shared=shared), labels
 
 
