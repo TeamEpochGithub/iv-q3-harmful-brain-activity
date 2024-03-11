@@ -1,7 +1,7 @@
 defaults:
   - base_train
   - hydra/logging
-  - model: test
+  - model: spec_res_gru
   - wandb: train
 
 
