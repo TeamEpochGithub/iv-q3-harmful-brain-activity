@@ -81,7 +81,7 @@ class MainDataset(Dataset):
         # Get the 6 labels of the experts, if they exist
         labels = self.y[idx, :]
         # For each row, make sure the sum of the labels is 1
-        labels = labels / labels.sum(axis=1)[:, None]
+        labels = labels / labels.sum()
         return eeg.to_numpy(), labels
 
     def _kaggle_spec_getitem(self, idx):
