@@ -19,3 +19,6 @@ class XData:
     kaggle_spec: dict[int, torch.Tensor] | None
     eeg_spec: dict[int, torch.Tensor] | None
     meta: pd.DataFrame
+
+    def __repr__(self) -> str:
+        return "XData"
