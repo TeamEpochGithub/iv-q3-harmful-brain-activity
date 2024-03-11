@@ -22,3 +22,6 @@ class XData:
     eeg_spec: dict[int, torch.Tensor] | None
     meta: pd.DataFrame
     shared: dict[str, Any] | None
+
+    def __repr__(self) -> str:
+        return "XData"

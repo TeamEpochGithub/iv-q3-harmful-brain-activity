@@ -18,7 +18,7 @@ from src.config.train_config import TrainConfig
 from src.logging_utils.logger import logger
 from src.utils.script.lock import Lock
 from src.utils.seed_torch import set_torch_seed
-from src.utils.setup import setup_config, setup_data, setup_pipeline, setup_wandb
+from src.utils.setup import setup_config, setup_data, setup_label_data, setup_pipeline, setup_wandb
 
 warnings.filterwarnings("ignore", category=UserWarning)
 # Makes hydra give full error messages
@@ -58,11 +58,25 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
     print_section_separator("Setup pipeline")
     model_pipeline = setup_pipeline(cfg, is_train=True)
 
-    # Lazily read the raw data with dask, and find the shape after processing
-    X, y = setup_data(raw_path=cfg.raw_path)
+    # Cache arguments for x_sys
+    cache_args = {
+        "output_data_type": "numpy_array",
+        "storage_type": ".pkl",
+        "storage_path": "data/processed",
+    }
+
+    # Read the data if required and split it in X, y
+    if model_pipeline.x_sys._cache_exists(model_pipeline.x_sys.get_hash(), cache_args) and not model_pipeline.y_sys._cache_exists(model_pipeline.y_sys.get_hash(), cache_args):  # noqa: SLF001
+        # Only read y data
+        logger.info("x_sys has an existing cache, only loading in labels")
+        X = None
+        y = setup_label_data(cfg.raw_path)
+        indices = np.arange(len(y))
+    else:
+        X, y = setup_data(raw_path=cfg.raw_path)
+        indices = np.arange(len(X.meta))
     if y is None:
         raise ValueError("No labels loaded to train with")
-    indices = np.arange(len(X.meta))
     # Split indices into train and test
     if cfg.test_size == 0:
         train_indices, test_indices = list(indices), []
@@ -76,11 +90,7 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
     print_section_separator("Train model pipeline")
     train_args = {
         "x_sys": {
-            "cache_args": {
-                "output_data_type": "numpy_array",
-                "storage_type": ".pkl",
-                "storage_path": "data/processed",
-            },
+            "cache_args": cache_args,
         },
         "train_sys": {
             "MainTrainer": {
