@@ -82,6 +82,12 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
                 "storage_path": "data/processed",
             },
         },
+        "train_sys": {
+            "MainTrainer": {
+                "train_indices": train_indices,
+                "test_indices": test_indices,
+            }
+        },
     }
     predictions, _ = model_pipeline.train(X, y, **train_args)
 

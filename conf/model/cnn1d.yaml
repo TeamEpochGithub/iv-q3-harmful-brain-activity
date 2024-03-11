@@ -1,0 +1,43 @@
+defaults:
+  - pipeline/default@_here_
+  - _self_
+
+x_sys:
+  steps:
+    - _target_: src.modules.transformation.example_transformation_block.ExampleTransformationBlock
+    - _target_: src.modules.transformation.eeg.clip.ClipEEG
+      lower: -1024
+      upper: 1024
+    - _target_: src.modules.transformation.eeg.nantozero.NaNToZero
+    - _target_: src.modules.transformation.eeg.divide.Divide
+      value: 32
+    - _target_: src.modules.transformation.eeg.butter.ButterFilter
+
+train_sys:
+  steps:
+    - _target_: src.modules.training.main_trainer.MainTrainer
+      model:
+        _target_: src.modules.training.models.cnn1d.CNN1D
+        n_len_seg: 50
+        in_channels: 20
+        out_channels: 16
+        n_classes: 6
+      optimizer: # Partially instantiate optimizer, so model parameters can be linked at runtime
+        _target_: functools.partial
+        _args_:
+          - _target_: hydra.utils.get_class
+            path: torch.optim.Adam
+        lr: 0.001
+      criterion:
+        _target_: torch.nn.KLDivLoss
+        reduction: 'batchmean'
+      epochs: 5
+      batch_size: 32
+      patience: 10
+      dataset:
+        _target_: src.modules.training.datasets.main_dataset.MainDataset
+        data_type: "eeg"
+
+
+
+
