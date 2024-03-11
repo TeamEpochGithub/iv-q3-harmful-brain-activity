@@ -1,0 +1,31 @@
+defaults:
+  - pipeline/default@_here_
+  - _self_
+
+x_sys:
+  steps:
+    - _target_: src.modules.transformation.example_transformation_block.ExampleTransformationBlock
+
+train_sys:
+  steps:
+    - _target_: src.modules.training.verbose_torch_block.VerboseTorchBlock
+      model: 
+        _target_: src.modules.torch_models.spectrogram_cnn_gru.MultiResidualBiGRUwSpectrogramCNN
+        in_channels: 20
+        out_channels: 6
+      optimizer: # Partially instantiate optimizer, so model parameters can be linked at runtime
+          _target_: functools.partial
+          _args_:
+            - _target_: hydra.utils.get_class
+              path: torch.optim.AdamW
+          lr: 0.001
+      criterion: 
+        _target_: src.modules.loss.kldiv_logits_loss.KLDivLogitsLoss
+        reduction: batchmean
+      scheduler:
+      epochs: 10
+      batch_size: 32
+      patience: 5
+      test_size: 0.2
+
+
