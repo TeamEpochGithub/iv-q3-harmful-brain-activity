@@ -1,6 +1,7 @@
 """Module for example training block."""
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Any
 
 import numpy as np
 from epochalyst.pipeline.model.training.torch_trainer import TorchTrainer
@@ -18,9 +19,17 @@ class MainTrainer(TorchTrainer, Logger):
 
     :param dataset: The dataset to use for training.
     """
-    dataset: Dataset | None = None
 
-    def create_datasets(self, x: XData, y: npt.NDArray[np.float32], train_indices: list[int], test_indices: list[int], cache_size: int = -1, ) -> tuple[Dataset, Dataset]:
+    dataset: Dataset[Any] = field(default_factory=Dataset)
+
+    def create_datasets(
+        self,
+        x: XData,
+        y: npt.NDArray[np.float32],
+        train_indices: list[int],
+        test_indices: list[int],
+        cache_size: int = -1,  # noqa: ARG002
+    ) -> tuple[Dataset[Any], Dataset[Any]]:
         """Override custom create_datasets to allow for for training and validation.
 
         :param x: The input data.
@@ -31,36 +40,35 @@ class MainTrainer(TorchTrainer, Logger):
         """
         # Set up the train dataset
         train_dataset = deepcopy(self.dataset)
-        train_dataset.setup(x, y, train_indices)
+        train_dataset.setup(x, y, train_indices)  # type: ignore[attr-defined]
 
         # Set up the test dataset
         if test_indices is not None:
             test_dataset = deepcopy(self.dataset)
-            test_dataset.setup(x, y, test_indices)
+            test_dataset.setup(x, y, test_indices)  # type: ignore[attr-defined]
         else:
             test_dataset = None
 
         return train_dataset, test_dataset
 
-    def create_prediction_dataset(self, x: npt.NDArray[np.float32]) -> Dataset:
+    def create_prediction_dataset(self, x: npt.NDArray[np.float32]) -> Dataset[Any]:
         """Create the prediction dataset.
 
         :param x: The input data.
         :return: The prediction dataset.
         """
         predict_dataset = deepcopy(self.dataset)
-        predict_dataset.setup_prediction(x)
+        predict_dataset.setup_prediction(x)  # type: ignore[attr-defined]
         return predict_dataset
 
     def _concat_datasets(
         self,
         train_dataset: Dataset[tuple[Tensor, ...]],
-        test_dataset: Dataset[tuple[Tensor, ...]],
-        train_indices: list[int],
-        test_indices: list[int],
+        test_dataset: Dataset[tuple[Tensor, ...]],  # noqa: ARG002
+        train_indices: list[int],  # noqa: ARG002
+        test_indices: list[int],  # noqa: ARG002
     ) -> Dataset[tuple[Tensor, ...]]:
-        """
-        Concatenate the training and test datasets according to original order specified by train_indices and test_indices.
+        """Concatenate the training and test datasets according to original order specified by train_indices and test_indices.
 
         :param train_dataset: The training dataset.
         :param test_dataset: The test dataset.
@@ -68,10 +76,6 @@ class MainTrainer(TorchTrainer, Logger):
         :param test_indices: The indices for the test data.
         :return: A new dataset containing the concatenated data in the original order.
         """
-        indices = list(range(len(train_dataset.X.meta)))
-        train_dataset.indices = indices
+        indices = list(range(len(train_dataset.X.meta)))  # type: ignore[attr-defined]
+        train_dataset.indices = indices  # type: ignore[attr-defined]
         return train_dataset
-
-
-
-

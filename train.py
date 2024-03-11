@@ -60,7 +60,6 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
 
     # Lazily read the raw data with dask, and find the shape after processing
     X, y = setup_data(cfg.metadata_path, cfg.eeg_path, cfg.spectrogram_path)
-    print(X.shared)
     if y is None:
         raise ValueError("No labels loaded to train with")
     indices = np.arange(len(X.meta))
@@ -87,7 +86,7 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
             "MainTrainer": {
                 "train_indices": train_indices,
                 "test_indices": test_indices,
-            }
+            },
         },
     }
     predictions, _ = model_pipeline.train(X, y, **train_args)

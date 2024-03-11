@@ -10,7 +10,7 @@ from typing import Any, NamedTuple
 
 import dask.array as da
 import hydra
-import pandas as pd
+import numpy as np
 import randomname
 import wandb
 from distributed import Client
@@ -59,7 +59,7 @@ class WorkerInitData(NamedTuple):
     train_indices: list[int]
     test_indices: list[int]
     X: XData
-    y: pd.DataFrame
+    y: np.ndarray[Any, Any]
 
 
 class WorkerDoneData(NamedTuple):

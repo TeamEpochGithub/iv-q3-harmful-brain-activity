@@ -87,10 +87,10 @@ def setup_pipeline(pipeline_cfg: DictConfig, is_train: bool | None) -> ModelPipe
 
 
 def update_model_cfg_test_size(
-        model_cfg_dict: dict[str | bytes | int | Enum | float | bool, Any] | list[Any] | str | None,
-        test_size: int = -1,
-        *,
-        is_train: bool | None,
+    model_cfg_dict: dict[str | bytes | int | Enum | float | bool, Any] | list[Any] | str | None,
+    test_size: int = -1,
+    *,
+    is_train: bool | None,
 ) -> dict[str | bytes | int | Enum | float | bool, Any] | list[Any] | str | None:
     """Update the test size in the model config.
 
@@ -112,10 +112,10 @@ def update_model_cfg_test_size(
 
 
 def setup_data(
-        metadata_path: str,
-        eeg_path: str,
-        spectrogram_path: str,
-) -> tuple[XData, pd.DataFrame | None]:
+    metadata_path: str,
+    eeg_path: str,
+    spectrogram_path: str,
+) -> tuple[XData, np.ndarray[Any, Any] | None]:
     """Read the metadata and return the data and target in the proper format.
 
     :param metadata_path: Path to the metadata.
@@ -147,12 +147,10 @@ def setup_data(
         labels = metadata[label_columns]
 
         # Convert the labels to a numpy array
-        labels = labels.to_numpy()
+        labels_np = labels.to_numpy()
 
     else:
-        labels = None
-
-
+        labels_np = None
 
     # Get one of the paths that is not None
     path = eeg_path if eeg_path is not None else spectrogram_path
@@ -181,7 +179,7 @@ def setup_data(
 
     shared = {"eeg_freq": 200, "eeg_label_offset_s": 50}
 
-    return XData(eeg=all_eegs, kaggle_spec=all_spectrograms, eeg_spec=None, meta=X_meta, shared=shared), labels
+    return XData(eeg=all_eegs, kaggle_spec=all_spectrograms, eeg_spec=None, meta=X_meta, shared=shared), labels_np
 
 
 def load_eeg(eeg_path: str, eeg_id: int) -> tuple[int, pd.DataFrame]:
@@ -274,11 +272,11 @@ def load_all_spectrograms(spectrogram_path: str, cache_path: str, ids: pd.DataFr
 
 
 def setup_wandb(
-        cfg: DictConfig,
-        job_type: str,
-        output_dir: Path,
-        name: str | None = None,
-        group: str | None = None,
+    cfg: DictConfig,
+    job_type: str,
+    output_dir: Path,
+    name: str | None = None,
+    group: str | None = None,
 ) -> wandb.sdk.wandb_run.Run | wandb.sdk.lib.RunDisabled | None:
     """Initialize Weights & Biases and log the config and code.
 
