@@ -25,16 +25,19 @@ class MainDataset(Dataset):
         self.indices = indices
         print(y.shape)
 
+    def setup_prediction(self, X: XData):
+        """Set up the dataset for prediction."""
+        self.X = X
+        self.indices = list(range(len(X.meta)))
+
     def __len__(self):
         """Get the length of the dataset."""
         return len(self.indices)
 
     def __getitem__(self, idx):
-        # Check if the data is set up
+        # Check if the data is set up, we need X.
         if self.X is None:
             raise ValueError("X Data not set up.")
-        if self.y is None:
-            raise ValueError("y Data not set up.")
         if self.indices is None:
             raise ValueError("Indices not set up.")
 
@@ -73,7 +76,10 @@ class MainDataset(Dataset):
         # Get the correct 50 second window of eeg data
         eeg = eeg.iloc[start:end, :]
 
-        # Get the 6 labels of the experts.
+        if self.y is None:
+            return eeg.to_numpy()
+
+        # Get the 6 labels of the experts, if they exist
         labels = self.y.iloc[idx, :]
         labels = labels / labels.sum()
         return eeg.to_numpy(), labels.to_numpy()

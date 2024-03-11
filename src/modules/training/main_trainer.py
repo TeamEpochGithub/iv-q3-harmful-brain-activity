@@ -40,3 +40,13 @@ class MainTrainer(TorchTrainer, Logger):
             test_dataset = None
 
         return train_dataset, test_dataset
+
+    def create_prediction_dataset(self, x: npt.NDArray[np.float32]) -> Dataset:
+        """Create the prediction dataset.
+
+        :param x: The input data.
+        :return: The prediction dataset.
+        """
+        predict_dataset = deepcopy(self.dataset)
+        predict_dataset.setup_prediction(x)
+        return predict_dataset

@@ -95,6 +95,7 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
     if len(test_indices) > 0:
         print_section_separator("Scoring")
         scorer = instantiate(cfg.scorer)
+        print(len(predictions[test_indices]))
         score = scorer(y[test_indices], predictions[test_indices])
         logger.info(f"Score: {score}")
 
