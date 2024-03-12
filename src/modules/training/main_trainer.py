@@ -1,4 +1,5 @@
 """Module for example training block."""
+import wandb
 from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any
@@ -21,6 +22,7 @@ class MainTrainer(TorchTrainer, Logger):
     """
 
     dataset: Dataset[Any] = field(default_factory=Dataset)
+    model_name: str = "WHAT_ARE_YOU_TRAINING_PUT_A_NAME_IN_THE_MAIN_TRAINER" # No spaces allowed
 
     def create_datasets(
         self,
@@ -79,3 +81,10 @@ class MainTrainer(TorchTrainer, Logger):
         indices = list(range(len(train_dataset.X.meta)))  # type: ignore[attr-defined]
         train_dataset.indices = indices  # type: ignore[attr-defined]
         return train_dataset
+
+    def _save_model(self) -> None:
+        super()._save_model()
+        if wandb.run:
+            model_artifact = wandb.Artifact(self.model_name, type="model")
+            model_artifact.add_file(f"{self.model_directory}/{self.get_hash()}.pt")
+            wandb.log_artifact(model_artifact)
