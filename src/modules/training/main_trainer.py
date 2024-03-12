@@ -1,10 +1,10 @@
 """Module for example training block."""
-import wandb
 from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
+import wandb
 from epochalyst.pipeline.model.training.torch_trainer import TorchTrainer
 from numpy import typing as npt
 from torch import Tensor
@@ -22,7 +22,7 @@ class MainTrainer(TorchTrainer, Logger):
     """
 
     dataset: Dataset[Any] = field(default_factory=Dataset)
-    model_name: str = "WHAT_ARE_YOU_TRAINING_PUT_A_NAME_IN_THE_MAIN_TRAINER" # No spaces allowed
+    model_name: str = "WHAT_ARE_YOU_TRAINING_PUT_A_NAME_IN_THE_MAIN_TRAINER"  # No spaces allowed
 
     def create_datasets(
         self,
