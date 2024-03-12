@@ -1,27 +1,24 @@
 """Sweep.py is used to run a sweep on a model pipeline with K fold split. Entry point for Hydra which loads the config file."""
-import copy
 import multiprocessing
 import os
 import warnings
 from contextlib import nullcontext
 from multiprocessing import Queue
 from pathlib import Path
-from typing import Any, NamedTuple
+from typing import NamedTuple
 
-import dask.array as da
 import hydra
 import numpy as np
 import randomname
-import wandb
 from distributed import Client
 from epochalyst.logging.section_separator import print_section_separator
 from hydra.core.config_store import ConfigStore
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 
+import wandb
 from src.config.cross_validation_config import CVConfig
 from src.logging_utils.logger import logger
-from src.typing.typing import XData
 from src.utils.script.lock import Lock
 from src.utils.script.reset_wandb_env import reset_wandb_env
 from src.utils.seed_torch import set_torch_seed
@@ -104,15 +101,8 @@ def run_cv_cfg(cfg: DictConfig) -> None:
     output_dir = Path(hydra.core.hydra_config.HydraConfig.get().runtime.output_dir)
 
     # RuntimeError("Cannot re-initialize CUDA in forked subprocess. To use CUDA with multiprocessing, you must use the 'spawn' start method")
-    multiprocessing.set_start_method('spawn', force=True)
+    multiprocessing.set_start_method("spawn", force=True)
 
-    cache_args = {
-        "output_data_type": "numpy_array",
-        "storage_type": ".pkl",
-        "storage_path": "data/processed",
-    }
-
-    model_pipeline = setup_pipeline(cfg, is_train=True)
     # Read the data if required and split in X, y
 
     # Read the data if required and split in X, y
@@ -126,7 +116,7 @@ def run_cv_cfg(cfg: DictConfig) -> None:
     # Spin up workers before calling wandb.init()
     # Workers will be blocked on a queue waiting to start
     # TODO(Jasper): Return to splitter n_splits
-    n_splits = 3 #cfg.splitter.n_splits
+    n_splits = 3  # cfg.splitter.n_splits
     sweep_q: Queue[WorkerDoneData] = multiprocessing.Queue()
     workers = []
     for _ in range(n_splits):
@@ -278,7 +268,7 @@ def _one_fold(cfg: DictConfig, output_dir: Path, fold: int, wandb_group_name: st
             "MainTrainer": {
                 "train_indices": train_indices,
                 "test_indices": test_indices,
-                "save_model": False
+                "save_model": False,
             },
         },
     }

@@ -15,7 +15,7 @@ x_sys:
 
 y_sys:
   steps:
-    - _target_: src.modules.transformation.target.sum_to_one.SumToOne 
+    - _target_: src.modules.transformation.target.sum_to_one.SumToOne
 
 train_sys:
   steps:

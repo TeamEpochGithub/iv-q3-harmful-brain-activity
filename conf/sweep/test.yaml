@@ -1,11 +1,11 @@
 command:
-  - python 
+  - python
   - ${program}
   - ${args_no_hyphens}
 method: bayes
 project: detect-harmful-brain-activity
 program: sweep.py
-name: example 
+name: example
 metric:
   name: sweep_score
   goal: maximize
