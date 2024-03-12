@@ -2,6 +2,8 @@
 import torch
 from torch import nn
 
+from src.logging_utils.logger import logger
+
 
 class CNN2D(nn.Module):
     """CNN2D model for 2D spectrogram classification, baseline model.
@@ -23,19 +25,44 @@ class CNN2D(nn.Module):
         :param model: The model to use.
         """
         super(CNN2D, self).__init__()  # noqa: UP008
-
-        model.features[0] = nn.Conv2d(in_channels, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-
-        # Modify the classifier to output 6 classes
-        num_features = model.classifier[-1].in_features  # Get the number of inputs for the last layer
-        model.classifier[-1] = nn.Linear(num_features, out_channels)  # Replace the last layer
-
         self.model = model
         self.in_channels = in_channels
         self.out_channels = out_channels
 
+        self.setup_model()
+
         # Add a softmax layer to the end
         self.softmax = nn.Softmax(dim=-1)
+
+    def setup_model(self) -> None:
+        """Set up the first layer and last_layer based on the models architecture."""
+        match self.model.__class__.__name__:
+            case "EfficientNet":
+                first = self.model.features[0][0]
+                new_layer = nn.Conv2d(self.in_channels, first.out_channels, kernel_size=first.kernel_size, stride=first.stride, padding=first.padding, bias=False)
+                self.model.features[0][0] = new_layer
+                num_features = self.model.classifier[-1].in_features  # Get the number of inputs for the last layer
+                self.model.classifier[-1] = nn.Linear(num_features, self.out_channels)  # Replace the last layer
+            case "VGG":
+                first = self.model.features[0]
+                new_layer = nn.Conv2d(self.in_channels, first.out_channels, kernel_size=first.kernel_size, stride=first.stride, padding=first.padding, bias=False)
+                self.model.features[0] = new_layer
+                num_features = self.model.classifier[-1].in_features  # Get the number of inputs for the last layer
+                self.model.classifier[-1] = nn.Linear(num_features, self.out_channels)  # Replace the last layer
+            case "ResNet":
+                first = self.model.conv1
+                new_layer = nn.Conv2d(self.in_channels, first.out_channels, kernel_size=first.kernel_size, stride=first.stride, padding=first.padding, bias=False)
+                self.model.conv1 = new_layer
+                # Replace the last layer
+                num_features = self.model.fc.in_features
+                self.model.fc = nn.Linear(num_features, self.out_channels)
+            case _:
+                logger.warning("Model not fully implemented yet.. Might crash, reverting to baseline implementation.")
+                first = self.model.features[0]
+                new_layer = nn.Conv2d(self.in_channels, first.out_channels, kernel_size=first.kernel_size, stride=first.stride, padding=first.padding, bias=False)
+                self.model.features[0] = new_layer
+                num_features = self.model.classifier[-1].in_features  # Get the number of inputs for the last layer
+                self.model.classifier[-1] = nn.Linear(num_features, self.out_channels)  # Replace the last layer
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass of the CNN2D model.
