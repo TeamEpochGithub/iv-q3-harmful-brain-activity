@@ -106,7 +106,7 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
         spec_label_offset_seconds = metadata.iloc[idx]["spectrogram_label_offset_seconds"]
         spectrogram = all_specs[spec_id]
 
-        # Get the start and end of the eeg data
+        # Get the start and end of the spectrogram data
         start = int(spec_label_offset_seconds * frequency)
         end = int((spec_label_offset_seconds * frequency) + (offset * frequency))
 
