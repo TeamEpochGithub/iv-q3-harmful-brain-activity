@@ -71,12 +71,11 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
         logger.info("x_sys has an existing cache, only loading in labels")
         X = None
         y = setup_label_data(cfg.raw_path)
-        indices = np.arange(len(y))
     else:
         X, y = setup_data(raw_path=cfg.raw_path)
-        indices = np.arange(len(X.meta))
     if y is None:
         raise ValueError("No labels loaded to train with")
+    indices = np.arange(len(y))
     # Split indices into train and test
     if cfg.test_size == 0:
         train_indices, test_indices = list(indices), []

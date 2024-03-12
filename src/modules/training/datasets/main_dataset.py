@@ -1,5 +1,7 @@
 """Main dataset for EEG / Spectrogram data."""
+import typing
 from dataclasses import dataclass
+from typing import Any
 
 import pandas as pd
 from torch.utils.data import Dataset
@@ -8,7 +10,7 @@ from src.typing.typing import XData
 
 
 @dataclass
-class MainDataset(Dataset):
+class MainDataset(Dataset):  # type: ignore[type-arg]
     """Main dataset for EEG data."""
 
     data_type: str
@@ -29,9 +31,9 @@ class MainDataset(Dataset):
 
     def __len__(self) -> int:
         """Get the length of the dataset."""
-        return len(self.indices)
+        return len(self.indices)  # type: ignore[arg-type]
 
-    def __getitem__(self, idx: int) -> tuple:
+    def __getitem__(self, idx: int) -> tuple[Any, Any]:
         """Get an item from the dataset.
 
         :param idx: The index to get.
@@ -54,7 +56,8 @@ class MainDataset(Dataset):
             case _:
                 raise ValueError(f"Data type {self.data_type} not recognized.")
 
-    def _eeg_getitem(self, idx: int) -> tuple:
+    @typing.no_type_check
+    def _eeg_getitem(self, idx: int) -> tuple[Any, Any]:  # type: ignore[no-untyped-def]
         """Get an item from the EEG dataset.
 
         :param idx: The index to get.
@@ -87,18 +90,20 @@ class MainDataset(Dataset):
         labels = labels / labels.sum()
         return eeg.to_numpy(), labels
 
-    def _kaggle_spec_getitem(self, idx: int) -> tuple:
+    def _kaggle_spec_getitem(self, idx: int) -> tuple[Any, Any]:
         """Get an item from the Kaggle spectrogram dataset.
 
         :param idx: The index to get.
         :return: The Kaggle spectrogram data and the labels.
         """
         # TODO(?): Implement this in a future issue
+        return [idx], []
 
-    def _eeg_spec_getitem(self, idx: int) -> tuple:
+    def _eeg_spec_getitem(self, idx: int) -> tuple[Any, Any]:
         """Get an item from the EEG spectrogram dataset.
 
         :param idx: The index to get.
         :return: The EEG spectrogram data and the labels.
         """
         # TODO(?): Implement this in a future issue
+        return [idx], []

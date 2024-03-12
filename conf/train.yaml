@@ -4,7 +4,6 @@ defaults:
   - model: gru_simple
   - wandb: train
 
-
 raw_path: data/raw/
 scorer:
   _target_: src.scoring.kldiv.KLDiv
