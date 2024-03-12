@@ -17,8 +17,14 @@ class NaNToZero(VerboseTransformationBlock):
         :return: The transformed data
         """
         eeg = data.eeg
+
         if eeg is None:
             raise ValueError("No EEG data to transform")
-        for key in tqdm(eeg, desc="Setting NaN values to zero"):
+        for key in tqdm(eeg, desc="EEG - Setting NaN values to zero"):
             eeg[key] = eeg[key].fillna(0)
+
+        kaggle_spec = data.kaggle_spec
+        if kaggle_spec is not None:
+            for key in tqdm(kaggle_spec, desc="Kaggle Spec - Setting NaN values to zero"):
+                kaggle_spec[key] = kaggle_spec[key].nan_to_num(0.0)
         return data

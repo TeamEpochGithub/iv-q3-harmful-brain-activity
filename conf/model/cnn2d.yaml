@@ -20,18 +20,20 @@ train_sys:
         _target_: src.modules.training.models.cnn2d.CNN2D
         in_channels: 4
         out_channels: 6
-        model:
+        model: # from segmentation_models_pytorch import Unet
+          _target_: torchvision.models.vgg11
+          pretrained: false
       optimizer: # Partially instantiate optimizer, so model parameters can be linked at runtime
         _target_: functools.partial
         _args_:
           - _target_: hydra.utils.get_class
             path: torch.optim.Adam
-        lr: 0.001
+        lr: 0.0001
       criterion:
         _target_: src.modules.training.losses.kldiv.CustomKLDivLoss
         reduction: "batchmean"
       epochs: 5
-      batch_size: 32
+      batch_size: 512
       patience: 10
       dataset:
         _target_: src.modules.training.datasets.main_dataset.MainDataset
