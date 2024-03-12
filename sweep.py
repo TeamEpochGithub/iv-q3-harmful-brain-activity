@@ -25,7 +25,7 @@ from src.typing.typing import XData
 from src.utils.script.lock import Lock
 from src.utils.script.reset_wandb_env import reset_wandb_env
 from src.utils.seed_torch import set_torch_seed
-from src.utils.setup import setup_config, setup_data, setup_pipeline, setup_wandb
+from src.utils.setup import setup_config, setup_data, setup_label_data, setup_pipeline, setup_wandb
 
 
 class Worker(NamedTuple):
@@ -58,8 +58,6 @@ class WorkerInitData(NamedTuple):
     i: int
     train_indices: list[int]
     test_indices: list[int]
-    X: XData
-    y: np.ndarray[Any, Any]
 
 
 class WorkerDoneData(NamedTuple):
@@ -105,8 +103,23 @@ def run_cv_cfg(cfg: DictConfig) -> None:
     setup_config(cfg)
     output_dir = Path(hydra.core.hydra_config.HydraConfig.get().runtime.output_dir)
 
-    # Lazily read the raw data with dask, and find the shape after processing
-    X, y = setup_data(raw_path=cfg.raw)
+    cache_args = {
+        "output_data_type": "numpy_array",
+        "storage_type": ".pkl",
+        "storage_path": "data/processed",
+    }
+
+    model_pipeline = setup_pipeline(cfg, is_train=True)
+    # Read the data if required and split in X, y
+
+    # Read the data if required and split in X, y
+    if model_pipeline.x_sys._cache_exists(model_pipeline.x_sys.get_hash(), cache_args) and not model_pipeline.y_sys._cache_exists(model_pipeline.y_sys.get_hash(), cache_args):  # noqa: SLF001
+        # Only read y data
+        logger.info("x_sys has an existing cache, only loading in labels")
+        X = None
+        y = setup_label_data(cfg.raw_path)
+    else:
+        X, y = setup_data(raw_path=cfg.raw_path)
     if y is None:
         raise ValueError("No labels loaded to train with")
 
@@ -115,9 +128,11 @@ def run_cv_cfg(cfg: DictConfig) -> None:
 
     # Spin up workers before calling wandb.init()
     # Workers will be blocked on a queue waiting to start
+    # TODO(Jasper): Return to splitter n_splits
+    n_splits = 3 #cfg.splitter.n_splits
     sweep_q: Queue[WorkerDoneData] = multiprocessing.Queue()
     workers = []
-    for _ in range(cfg.splitter.n_splits):
+    for _ in range(n_splits):
         q: Queue[WorkerInitData] = multiprocessing.Queue()
         p = multiprocessing.Process(target=try_fold_run, kwargs={"sweep_q": sweep_q, "worker_q": q})
         p.start()
@@ -128,7 +143,14 @@ def run_cv_cfg(cfg: DictConfig) -> None:
 
     metrics = []
     failed = False  # If any worker fails, stop the run
-    for num, (train_indices, test_indices) in enumerate(instantiate(cfg.splitter).split(X, y)):
+
+    # TODO(Jasper): Replace with actual splitter
+    from sklearn.model_selection import KFold
+
+    skf = KFold(n_splits)
+    indices = np.arange(len(y))
+
+    for num, (train_indices, test_indices) in enumerate(skf.split(np.zeros(len(indices)), indices)):
         set_torch_seed()
         worker = workers[num]
 
@@ -147,8 +169,6 @@ def run_cv_cfg(cfg: DictConfig) -> None:
                 i=num,
                 train_indices=train_indices,
                 test_indices=test_indices,
-                X=X,
-                y=y,
             ),
         )
         # Get metric from worker
@@ -203,15 +223,13 @@ def fold_run(sweep_q: Queue, worker_q: Queue) -> None:  # type: ignore[type-arg]
     i = worker_data.i
     train_indices = worker_data.train_indices
     test_indices = worker_data.test_indices
-    X = worker_data.X
-    y = worker_data.y
 
-    score = _one_fold(cfg, output_dir, i, wandb_group_name, train_indices, test_indices, X, y)
+    score = _one_fold(cfg, output_dir, i, wandb_group_name, train_indices, test_indices)
 
     sweep_q.put(WorkerDoneData(sweep_score=score))
 
 
-def _one_fold(cfg: DictConfig, output_dir: Path, fold: int, wandb_group_name: str, train_indices: list[int], test_indices: list[int], X: da.Array, y: da.Array) -> float:
+def _one_fold(cfg: DictConfig, output_dir: Path, fold: int, wandb_group_name: str, train_indices: list[int], test_indices: list[int]) -> float:
     """Run one fold of cv.
 
     :param cfg: The configuration
@@ -239,27 +257,51 @@ def _one_fold(cfg: DictConfig, output_dir: Path, fold: int, wandb_group_name: st
     logger.info("Creating clean pipeline for this fold")
     model_pipeline = setup_pipeline(cfg, is_train=True)
 
-    # Generate the parameters for training
-    fit_params: dict[str, Any] = {}  # generate_cv_params(cfg, model_pipeline, train_indices, test_indices)
+    cache_args = {
+        "output_data_type": "numpy_array",
+        "storage_type": ".pkl",
+        "storage_path": "data/processed",
+    }
 
-    # Fit the pipeline
-    target_pipeline = model_pipeline.get_target_pipeline()
-    original_y = copy.deepcopy(y)
+    if model_pipeline.x_sys._cache_exists(model_pipeline.x_sys.get_hash(), cache_args) and not model_pipeline.y_sys._cache_exists(model_pipeline.y_sys.get_hash(), cache_args):  # noqa: SLF001
+        # Only read y data
+        logger.info("x_sys has an existing cache, only loading in labels")
+        X = None
+        y = setup_label_data(cfg.raw_path)
+    else:
+        X, y = setup_data(raw_path=cfg.raw_path)
+    if y is None:
+        raise ValueError("No labels loaded to train with")
 
-    if target_pipeline is not None:
-        print_section_separator("Target pipeline")
-        y = target_pipeline.fit_transform(y)
+    train_args = {
+        "x_sys": {
+            "cache_args": cache_args,
+        },
+        "train_sys": {
+            "MainTrainer": {
+                "train_indices": train_indices,
+                "test_indices": test_indices,
+                "save_model": False
+            },
+        },
+    }
 
     # Fit the pipeline and get predictions
-    predictions = model_pipeline.fit_transform(X, y, **fit_params)
+    predictions = model_pipeline.train(X, y, **train_args)
     scorer = instantiate(cfg.scorer)
-    score = scorer(original_y[test_indices].compute(), predictions[test_indices])
+    score = scorer(y[test_indices], predictions[test_indices])
     logger.info(f"Score: {score}")
     if wandb_fold_run is not None:
         wandb_fold_run.log({"Score": score})
 
     logger.info("Finishing wandb run")
     wandb.join()
+
+    # Memory reduction
+    del X
+    del y
+    del predictions
+
     return score
 
 
