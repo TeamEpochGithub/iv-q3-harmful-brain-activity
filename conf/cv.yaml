@@ -1,15 +1,13 @@
 defaults:
   - base_cv
   - hydra/logging
-  - model: best
+  - model: gru_simple
   - wandb: train
 
-raw_path: data/raw
+raw_path: data/raw/
 scorer:
-  _target_: src.scoring.dice_coefficient.DiceCoefficient
+  _target_: src.scoring.kldiv.KLDiv
 cache_size: -1
 splitter:
-  _target_: src.cv_splitter.kelp_forest_segmentation_stratified_k_fold.KelpForestSegmentationStratifiedKFold
-  metadata_path: ${metadata_path}
-  n_splits: 3
+  # To be implemented
 allow_multiple_instances: True
