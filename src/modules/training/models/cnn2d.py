@@ -28,7 +28,7 @@ class CNN2D(nn.Module):
 
         # Modify the classifier to output 6 classes
         num_features = model.classifier[-1].in_features  # Get the number of inputs for the last layer
-        model.classifier[6] = nn.Linear(num_features, out_channels)  # Replace the last layer
+        model.classifier[-1] = nn.Linear(num_features, out_channels)  # Replace the last layer
 
         self.model = model
         self.in_channels = in_channels
