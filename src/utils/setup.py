@@ -183,7 +183,7 @@ def setup_data(raw_path: str) -> tuple[XData, np.ndarray[Any, Any] | None]:
 
     X_meta = pd.concat([ids, offsets], axis=1)
 
-    shared = {"eeg_freq": 200, "eeg_label_offset_s": 50}
+    shared = {"eeg_freq": 200, "eeg_len_s": 50, "kaggle_spec_freq": 0.5, "kaggle_spec_len_s": 600}
 
     return XData(eeg=all_eegs, kaggle_spec=all_spectrograms, eeg_spec=None, meta=X_meta, shared=shared), labels_np
 

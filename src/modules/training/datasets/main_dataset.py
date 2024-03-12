@@ -67,7 +67,7 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
         metadata = self.X.meta
         all_eegs = self.X.eeg
         eeg_frequency = self.X.shared["eeg_freq"]
-        offset = self.X.shared["eeg_label_offset_s"]
+        offset = self.X.shared["eeg_len_s"]
 
         # Get the eeg id from the idx in the metadata
         eeg_id = metadata.iloc[idx]["eeg_id"]
@@ -86,18 +86,39 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
 
         # Get the 6 labels of the experts, if they exist
         labels = self.y[idx, :]
-        # For each row, make sure the sum of the labels is 1
-        labels = labels / labels.sum()
         return eeg.to_numpy(), labels
 
+    @typing.no_type_check
     def _kaggle_spec_getitem(self, idx: int) -> tuple[Any, Any]:
         """Get an item from the Kaggle spectrogram dataset.
 
         :param idx: The index to get.
         :return: The Kaggle spectrogram data and the labels.
         """
-        # TODO(?): Implement this in a future issue
-        return [idx], []
+        idx = self.indices[idx]
+        metadata = self.X.meta
+        all_specs = self.X.kaggle_spec
+        frequency = self.X.shared["kaggle_spec_freq"]
+        offset = self.X.shared["kaggle_spec_len_s"]
+
+        # Get the eeg and spectrogram id from the idx in the metadata
+        spec_id = metadata.iloc[idx]["spectrogram_id"]
+        spec_label_offset_seconds = metadata.iloc[idx]["spectrogram_label_offset_seconds"]
+        spectrogram = all_specs[spec_id]
+
+        # Get the start and end of the spectrogram data
+        start = int(spec_label_offset_seconds * frequency)
+        end = int((spec_label_offset_seconds * frequency) + (offset * frequency))
+
+        # Slice the 4 channel spectrogram
+        spectrogram = spectrogram[:, :, start:end]
+
+        if self.y is None:
+            return spectrogram, []
+
+        # Get the 6 labels of the experts, if they exist
+        labels = self.y[idx, :]
+        return spectrogram, labels
 
     def _eeg_spec_getitem(self, idx: int) -> tuple[Any, Any]:
         """Get an item from the EEG spectrogram dataset.

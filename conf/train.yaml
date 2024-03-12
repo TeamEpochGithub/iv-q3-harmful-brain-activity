@@ -1,10 +1,11 @@
 defaults:
   - base_train
   - hydra/logging
-  - model: gru_simple
+  - model: cnn2d
   - wandb: train
 
-raw_path: data/raw/
+raw_path: data/raw
+
 scorer:
   _target_: src.scoring.kldiv.KLDiv
 test_size: 0.2
