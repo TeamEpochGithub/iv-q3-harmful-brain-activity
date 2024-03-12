@@ -103,6 +103,9 @@ def run_cv_cfg(cfg: DictConfig) -> None:
     setup_config(cfg)
     output_dir = Path(hydra.core.hydra_config.HydraConfig.get().runtime.output_dir)
 
+    # RuntimeError("Cannot re-initialize CUDA in forked subprocess. To use CUDA with multiprocessing, you must use the 'spawn' start method")
+    multiprocessing.set_start_method('spawn', force=True)
+
     cache_args = {
         "output_data_type": "numpy_array",
         "storage_type": ".pkl",
@@ -113,13 +116,7 @@ def run_cv_cfg(cfg: DictConfig) -> None:
     # Read the data if required and split in X, y
 
     # Read the data if required and split in X, y
-    if model_pipeline.x_sys._cache_exists(model_pipeline.x_sys.get_hash(), cache_args) and not model_pipeline.y_sys._cache_exists(model_pipeline.y_sys.get_hash(), cache_args):  # noqa: SLF001
-        # Only read y data
-        logger.info("x_sys has an existing cache, only loading in labels")
-        X = None
-        y = setup_label_data(cfg.raw_path)
-    else:
-        X, y = setup_data(raw_path=cfg.raw_path)
+    y = setup_label_data(cfg.raw_path)
     if y is None:
         raise ValueError("No labels loaded to train with")
 
@@ -287,7 +284,7 @@ def _one_fold(cfg: DictConfig, output_dir: Path, fold: int, wandb_group_name: st
     }
 
     # Fit the pipeline and get predictions
-    predictions = model_pipeline.train(X, y, **train_args)
+    predictions, _ = model_pipeline.train(X, y, **train_args)
     scorer = instantiate(cfg.scorer)
     score = scorer(y[test_indices], predictions[test_indices])
     logger.info(f"Score: {score}")
