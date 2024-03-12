@@ -16,6 +16,7 @@ x_sys:
 train_sys:
   steps:
     - _target_: src.modules.training.main_trainer.MainTrainer
+      model_name: GRU_Simple # Can't have special characters or spaces
       model:
         _target_: src.modules.training.models.gru_simple.GRUTimeSeriesClassifier
         num_classes: 6
@@ -29,7 +30,7 @@ train_sys:
       criterion:
         _target_: src.modules.training.losses.kldiv.CustomKLDivLoss
         reduction: "batchmean"
-      epochs: 1
+      epochs: 3
       batch_size: 64
       patience: 10
       dataset:
