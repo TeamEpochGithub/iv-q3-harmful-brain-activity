@@ -13,6 +13,10 @@ x_sys:
       value: 32
     - _target_: src.modules.transformation.eeg.butter.ButterFilter
 
+y_sys:
+  steps:
+    - _target_: src.modules.transformation.target.sum_to_one.SumToOne 
+
 train_sys:
   steps:
     - _target_: src.modules.training.main_trainer.MainTrainer
