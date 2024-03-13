@@ -1,0 +1,18 @@
+# Use python 3.10
+FROM python:3.10-slim
+
+# Set environment variables
+ENV WANDB_API_KEY="2f2e070293bc25b777c07b41702df746bdc4cc7d"
+
+# Set working directory in the container
+WORKDIR /app
+
+# Install Python Dependencies
+COPY ./requirements.txt ./
+COPY ./pyproject.toml ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy Codebase
+COPY . .
+
+CMD ["wandb", "agent", "team-epoch-iv/detect-harmful-brain-activity/a4f40dsd"]
