@@ -18,7 +18,7 @@ from src.config.train_config import TrainConfig
 from src.logging_utils.logger import logger
 from src.utils.script.lock import Lock
 from src.utils.seed_torch import set_torch_seed
-from src.utils.setup import setup_config, setup_data, setup_label_data, setup_pipeline, setup_wandb
+from src.utils.setup import setup_config, setup_data, setup_label_data, setup_pipeline, setup_wandb, setup_splitter_data
 from src.utils.stratified_splitter import create_stratified_cv_splits
 
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -77,11 +77,15 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
     if y is None:
         raise ValueError("No labels loaded to train with")
     
+    if X is not None:
+        splitter_data = X.meta
+    else:
+        splitter_data = setup_splitter_data(cfg.raw_path)
+
     # Split indices into train and test
     if cfg.splitter == 'stratified_splitter':
-        train_indices, test_indices = create_stratified_cv_splits(X, y, int(1/cfg.test_size))[0]
+        train_indices, test_indices = create_stratified_cv_splits(splitter_data, y, int(1/cfg.test_size))[0]
     else:
-
         indices = np.arange(len(y))
         if cfg.test_size == 0:
             train_indices, test_indices = list(indices), []

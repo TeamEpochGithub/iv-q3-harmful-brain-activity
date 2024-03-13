@@ -1,10 +1,9 @@
 from sklearn.model_selection import StratifiedKFold
 import numpy as np
 import pandas as pd
-from src.typing.typing import XData
 
 
-def create_stratified_cv_splits(X: XData, y: np.ndarray, n_splits=5):
+def create_stratified_cv_splits(X: pd.DataFrame, y: np.ndarray, n_splits=5):
     """
     Create stratified cross-validation splits ensuring:
     - Each fold has proportional representation of the predominant labels.
@@ -20,7 +19,7 @@ def create_stratified_cv_splits(X: XData, y: np.ndarray, n_splits=5):
     """
 
     # create data from X and y
-    data = pd.DataFrame({'patient_id': X.meta['patient_id'], 'expert_consensus': y.argmax(axis=1)})
+    data = pd.DataFrame({'patient_id': X['patient_id'], 'expert_consensus': y.argmax(axis=1)})
 
     # Group by `patient_id` and `expert_consensus` to examine the distribution of labels within these groups
     label_distribution_per_patient_id = data.groupby(['patient_id', 'expert_consensus']).size().unstack(fill_value=0)
