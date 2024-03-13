@@ -1,26 +1,26 @@
 """The main script for Cross Validation. Takes in the raw data, does CV and logs the results."""
-import copy
 import os
 import warnings
 from contextlib import nullcontext
 from pathlib import Path
-from typing import Any
 
 import hydra
+import numpy as np
 import randomname
-import wandb
 from distributed import Client
 from epochalyst.logging.section_separator import print_section_separator
 from hydra.core.config_store import ConfigStore
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 
+import wandb
 from src.config.cross_validation_config import CVConfig
 from src.logging_utils.logger import logger
+from src.typing.typing import XData
 from src.utils.script.lock import Lock
 from src.utils.script.reset_wandb_env import reset_wandb_env
 from src.utils.seed_torch import set_torch_seed
-from src.utils.setup import setup_config, setup_data, setup_pipeline, setup_wandb
+from src.utils.setup import setup_config, setup_data, setup_label_data, setup_pipeline, setup_wandb
 
 warnings.filterwarnings("ignore", category=UserWarning)
 # Makes hydra give full error messages
@@ -56,13 +56,45 @@ def run_cv_cfg(cfg: DictConfig) -> None:
     setup_config(cfg)
     output_dir = Path(hydra.core.hydra_config.HydraConfig.get().runtime.output_dir)
 
-    # Lazily read the raw data with dask, and find the shape after processing
-    X, y = setup_data(raw_path=cfg.raw_path)
-
     # Set up Weights & Biases group name
     wandb_group_name = randomname.get_name()
 
-    for i, (train_indices, test_indices) in enumerate(instantiate(cfg.splitter).split(X, y)):
+    # Cache arguments for x_sys
+    cache_args = {
+        "output_data_type": "numpy_array",
+        "storage_type": ".pkl",
+        "storage_path": "data/processed",
+    }
+
+    model_pipeline = setup_pipeline(cfg, is_train=True)
+
+    # Read the data if required and split in X, y
+    if model_pipeline.x_sys._cache_exists(model_pipeline.x_sys.get_hash(), cache_args) and not model_pipeline.y_sys._cache_exists(model_pipeline.y_sys.get_hash(), cache_args):  # noqa: SLF001
+        # Only read y data
+        logger.info("x_sys has an existing cache, only loading in labels")
+        X = None
+        y = setup_label_data(cfg.raw_path)
+    else:
+        X, y = setup_data(raw_path=cfg.raw_path)
+    if y is None:
+        raise ValueError("No labels loaded to train with")
+
+    if model_pipeline.x_sys is not None:
+        X = model_pipeline.x_sys.transform(X, cache_args=cache_args)
+
+    if model_pipeline.y_sys is not None:
+        processed_y = model_pipeline.y_sys.transform(y)
+
+    indices = np.arange(len(y))
+
+    # TODO(Jasper): Replace with actual splitter
+    from sklearn.model_selection import KFold
+
+    skf = KFold(3)
+
+    scorer = instantiate(cfg.scorer)
+
+    for i, (train_indices, test_indices) in enumerate(skf.split(np.zeros(len(indices)), indices)):
         # https://github.com/wandb/wandb/issues/5119
         # This is a workaround for the issue where sweeps override the run id annoyingly
         reset_wandb_env()
@@ -77,23 +109,27 @@ def run_cv_cfg(cfg: DictConfig) -> None:
         logger.info("Creating clean pipeline for this fold")
         model_pipeline = setup_pipeline(cfg, is_train=True)
 
-        # Generate the parameters for training
-        fit_params: dict[str, Any] = {}  # generate_cv_params(cfg, model_pipeline, train_indices, test_indices)
-
-        # Fit the pipeline
-        target_pipeline = model_pipeline.get_target_pipeline()
-        original_y = copy.deepcopy(y)
-        if original_y is None:
-            raise ValueError("No labels loaded to train with")
-
-        if target_pipeline is not None:
-            print_section_separator("Target pipeline")
-            y = target_pipeline.fit_transform(y)
-
         # Fit the pipeline and get predictions
-        predictions = model_pipeline.fit_transform(X, y, **fit_params)
-        scorer = instantiate(cfg.scorer)
-        score = scorer(original_y[test_indices], predictions[test_indices])
+        predictions = X
+
+        train_args = {
+            "MainTrainer": {
+                "train_indices": train_indices,
+                "test_indices": test_indices,
+                "save_model": False,
+            },
+        }
+
+        if model_pipeline.train_sys is not None:
+            predictions, _ = model_pipeline.train_sys.train(X, processed_y, **train_args)
+
+        if model_pipeline.pred_sys is not None:
+            predictions = model_pipeline.pred_sys.transform(predictions)
+
+        if predictions is None or isinstance(predictions, XData):
+            raise ValueError("Predictions are not in correct format to get a score")
+
+        score = scorer(y[test_indices], predictions[test_indices])
         logger.info(f"Score: {score}")
         wandb.log({"Score": score})
 

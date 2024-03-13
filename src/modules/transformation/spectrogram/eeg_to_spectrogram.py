@@ -79,7 +79,12 @@ class EEGToSpectrogram(VerboseTransformationBlock):
             # Save
             spec_parts.append(mel_spec_db)
 
-        return torch.mean(torch.stack(spec_parts), dim=0)
+        spectrogram = torch.mean(torch.stack(spec_parts), dim=0)
+
+        # Set any NaN values to 0
+        spectrogram[torch.isnan(spectrogram)] = 0
+
+        return spectrogram
 
     def custom_transform(self, data: XData, **kwargs: Any) -> XData:
         """Apply a custom transformation to the data.
