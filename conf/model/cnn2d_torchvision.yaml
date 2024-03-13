@@ -9,9 +9,7 @@ x_sys:
       upper: 1024
     - _target_: src.modules.transformation.nantozero.NaNToZero
       eeg: true
-    - _target_: src.modules.transformation.eeg.divide.Divide
-      value: 32
-
+      kaggle_spec: true
 
 y_sys:
   steps:
@@ -21,11 +19,12 @@ train_sys:
   steps:
     - _target_: src.modules.training.main_trainer.MainTrainer
       model:
-        _target_: src.modules.training.models.cnn1d.CNN1D
-        n_len_seg: 50
-        in_channels: 20
-        out_channels: 16
-        n_classes: 6
+        _target_: src.modules.training.models.torchvision.Torchvision
+        in_channels: 4
+        out_channels: 6
+        model: # from segmentation_models_pytorch import Unet
+          _target_: torchvision.models.efficientnet_b1
+          pretrained: false
       optimizer: # Partially instantiate optimizer, so model parameters can be linked at runtime
         _target_: functools.partial
         _args_:
@@ -36,8 +35,8 @@ train_sys:
         _target_: src.modules.training.losses.kldiv.CustomKLDivLoss
         reduction: "batchmean"
       epochs: 5
-      batch_size: 32
+      batch_size: 256
       patience: 10
       dataset:
         _target_: src.modules.training.datasets.main_dataset.MainDataset
-        data_type: "eeg"
+        data_type: "kaggle_spec"

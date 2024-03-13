@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import pandas as pd
+import torch
 from torch.utils.data import Dataset
 
 from src.typing.typing import XData
@@ -118,13 +119,55 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
 
         # Get the 6 labels of the experts, if they exist
         labels = self.y[idx, :]
+
         return spectrogram, labels
 
+    @typing.no_type_check
     def _eeg_spec_getitem(self, idx: int) -> tuple[Any, Any]:
         """Get an item from the EEG spectrogram dataset.
 
         :param idx: The index to get.
         :return: The EEG spectrogram data and the labels.
         """
-        # TODO(?): Implement this in a future issue
-        return [idx], []
+        idx = self.indices[idx]
+        metadata = self.X.meta
+        eeg_frequency = self.X.shared["eeg_freq"]
+        eeg_length = self.X.shared["eeg_len_s"]
+
+        # Get the eeg id from the idx in the metadata
+        eeg_id = metadata.iloc[idx]["eeg_id"]
+        eeg_label_offset_seconds = int(metadata.iloc[idx]["eeg_label_offset_seconds"])
+
+        # Get the spectrogram
+        spectrogram = self.X.eeg_spec[eeg_id]
+
+        # Calculate the indeces of the correct 50 second window of the egg data
+        start = eeg_label_offset_seconds * self.X.shared["eeg_spec_freq"]
+        end = (eeg_label_offset_seconds * self.X.shared["eeg_spec_freq"]) + (eeg_length * eeg_frequency)
+
+        # Convert these to indices to spectrogram indeces (propotional to the length of the eeg data)
+        start = int((start * self.X.eeg_spec[eeg_id].shape[2]) / self.X.eeg[eeg_id].shape[0])
+        end = int((end * self.X.eeg_spec[eeg_id].shape[2]) / self.X.eeg[eeg_id].shape[0])
+
+        ## Make sure the spectrogram is always the same length (same as the spectrograms created by 50s eeg data)
+        current_length = end - start
+        length_diff = current_length - self.X.shared["eeg_spec_test_spectrogram_size"][1]
+        end -= length_diff
+
+        # Get the snippet of the spectrogram
+        spectrogram = spectrogram[:, :, start:end]
+
+        # Pad/Crop the spectrogram to the correct size
+        space_left = abs(spectrogram.shape[2] - self.X.shared["eeg_spec_size"][1]) // 2
+        space_right = abs(spectrogram.shape[2] - self.X.shared["eeg_spec_size"][1]) - space_left
+
+        if self.X.shared["eeg_spec_fitting_method"] == "pad":
+            spectrogram = torch.nn.functional.pad(spectrogram, (space_left, space_right))
+        elif self.X.shared["eeg_spec_fitting_method"] == "crop":
+            spectrogram = spectrogram[:, :, space_left:-space_right]
+
+        # Return the spectrogram and the labels
+        if self.y is None:
+            return spectrogram, []
+        labels = self.y[idx, :]
+        return spectrogram, labels
