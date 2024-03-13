@@ -1,5 +1,6 @@
 """Common type definitions for the project."""
 from dataclasses import dataclass
+from typing import Any
 
 import pandas as pd
 import torch
@@ -13,9 +14,15 @@ class XData:
     :param kaggle_spec: The Kaggle spectrogram data, as a dictionary of Tensors
     :param eeg_spec: The EEG spectrogram data, as a dictionary of Tensors
     :param meta: The metadata, as a DataFrame
+    :param shared: The shared data to be used in the pipeline. Contains frequency data, offset data, etc.
     """
 
     eeg: dict[int, pd.DataFrame] | None
     kaggle_spec: dict[int, torch.Tensor] | None
     eeg_spec: dict[int, torch.Tensor] | None
     meta: pd.DataFrame
+    shared: dict[str, Any] | None
+
+    def __repr__(self) -> str:
+        """Return a string representation of the object."""
+        return "XData"

@@ -1,0 +1,130 @@
+"""Main dataset for EEG / Spectrogram data."""
+import typing
+from dataclasses import dataclass
+from typing import Any
+
+import pandas as pd
+from torch.utils.data import Dataset
+
+from src.typing.typing import XData
+
+
+@dataclass
+class MainDataset(Dataset):  # type: ignore[type-arg]
+    """Main dataset for EEG data."""
+
+    data_type: str
+    X: XData | None = None
+    y: pd.DataFrame | None = None
+    indices: list[int] | None = None
+
+    def setup(self, X: XData, y: pd.DataFrame, indices: list[int]) -> None:
+        """Set up the dataset."""
+        self.X = X
+        self.y = y
+        self.indices = indices
+
+    def setup_prediction(self, X: XData) -> None:
+        """Set up the dataset for prediction."""
+        self.X = X
+        self.indices = list(range(len(X.meta)))
+
+    def __len__(self) -> int:
+        """Get the length of the dataset."""
+        return len(self.indices)  # type: ignore[arg-type]
+
+    def __getitem__(self, idx: int) -> tuple[Any, Any]:
+        """Get an item from the dataset.
+
+        :param idx: The index to get.
+        :return: The data and the labels.
+        """
+        # Check if the data is set up, we need X.
+        if self.X is None:
+            raise ValueError("X Data not set up.")
+        if self.indices is None:
+            raise ValueError("Indices not set up.")
+
+        # Create a switch statement to handle the different data types
+        match self.data_type:
+            case "eeg":
+                return self._eeg_getitem(idx)
+            case "kaggle_spec":
+                return self._kaggle_spec_getitem(idx)
+            case "eeg_spec":
+                return self._eeg_spec_getitem(idx)
+            case _:
+                raise ValueError(f"Data type {self.data_type} not recognized.")
+
+    @typing.no_type_check
+    def _eeg_getitem(self, idx: int) -> tuple[Any, Any]:  # type: ignore[no-untyped-def]
+        """Get an item from the EEG dataset.
+
+        :param idx: The index to get.
+        :return: The EEG data and the labels.
+        """
+        idx = self.indices[idx]
+        metadata = self.X.meta
+        all_eegs = self.X.eeg
+        eeg_frequency = self.X.shared["eeg_freq"]
+        offset = self.X.shared["eeg_len_s"]
+
+        # Get the eeg id from the idx in the metadata
+        eeg_id = metadata.iloc[idx]["eeg_id"]
+        eeg_label_offset_seconds = int(metadata.iloc[idx]["eeg_label_offset_seconds"])
+        eeg = all_eegs[eeg_id]
+
+        # Get the start and end of the eeg data
+        start = eeg_label_offset_seconds * eeg_frequency
+        end = (eeg_label_offset_seconds * eeg_frequency) + (offset * eeg_frequency)
+
+        # Get the correct 50 second window of eeg data
+        eeg = eeg.iloc[start:end, :]
+
+        if self.y is None:
+            return eeg.to_numpy(), []
+
+        # Get the 6 labels of the experts, if they exist
+        labels = self.y[idx, :]
+        return eeg.to_numpy(), labels
+
+    @typing.no_type_check
+    def _kaggle_spec_getitem(self, idx: int) -> tuple[Any, Any]:
+        """Get an item from the Kaggle spectrogram dataset.
+
+        :param idx: The index to get.
+        :return: The Kaggle spectrogram data and the labels.
+        """
+        idx = self.indices[idx]
+        metadata = self.X.meta
+        all_specs = self.X.kaggle_spec
+        frequency = self.X.shared["kaggle_spec_freq"]
+        offset = self.X.shared["kaggle_spec_len_s"]
+
+        # Get the eeg and spectrogram id from the idx in the metadata
+        spec_id = metadata.iloc[idx]["spectrogram_id"]
+        spec_label_offset_seconds = metadata.iloc[idx]["spectrogram_label_offset_seconds"]
+        spectrogram = all_specs[spec_id]
+
+        # Get the start and end of the spectrogram data
+        start = int(spec_label_offset_seconds * frequency)
+        end = int((spec_label_offset_seconds * frequency) + (offset * frequency))
+
+        # Slice the 4 channel spectrogram
+        spectrogram = spectrogram[:, :, start:end]
+
+        if self.y is None:
+            return spectrogram, []
+
+        # Get the 6 labels of the experts, if they exist
+        labels = self.y[idx, :]
+        return spectrogram, labels
+
+    def _eeg_spec_getitem(self, idx: int) -> tuple[Any, Any]:
+        """Get an item from the EEG spectrogram dataset.
+
+        :param idx: The index to get.
+        :return: The EEG spectrogram data and the labels.
+        """
+        # TODO(?): Implement this in a future issue
+        return [idx], []

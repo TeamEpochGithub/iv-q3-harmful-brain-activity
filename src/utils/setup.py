@@ -111,14 +111,11 @@ def update_model_cfg_test_size(
     return model_cfg_dict
 
 
-def setup_data(
-    raw_path: str,
-) -> tuple[XData, pd.DataFrame | None]:
+def setup_data(raw_path: str) -> tuple[XData, np.ndarray[Any, Any] | None]:
     """Read the metadata and return the data and target in the proper format.
 
-    :param metadata_path: Path to the metadata.
-    :param eeg_path: Path to the EEG data.
-    :param spectrogram_path: Path to the spectrogram data.
+    :param raw_path: Path to the raw data.
+    :return: X and y data for training
     """
     # Turn raw path into separate paths
     raw_path = raw_path if raw_path[-1] == "/" else raw_path + "/"
@@ -143,14 +140,23 @@ def setup_data(
         # If the offsets exist in metadata, use them
         offsets = metadata[["eeg_label_offset_seconds", "spectrogram_label_offset_seconds"]]
     else:
-        # Ifthe offsets do not exist fill them with zeros
+        # If the offsets do not exist fill them with zeros
         offsets = pd.DataFrame(np.zeros((metadata.shape[0], 2)), columns=["eeg_label_offset_seconds", "spectrogram_label_offset_seconds"])
+
     label_columns = ["seizure_vote", "lpd_vote", "gpd_vote", "lrda_vote", "grda_vote", "other_vote"]
 
     if all(column in metadata.columns for column in label_columns):
         labels = metadata[label_columns]
+
+        # Convert the labels to a numpy array
+        labels_np = labels.to_numpy()
     else:
-        labels = None
+        labels_np = None
+        raise ValueError("Column(s) missing from metadata")
+
+    # If labels is None raise error
+    if labels is None:
+        raise ValueError("No labels found")
 
     # Get one of the paths that is not None
     path = eeg_path if eeg_path is not None else spectrogram_path
@@ -177,7 +183,36 @@ def setup_data(
 
     X_meta = pd.concat([ids, offsets], axis=1)
 
-    return XData(eeg=all_eegs, kaggle_spec=all_spectrograms, eeg_spec=None, meta=X_meta), labels
+    shared = {"eeg_freq": 200, "eeg_len_s": 50, "kaggle_spec_freq": 0.5, "kaggle_spec_len_s": 600}
+
+    return XData(eeg=all_eegs, kaggle_spec=all_spectrograms, eeg_spec=None, meta=X_meta, shared=shared), labels_np
+
+
+def setup_label_data(raw_path: str) -> np.ndarray[Any, Any] | None:
+    """Read labels from raw_path for training.
+
+    :param raw_path: Raw_path for location of labels
+    :return: Labels for training
+    """
+    raw_path = raw_path if raw_path[-1] == "/" else raw_path + "/"
+    metadata_path = raw_path + "train.csv"
+
+    if metadata_path is None:
+        raise ValueError("Metadata_path should not be None")
+
+    # Read the metadata
+    metadata = pd.read_csv(metadata_path)
+
+    label_columns = ["seizure_vote", "lpd_vote", "gpd_vote", "lrda_vote", "grda_vote", "other_vote"]
+
+    if all(column in metadata.columns for column in label_columns):
+        labels = metadata[label_columns]
+    else:
+        raise ValueError(f"Columns missing in metadata.columns: {metadata.columns}, label_columns: {label_columns}")
+
+    if labels is None:
+        return None
+    return labels.to_numpy()
 
 
 def load_eeg(eeg_path: str, eeg_id: int) -> tuple[int, pd.DataFrame]:
