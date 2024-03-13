@@ -119,6 +119,7 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
 
         # Get the 6 labels of the experts, if they exist
         labels = self.y[idx, :]
+
         return spectrogram, labels
 
     @typing.no_type_check
