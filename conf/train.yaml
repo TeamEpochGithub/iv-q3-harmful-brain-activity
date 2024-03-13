@@ -1,7 +1,7 @@
 defaults:
   - base_train
   - hydra/logging
-  - model: cnn2d
+  - model: gru_simple
   - wandb: train
 
 raw_path: data/raw
