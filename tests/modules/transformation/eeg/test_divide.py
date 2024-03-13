@@ -12,7 +12,7 @@ def setup_data() -> XData:
         1: pd.DataFrame([6, 7, 8, 9, 10]),
     }
     meta = pd.DataFrame([1, 2, 3, 4, 5])
-    return XData(eeg=eeg, kaggle_spec=None, eeg_spec=None, meta=meta)
+    return XData(eeg=eeg, kaggle_spec=None, eeg_spec=None, meta=meta, shared=None)
 
 
 def expected_data() -> XData:
@@ -21,7 +21,7 @@ def expected_data() -> XData:
         1: pd.DataFrame([3, 3.5, 4, 4.5, 5]),
     }
     meta = pd.DataFrame([1, 2, 3, 4, 5])
-    return XData(eeg=eeg, kaggle_spec=None, eeg_spec=None, meta=meta)
+    return XData(eeg=eeg, kaggle_spec=None, eeg_spec=None, meta=meta, shared=None)
 
 
 class TestDivide(TestCase):
