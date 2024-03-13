@@ -7,7 +7,9 @@ x_sys:
     - _target_: src.modules.transformation.eeg.clip.ClipEEG
       lower: -1024
       upper: 1024
-    - _target_: src.modules.transformation.eeg.nantozero.NaNToZero
+    - _target_: src.modules.transformation.nantozero.NaNToZero
+      eeg: true
+      kaggle_spec: true
 
 y_sys:
   steps:
