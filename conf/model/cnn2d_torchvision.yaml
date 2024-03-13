@@ -11,10 +11,6 @@ x_sys:
       eeg: true
       kaggle_spec: true
 
-y_sys:
-  steps:
-    - _target_: src.modules.transformation.target.sum_to_one.SumToOne
-
 train_sys:
   steps:
     - _target_: src.modules.training.main_trainer.MainTrainer

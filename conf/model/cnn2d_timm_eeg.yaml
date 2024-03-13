@@ -17,10 +17,6 @@ x_sys:
       size: [128, 320]
       fitting_method: 'pad'
 
-y_sys:
-  steps:
-    - _target_: src.modules.transformation.target.sum_to_one.SumToOne
-
 train_sys:
   steps:
     - _target_: src.modules.training.main_trainer.MainTrainer
