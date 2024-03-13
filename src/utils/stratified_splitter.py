@@ -1,18 +1,18 @@
 from sklearn.model_selection import StratifiedKFold
 import numpy as np
 import pandas as pd
+from src.typing.typing import XData
 
-data = pd.read_csv('data/raw/train.csv')
 
-def create_stratified_cv_splits(X, y, n_splits=5):
+def create_stratified_cv_splits(X: XData, y: np.ndarray, n_splits=5):
     """
     Create stratified cross-validation splits ensuring:
     - Each fold has proportional representation of the predominant labels.
-    - No eeg_id appears in both training and validation sets of a fold.
+    - No patient_id appears in both training and validation sets of a fold.
     
     Parameters:
     - data: The original dataset.
-    - eeg_id_to_label: DataFrame mapping eeg_id to its predominant label.
+    - patient_id_to_label: DataFrame mapping patient_id to its predominant label.
     - n_splits: Number of folds for the cross-validation.
     
     Returns:
@@ -20,16 +20,16 @@ def create_stratified_cv_splits(X, y, n_splits=5):
     """
 
     # create data from X and y
-    data = pd.DataFrame({'eeg_id': X.meta['eeg_id'], 'expert_consensus': y.argmax(axis=1)})
+    data = pd.DataFrame({'patient_id': X.meta['patient_id'], 'expert_consensus': y.argmax(axis=1)})
 
-    # Group by `eeg_id` and `expert_consensus` to examine the distribution of labels within these groups
-    label_distribution_per_eeg_id = data.groupby(['eeg_id', 'expert_consensus']).size().unstack(fill_value=0)
+    # Group by `patient_id` and `expert_consensus` to examine the distribution of labels within these groups
+    label_distribution_per_patient_id = data.groupby(['patient_id', 'expert_consensus']).size().unstack(fill_value=0)
 
-    # Determine the predominant label for each eeg_id
-    predominant_labels = label_distribution_per_eeg_id.idxmax(axis=1)
+    # Determine the predominant label for each patient_id
+    predominant_labels = label_distribution_per_patient_id.idxmax(axis=1)
 
-    # Prepare data for stratification: map each eeg_id to its predominant label
-    eeg_id_to_predominant_label = predominant_labels.to_frame(name='predominant_label').reset_index()
+    # Prepare data for stratification: map each patient_id to its predominant label
+    patient_id_to_predominant_label = predominant_labels.to_frame(name='predominant_label').reset_index()
 
     # Initialize the StratifiedKFold object
     skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
@@ -37,15 +37,15 @@ def create_stratified_cv_splits(X, y, n_splits=5):
     # Placeholder for the splits
     splits = []
     
-    # Generate splits based on the eeg_id's predominant label
-    for train_index, test_index in skf.split(eeg_id_to_predominant_label, eeg_id_to_predominant_label['predominant_label']):
-        # Get the eeg_ids for the current split
-        train_eeg_ids = eeg_id_to_predominant_label.iloc[train_index]['eeg_id']
-        test_eeg_ids = eeg_id_to_predominant_label.iloc[test_index]['eeg_id']
+    # Generate splits based on the patient_id's predominant label
+    for train_index, test_index in skf.split(patient_id_to_predominant_label, patient_id_to_predominant_label['predominant_label']):
+        # Get the patient_ids for the current split
+        train_patient_ids = patient_id_to_predominant_label.iloc[train_index]['patient_id']
+        test_patient_ids = patient_id_to_predominant_label.iloc[test_index]['patient_id']
         
-        # Determine the indices in the original dataset corresponding to these eeg_ids
-        train_indices = data[data['eeg_id'].isin(train_eeg_ids)].index
-        test_indices = data[data['eeg_id'].isin(test_eeg_ids)].index
+        # Determine the indices in the original dataset corresponding to these patient_ids
+        train_indices = data[data['patient_id'].isin(train_patient_ids)].index
+        test_indices = data[data['patient_id'].isin(test_patient_ids)].index
         
         # Append the indices to the splits list
         splits.append((train_indices, test_indices))

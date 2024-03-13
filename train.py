@@ -76,21 +76,18 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
         X, y = setup_data(raw_path=cfg.raw_path)
     if y is None:
         raise ValueError("No labels loaded to train with")
-    if cfg.splitter == 'stratified_splitter':
-        splits = create_stratified_cv_splits(X, y, int(1/cfg.test_size))
     
-    from src.utils.visualize_vote_distribution import visualize_vote_distribution
-    for train_indices, test_indices in splits:
-        visualize_vote_distribution(y, train_indices, test_indices)
-
-    indices = np.arange(len(y))
-
-
     # Split indices into train and test
-    if cfg.test_size == 0:
-        train_indices, test_indices = list(indices), []
+    if cfg.splitter == 'stratified_splitter':
+        train_indices, test_indices = create_stratified_cv_splits(X, y, int(1/cfg.test_size))[0]
     else:
-        train_indices, test_indices = train_test_split(indices, test_size=cfg.test_size, random_state=42)
+
+        indices = np.arange(len(y))
+        if cfg.test_size == 0:
+            train_indices, test_indices = list(indices), []
+        else:
+            train_indices, test_indices = train_test_split(indices, test_size=cfg.test_size, random_state=42)
+
     logger.info(f"Train/Test size: {len(train_indices)}/{len(test_indices)}")
 
     # Generate the parameters for training
