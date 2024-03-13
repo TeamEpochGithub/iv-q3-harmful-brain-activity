@@ -51,5 +51,5 @@ docker build -t detect_harmful_brain_activity -f Dockerfile.wandb .
 ## Step 4: Run docker container
 
 ```shell
-docker run --gpus <0 | 1 | all> -v <project-path>/data:/app/data detect_harmful_brain_activity
+docker run --gpus <all | '"device=0,1"'> -v <project-path>/data:/app/data detect_harmful_brain_activity
 ```
