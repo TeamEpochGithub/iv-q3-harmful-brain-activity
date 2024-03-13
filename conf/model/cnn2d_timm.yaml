@@ -20,7 +20,7 @@ train_sys:
         _target_: src.modules.training.models.timm.Timm
         in_channels: 4
         out_channels: 6
-        model_name: "efficientnet_b1"
+        model_name: "densenet121"
       optimizer: # Partially instantiate optimizer, so model parameters can be linked at runtime
         _target_: functools.partial
         _args_:
