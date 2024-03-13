@@ -4,12 +4,12 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
+import wandb
 from epochalyst.pipeline.model.training.torch_trainer import TorchTrainer
 from numpy import typing as npt
 from torch import Tensor
 from torch.utils.data import Dataset
 
-import wandb
 from src.modules.logging.logger import Logger
 from src.typing.typing import XData
 
