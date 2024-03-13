@@ -1,7 +1,7 @@
 from torch import nn
 
 
-from src.modules.torch_models.res_bi_GRU import ResidualBiGRU
+from src.modules.training.models.res_bi_GRU import ResidualBiGRU
 
 
 class MultiResidualBiGRU(nn.Module):

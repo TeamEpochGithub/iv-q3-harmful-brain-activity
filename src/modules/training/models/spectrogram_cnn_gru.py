@@ -1,8 +1,8 @@
-from src.modules.torch_models.multi_res_bi_GRU import MultiResidualBiGRU
+from src.modules.training.models.multi_res_bi_GRU import MultiResidualBiGRU
 from torch import nn
 from segmentation_models_pytorch import Unet
 import torchaudio.transforms as T
-from src.modules.torch_models.Unet_decoder import UNet1DDecoder
+from src.modules.training.models.Unet_decoder import UNet1DDecoder
 import torch
 import torch.nn.functional as F
 
@@ -31,7 +31,7 @@ class MultiResidualBiGRUwSpectrogramCNN(nn.Module):
                                                        internal_layers=1, model_name='')
         # will shape the encoder outputs to the same shape as the original inputs
         self.liner = nn.Linear(in_features=32, out_features=in_channels)
-        self.linear2 = nn.Linear(in_features=1024, out_features=1)
+        self.linear2 = nn.Linear(in_features=10016, out_features=1)
 
         self.decoder = UNet1DDecoder(
             n_channels=32,
@@ -40,11 +40,11 @@ class MultiResidualBiGRUwSpectrogramCNN(nn.Module):
             scale_factor=2,
             # hardcoded for now
             # TODO make this a config
-            duration=1024,
+            duration=10016,
         )
 
     def forward(self, x, use_activation=True):
-        x = F.pad(x, (0, 0, 0, 24))
+        x = F.pad(x, (0, 0, 0, 16))
         x = x.permute(0, 2, 1)
         x_spec = self.spectrogram(x)
         x_encoded = self.encoder(x_spec).squeeze(1)
