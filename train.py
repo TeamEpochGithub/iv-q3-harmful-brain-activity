@@ -19,6 +19,7 @@ from src.logging_utils.logger import logger
 from src.utils.script.lock import Lock
 from src.utils.seed_torch import set_torch_seed
 from src.utils.setup import setup_config, setup_data, setup_label_data, setup_pipeline, setup_wandb
+from src.utils.stratified_splitter import create_stratified_cv_splits
 
 warnings.filterwarnings("ignore", category=UserWarning)
 # Makes hydra give full error messages
@@ -75,7 +76,16 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
         X, y = setup_data(raw_path=cfg.raw_path)
     if y is None:
         raise ValueError("No labels loaded to train with")
+    if cfg.splitter == 'stratified_splitter':
+        splits = create_stratified_cv_splits(X, y, int(1/cfg.test_size))
+    
+    from src.utils.visualize_vote_distribution import visualize_vote_distribution
+    for train_indices, test_indices in splits:
+        visualize_vote_distribution(y, train_indices, test_indices)
+
     indices = np.arange(len(y))
+
+
     # Split indices into train and test
     if cfg.test_size == 0:
         train_indices, test_indices = list(indices), []
