@@ -46,7 +46,19 @@ class Logger(_Logger):
         :param kwargs: Any additional arguments
         """
         if wandb.run:
-            wandb.log(message, **kwargs)
+            if message.get("type") == "wandb_plot" and message["plot_type"] == "line_series":
+                plot_data = message["data"]
+                # Construct the plot here using the provided data
+                plot = wandb.plot.line_series(
+                    xs=plot_data["xs"],
+                    ys=plot_data["ys"],
+                    keys=plot_data["keys"],
+                    title=plot_data["title"],
+                    xname=plot_data["xname"],
+                )
+                wandb.log({"Training/Loss": plot}, commit=False, **kwargs)
+            else:
+                wandb.log(message, **kwargs)
 
     def external_define_metric(self, metric: str, metric_type: str) -> None:
         """Define a metric in an external service.
