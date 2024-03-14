@@ -188,6 +188,13 @@ def setup_data(raw_path: str) -> tuple[XData, np.ndarray[Any, Any] | None]:
     return XData(eeg=all_eegs, kaggle_spec=all_spectrograms, eeg_spec=None, meta=X_meta, shared=shared), labels_np
 
 
+def setup_splitter_data(raw_path: str) -> pd.DataFrame:
+    metadata_path = raw_path + "/train.csv"
+    metadata = pd.read_csv(metadata_path)
+    # Now split the metadata into the 3 parts: ids, offsets, and labels
+    return metadata[["patient_id", "eeg_id", "spectrogram_id"]]
+
+
 def setup_label_data(raw_path: str) -> np.ndarray[Any, Any] | None:
     """Read labels from raw_path for training.
 

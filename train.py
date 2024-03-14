@@ -18,7 +18,8 @@ from src.config.train_config import TrainConfig
 from src.logging_utils.logger import logger
 from src.utils.script.lock import Lock
 from src.utils.seed_torch import set_torch_seed
-from src.utils.setup import setup_config, setup_data, setup_label_data, setup_pipeline, setup_wandb
+from src.utils.setup import setup_config, setup_data, setup_label_data, setup_pipeline, setup_splitter_data, setup_wandb
+from src.utils.stratified_splitter import create_stratified_cv_splits
 
 warnings.filterwarnings("ignore", category=UserWarning)
 # Makes hydra give full error messages
@@ -33,8 +34,7 @@ def run_train(cfg: DictConfig) -> None:
     """Train a model pipeline with a train-test split. Entry point for Hydra which loads the config file."""
     # Run the train config with a dask client, and optionally a lock
     optional_lock = Lock if not cfg.allow_multiple_instances else nullcontext
-    with optional_lock(), Client() as client:
-        logger.info(f"Client: {client}")
+    with optional_lock():
         run_train_cfg(cfg)
 
 
@@ -75,12 +75,24 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
         X, y = setup_data(raw_path=cfg.raw_path)
     if y is None:
         raise ValueError("No labels loaded to train with")
-    indices = np.arange(len(y))
-    # Split indices into train and test
-    if cfg.test_size == 0:
-        train_indices, test_indices = list(indices), []
+
+    if X is not None:
+        splitter_data = X.meta
     else:
-        train_indices, test_indices = train_test_split(indices, test_size=cfg.test_size, random_state=42)
+        splitter_data = setup_splitter_data(cfg.raw_path)
+
+    # Split indices into train and test
+    if cfg.splitter == "stratified_splitter":
+        logger.info("Using stratified splitter to split data into train and test sets.")
+        train_indices, test_indices = create_stratified_cv_splits(splitter_data, y, int(1 / cfg.test_size))[0]
+    else:
+        logger.info("Using train_test_split to split data into train and test sets.")
+        indices = np.arange(len(y))
+        if cfg.test_size == 0:
+            train_indices, test_indices = list(indices), []
+        else:
+            train_indices, test_indices = train_test_split(indices, test_size=cfg.test_size, random_state=42)
+
     logger.info(f"Train/Test size: {len(train_indices)}/{len(test_indices)}")
 
     # Generate the parameters for training
