@@ -8,6 +8,9 @@ x_sys:
       lower: -1024
       upper: 1024
     - _target_: src.modules.transformation.eeg.nantozero.NaNToZero
+    - _target_: src.modules.transformation.eeg.divide.Divide
+      value: 32
+
 
 y_sys:
   steps:
@@ -17,11 +20,9 @@ train_sys:
   steps:
     - _target_: src.modules.training.main_trainer.MainTrainer
       model:
-        _target_: src.modules.training.models.cnn1d.CNN1D
-        n_len_seg: 50
+        _target_: src.modules.training.models.spectrogram_cnn_gru.MultiResidualBiGRUwSpectrogramCNN
         in_channels: 20
-        out_channels: 16
-        n_classes: 6
+        out_channels: 6
       optimizer: # Partially instantiate optimizer, so model parameters can be linked at runtime
         _target_: functools.partial
         _args_:
@@ -36,4 +37,4 @@ train_sys:
       patience: 10
       dataset:
         _target_: src.modules.training.datasets.main_dataset.MainDataset
-        data_type: "kaggle_spec"
+        data_type: "eeg"
