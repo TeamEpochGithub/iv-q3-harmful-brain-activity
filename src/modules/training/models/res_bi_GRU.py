@@ -13,7 +13,7 @@ class ResidualBiGRU(nn.Module):
             hidden_size,
             internal_layers,
             batch_first=True,
-            bidirectional=bidir
+            bidirectional=bidir,
         )
 
         # These are added for testing, LSTM performs a bit worse and RNN is complete garbage.
@@ -22,7 +22,7 @@ class ResidualBiGRU(nn.Module):
             hidden_size,
             internal_layers,
             batch_first=True,
-            bidirectional=bidir
+            bidirectional=bidir,
         )
 
         self.rnn = nn.RNN(
@@ -30,11 +30,12 @@ class ResidualBiGRU(nn.Module):
             hidden_size,
             internal_layers,
             batch_first=True,
-            bidirectional=bidir
+            bidirectional=bidir,
         )
         dir_factor = 2 if bidir else 1
         self.fc1 = nn.Linear(
-            hidden_size * dir_factor, hidden_size * dir_factor * 2
+            hidden_size * dir_factor,
+            hidden_size * dir_factor * 2,
         )
         self.dropout = nn.Dropout(dropout)
         self.ln1 = nn.LayerNorm(hidden_size * dir_factor * 2)
