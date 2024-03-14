@@ -1,5 +1,5 @@
 command:
-  - python
+  - python3
   - ${program}
   - ${args_no_hyphens}
 method: bayes
