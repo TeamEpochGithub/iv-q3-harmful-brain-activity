@@ -1,10 +1,10 @@
-from src.modules.training.models.multi_res_bi_GRU import MultiResidualBiGRU
-from torch import nn
-from segmentation_models_pytorch import Unet
-import torchaudio.transforms as T
-from src.modules.training.models.Unet_decoder import UNet1DDecoder
-import torch
 import torch.nn.functional as F
+import torchaudio.transforms as T
+from segmentation_models_pytorch import Unet
+from torch import nn
+
+from src.modules.training.models.multi_res_bi_GRU import MultiResidualBiGRU
+from src.modules.training.models.unet_decoder import UNet1DDecoder
 
 
 class MultiResidualBiGRUwSpectrogramCNN(nn.Module):
@@ -12,7 +12,7 @@ class MultiResidualBiGRUwSpectrogramCNN(nn.Module):
         super(MultiResidualBiGRUwSpectrogramCNN, self).__init__()
         # TODO exclude some of the features from the spectrogram
         self.encoder = Unet(
-            encoder_name='resnet34',
+            encoder_name="resnet34",
             in_channels=in_channels,
             encoder_weights=None,
             classes=1,
@@ -21,14 +21,20 @@ class MultiResidualBiGRUwSpectrogramCNN(nn.Module):
         self.spectrogram = nn.Sequential(
             T.Spectrogram(n_fft=63, hop_length=1),
             T.AmplitudeToDB(top_db=80),
-            SpecNormalize()
+            SpecNormalize(),
         )
-        self.GRU = MultiResidualBiGRU(input_size=in_channels,
-                                                       hidden_size=32,
-                                                       out_size=out_channels, n_layers= 5,
-                                                       bidir=True, activation="relu",
-                                                       flatten=False, dropout=0,
-                                                       internal_layers=1, model_name='')
+        self.GRU = MultiResidualBiGRU(
+            input_size=in_channels,
+            hidden_size=32,
+            out_size=out_channels,
+            n_layers=5,
+            bidir=True,
+            activation="relu",
+            flatten=False,
+            dropout=0,
+            internal_layers=1,
+            model_name="",
+        )
         # will shape the encoder outputs to the same shape as the original inputs
         self.liner = nn.Linear(in_features=32, out_features=in_channels)
         self.linear2 = nn.Linear(in_features=10016, out_features=1)
@@ -59,7 +65,7 @@ class MultiResidualBiGRUwSpectrogramCNN(nn.Module):
         x_encoded_linear += x.permute(0, 2, 1)
 
         y, _ = self.GRU(x_encoded_linear, use_activation=use_activation)
-        out = self.linear2(y.permute(0,2,1)+x_decoded.permute(0,2,1))
+        out = self.linear2(y.permute(0, 2, 1) + x_decoded.permute(0, 2, 1))
         out = nn.functional.softmax(out, dim=1)
         return out.permute(0, 2, 1)
 
@@ -71,7 +77,7 @@ class SpecNormalize(nn.Module):
 
     def forward(self, x):
         # x: (batch, channel, freq, time)
-        
+
         min_ = x.min(dim=-1, keepdim=True)[0].min(dim=-2, keepdim=True)[0]
         max_ = x.max(dim=-1, keepdim=True)[0].max(dim=-2, keepdim=True)[0]
 

@@ -1,7 +1,7 @@
 defaults:
   - base_train
   - hydra/logging
-  - model: gru_simple
+  - model: cnn2d_timm_eeg
   - wandb: train
 
 raw_path: data/raw
