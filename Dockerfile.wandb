@@ -27,4 +27,3 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy Codebase
 COPY . .
 
-CMD ["wandb", "agent", "team-epoch-iv/detect-harmful-brain-activity/a4f40dsd"]
