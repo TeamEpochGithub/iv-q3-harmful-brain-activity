@@ -1,13 +1,17 @@
+"""Implementation of 1D U-Net decoder for time series classification."""
 from functools import partial
 from typing import Optional
 
 import torch
-import torch.nn.functional as F
+import torch.nn.functional as F  # noqa: N812
 from torch import nn
 
 
 class SEModule(nn.Module):
-    def __init__(self, channel, reduction=8):
+    """Squeeze-and-Excitation block."""
+
+    def __init__(self, channel: int, reduction: int = 8) -> None:
+        """The constructor for the SEModule class."""
         super().__init__()
         self.avg_pool = nn.AdaptiveAvgPool1d(1)
         self.fc = nn.Sequential(
@@ -17,7 +21,8 @@ class SEModule(nn.Module):
             nn.Sigmoid(),
         )
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Forward pass."""
         (
             b,
             c,
@@ -29,7 +34,7 @@ class SEModule(nn.Module):
 
 
 class DoubleConv(nn.Module):
-    """(convolution => [BN] => ReLU) * 2"""
+    """(convolution => [BN] => ReLU) * 2."""
 
     def __init__(
         self,
@@ -40,6 +45,7 @@ class DoubleConv(nn.Module):
         se=False,
         res=False,
     ):
+        """The constructor for the DoubleConv class."""
         super().__init__()
         self.res = res
         if not mid_channels:
@@ -57,7 +63,7 @@ class DoubleConv(nn.Module):
             non_linearity,
         )
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         if self.res:
             return x + self.double_conv(x)
         else:
@@ -65,7 +71,7 @@ class DoubleConv(nn.Module):
 
 
 class Down(nn.Module):
-    """Downscaling with maxpool then double conv"""
+    """Downscaling with maxpool then double conv."""
 
     def __init__(
         self,
@@ -76,18 +82,19 @@ class Down(nn.Module):
         se=False,
         res=False,
     ):
+        """The constructor for the Down class."""
         super().__init__()
         self.maxpool_conv = nn.Sequential(
             nn.MaxPool1d(scale_factor),
             DoubleConv(in_channels, out_channels, norm=norm, se=se, res=res),
         )
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.maxpool_conv(x)
 
 
 class Up(nn.Module):
-    """Upscaling then double conv"""
+    """Upscaling then double conv."""
 
     def __init__(
         self,
@@ -97,6 +104,7 @@ class Up(nn.Module):
         scale_factor=2,
         norm=nn.BatchNorm1d,
     ):
+        """The constructor for the Up class."""
         super().__init__()
 
         # if bilinear, use the normal convolutions to reduce the number of channels
@@ -112,7 +120,8 @@ class Up(nn.Module):
             )
             self.conv = DoubleConv(in_channels, out_channels, norm=norm)
 
-    def forward(self, x1, x2):
+    def forward(self, x1: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
+        """Forward pass."""
         x1 = self.up(x1)
         # input is CHW
         diff = x2.size()[2] - x1.size()[2]
@@ -121,11 +130,14 @@ class Up(nn.Module):
         return self.conv(x)
 
 
-def create_layer_norm(channel, length):
+def create_layer_norm(channel: int, length: int) -> nn.LayerNorm:
+    """Create layer norm with given channel and length."""
     return nn.LayerNorm([channel, length])
 
 
 class UNet1DDecoder(nn.Module):
+    """1D U-Net decoder for time series classification."""
+
     def __init__(
         self,
         n_channels: int,
@@ -137,6 +149,7 @@ class UNet1DDecoder(nn.Module):
         scale_factor: int = 2,
         dropout: float = 0.2,
     ):
+        """The constructor for the UNet1DDecoder class."""
         super().__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
