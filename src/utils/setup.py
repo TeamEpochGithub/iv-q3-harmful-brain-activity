@@ -186,16 +186,16 @@ def setup_data(raw_path: str) -> tuple[XData, np.ndarray[Any, Any] | None]:
     shared = {"eeg_freq": 200, "eeg_len_s": 50, "kaggle_spec_freq": 0.5, "kaggle_spec_len_s": 600}
 
     # append an index column to the meta data
-    X_meta['index'] = range(len(X_meta))
+    X_meta["index"] = range(len(X_meta))
     # Get the first occurance of each eeg_id
-    unique_indices = X_meta.groupby('eeg_id').first()['index']
+    unique_indices = X_meta.groupby("eeg_id").first()["index"]
     # Use the index column from X to index the y data
     y_unique = labels_np[unique_indices]
     # Remove the index column from the meta data
-    X_meta.pop('index')
+    X_meta.pop("index")
     # Use the unique indices to index the meta data
     X_meta = X_meta.iloc[unique_indices]
-    
+
     return XData(eeg=all_eegs, kaggle_spec=all_spectrograms, eeg_spec=None, meta=X_meta, shared=shared), y_unique
 
 
@@ -203,6 +203,14 @@ def setup_splitter_data(raw_path: str) -> pd.DataFrame:
     """Read the metadata and return the data and target in the proper format."""
     metadata_path = raw_path + "/train.csv"
     metadata = pd.read_csv(metadata_path)
+    metadata["index"] = range(len(metadata))
+    # Get the first occurance of each eeg_id
+    unique_indices = metadata.groupby("eeg_id").first()["index"]
+    # Use the index column from X to index the y data
+    # Remove the index column from the meta data
+    metadata.pop("index")
+    # Use the unique indices to index the meta data
+    metadata = metadata.iloc[unique_indices]
     # Now split the metadata into the 3 parts: ids, offsets, and labels
     return metadata[["patient_id", "eeg_id", "spectrogram_id"]]
 
