@@ -1,18 +1,22 @@
+"""Stratifed splitter module. This module contains the function to create stratified cross-validation splits for the dataset."""
+
 from sklearn.model_selection import StratifiedKFold
+import numpy.typing as npt
 import numpy as np
 import pandas as pd
 
 
-def create_stratified_cv_splits(X: pd.DataFrame, y: np.ndarray, n_splits=5):
+def create_stratified_cv_splits(X: pd.DataFrame, y: npt.NDArray[np.float32], n_splits: int = 5) -> list[tuple[pd.Index, pd.Index]]:
     """
+    Create stratified cross-validation.
+
     Create stratified cross-validation splits ensuring:
     - Each fold has proportional representation of the predominant labels.
     - No patient_id appears in both training and validation sets of a fold.
     
-    Parameters:
-    - data: The original dataset.
-    - patient_id_to_label: DataFrame mapping patient_id to its predominant label.
-    - n_splits: Number of folds for the cross-validation.
+    :param X: The original dataset.
+    :param y: The labels for the dataset.
+    :param n_splits: Number of folds for the cross-validation.
     
     Returns:
     - A list of tuples, each containing the indices for training and validation sets for each fold.
