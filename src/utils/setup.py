@@ -185,7 +185,18 @@ def setup_data(raw_path: str) -> tuple[XData, np.ndarray[Any, Any] | None]:
 
     shared = {"eeg_freq": 200, "eeg_len_s": 50, "kaggle_spec_freq": 0.5, "kaggle_spec_len_s": 600}
 
-    return XData(eeg=all_eegs, kaggle_spec=all_spectrograms, eeg_spec=None, meta=X_meta, shared=shared), labels_np
+    # append an index column to the meta data
+    X_meta['index'] = range(len(X_meta))
+    # Get the first occurance of each eeg_id
+    unique_indices = X_meta.groupby('eeg_id').first()['index']
+    # Use the index column from X to index the y data
+    y_unique = labels_np[unique_indices]
+    # Remove the index column from the meta data
+    X_meta.pop('index')
+    # Use the unique indices to index the meta data
+    X_meta = X_meta.iloc[unique_indices]
+    
+    return XData(eeg=all_eegs, kaggle_spec=all_spectrograms, eeg_spec=None, meta=X_meta, shared=shared), y_unique
 
 
 def setup_label_data(raw_path: str) -> np.ndarray[Any, Any] | None:
