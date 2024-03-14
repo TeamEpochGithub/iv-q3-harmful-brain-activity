@@ -26,7 +26,7 @@ def create_parquet_visualizer(app, file_path):
             value='Fp1'
         ),
         dcc.Graph(id='parquet-graph'),
-        dcc.Graph(id='label-graph'),
+        dcc.Graph(id='labels-graph'),
     ])
     
     # Register callbacks
@@ -49,23 +49,55 @@ def create_parquet_visualizer(app, file_path):
         
         df = pd.read_parquet(selected_file)
 
-        # Assuming your dataframe has columns 'x' and 'y', you can create a scatter plot
-        trace = go.Line(
+        # Split selected_file on '/'
+        file_name = selected_file.split('/')[-1]
+        # Assuming the eeg_id is the file name without the last 8 characters (e.g., extension)
+        eeg_id = file_name[:-8]
+
+        # Ensure eeg_id is compared as the correct type; casting to int might be necessary
+        # Adjust this part according to your 'eeg_id' column data type
+        print(eeg_id)
+        try:
+            matching_eeg_id = int(eeg_id)
+        except ValueError:
+            # Handle the case where eeg_id cannot be converted to int
+            print("eeg_id cannot be converted to an integer.")
+            return {}
+
+        train_df = pd.read_csv('./data/raw/train.csv')
+        matching = train_df[train_df['eeg_id'] == matching_eeg_id]
+
+        # Create a Plotly figure
+        fig = go.Figure()
+
+        # Assuming 'column' is defined somewhere in your function to specify which column to plot
+        scatter = go.Scatter(
             x=df.index,
             y=df[column],
-            marker=dict(color='blue')  # You can customize marker properties
+            mode='lines',
+            marker=dict(color='blue'),
+            name='Data'
         )
-        
-        layout = {
-            'title': f'Visualization of {selected_file}',
-            'xaxis': {'title': 'Step (200Hz)'},
-            'yaxis': {'title': 'µV'}
-        }
-        
-        return {'data': [trace], 'layout': layout}
+        fig.add_trace(scatter)
+
+        # Add vertical lines for each eeg_label_offset_seconds
+        for offset in matching['eeg_label_offset_seconds']:
+            fig.add_shape(type="line",
+                        x0=(offset + 25) * 200, y0=0, x1=(offset + 25) * 200, y1=1,
+                        xref="x", yref="paper",
+                        line=dict(color="Red", width=2))
+
+        fig.update_layout(
+            title=f'Visualization of {eeg_id}',
+            xaxis={'title': 'Step (200Hz)'},
+            yaxis={'title': 'µV'},
+            showlegend=True
+        )
+
+        return fig
     
     @app.callback(
-        Output('label-graph', 'figure'),
+        Output('labels-graph', 'figure'),
         [Input('parquet-dropdown', 'value')]
     )
     def update_label_graph(selected_file):
@@ -74,28 +106,46 @@ def create_parquet_visualizer(app, file_path):
         
         df = pd.read_csv('./data/raw/train.csv')
 
-        # Split selected_file on /
+        # Split selected_file on '/'
         file_name = selected_file.split('/')[-1]
+        # Assuming the eeg_id is the file name without the last 8 characters (e.g., extension)
         eeg_id = file_name[:-8]
-        
-        matching = df[df['eeg_id'] == eeg_id]
+
+        # Ensure eeg_id is compared as the correct type; casting to int might be necessary
+        # Adjust this part according to your 'eeg_id' column data type
+        try:
+            matching_eeg_id = int(eeg_id)
+        except ValueError:
+            # Handle the case where eeg_id cannot be converted to int
+            print("eeg_id cannot be converted to an integer.")
+            return {}
+
+
+        matching = df[df['eeg_id'] == matching_eeg_id]
+
+        if matching.empty:
+            print(f"No matching records found for eeg_id: {eeg_id}")
+            return {}
 
         columns = list(filter(lambda col: col.endswith('_vote'), matching.columns))
         trace = go.Figure()
 
         for i, x in matching.iterrows():
-            print(x)
+            # Print statement removed to clean up output, uncomment if needed for debugging
+            # print(x[columns].to_numpy())
             bar = go.Bar(
-                x= columns,
-                y = x[columns]
+                x=columns,
+                y=x[columns].to_numpy(),
+                name=f"Offset: {200 * (x['eeg_label_offset_seconds'] + 25)}"  # Optional: name each bar for clarity
             )
             trace.add_trace(bar)
 
-
         layout = {
-            'title' : f'Labels of {eeg_id}',
+            'title': f'Labels of {eeg_id}',
         }
 
-        return {'data': [trace], 'layout': layout}
+        # Adjusted the return to provide a figure directly, which is more common with Plotly usage
+        trace.update_layout(layout)
+        return trace
 
     return app, layout
