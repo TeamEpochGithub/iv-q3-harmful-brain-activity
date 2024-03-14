@@ -1,10 +1,12 @@
 defaults:
   - base_train
   - hydra/logging
-  - model: spec_res_gru
+  - model: cnn1d
   - wandb: train
 
 raw_path: data/raw
+cache_path: data/cache
+processed_path: data/processed
 
 scorer:
   _target_: src.scoring.kldiv.KLDiv

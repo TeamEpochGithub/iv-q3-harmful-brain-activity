@@ -17,3 +17,4 @@ class SubmitConfig:
     ensemble: Any
     test_size: float
     raw_path: str
+    result_path: str

@@ -7,6 +7,8 @@ from distributed import Client
 from epochalyst.logging.section_separator import print_section_separator
 from hydra.core.config_store import ConfigStore
 from omegaconf import DictConfig
+import pandas as pd
+from pathlib import Path
 
 from src.config.submit_config import SubmitConfig
 from src.logging_utils.logger import logger
@@ -23,36 +25,48 @@ cs.store(name="base_submit", node=SubmitConfig)
 
 
 @hydra.main(version_base=None, config_path="conf", config_name="submit")
-# TODO(Jeffrey): Use SubmitConfig instead of DictConfig
+# TODO: Use SubmitConfig instead of DictConfig
 def run_submit(cfg: DictConfig) -> None:
     """Run the main script for submitting the predictions."""
-    # Print section separator
     print_section_separator("Q3 Detect Harmful Brain Activity - Submit")
-    # output_dir = Path(hydra.core.hydra_config.HydraConfig.get().runtime.output_dir)
 
     # Set up logging
     import coloredlogs
-
     coloredlogs.install()
 
     # Check for missing keys in the config file
     setup_config(cfg)
 
-    # Preload the pipeline and save it to HTML
+    # Preload the pipeline
     print_section_separator("Setup pipeline")
     model_pipeline = setup_pipeline(cfg, is_train=False)
 
     # Load the test data
-    X, filenames = setup_data(raw_path=cfg.raw_path)
+    raw_path = Path(cfg.raw_path)
+    X, _ = setup_data(raw_path, None, use_test_data=True)
 
     # Predict on the test data
-    logger.info("Now transforming the pipeline...")
-    predictions = model_pipeline.transform(X)
+    logger.info("Making predictions...")
+    predictions = model_pipeline.predict(X)
 
     # Make submission
     if predictions is not None:
-        # TODO(For issue #34): make_submission(output_dir, predictions, filenames)
-        pass
+        # Create a dataframe from the predictions
+        label_columns = ["seizure_vote", "lpd_vote", "gpd_vote", "lrda_vote", "grda_vote", "other_vote"]
+        submission = pd.DataFrame(predictions, columns=label_columns)
+
+        # Add the eeg_id to the submission
+        submission["eeg_id"] = X.meta["eeg_id"]
+
+        # Reorder the columns
+        submission = submission[["eeg_id"] + label_columns]
+
+        # Save the submission
+        result_path = Path(cfg.result_path)
+        os.makedirs(result_path, exist_ok=True)
+        submission_path = result_path / "submission.csv"
+        submission.to_csv(submission_path, index=False)
+        print(f"Submission saved to {submission_path}")
     else:
         raise ValueError("Predictions are None")
 

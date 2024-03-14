@@ -50,7 +50,7 @@ def setup_config(cfg: DictConfig) -> None:
 
 
 def setup_pipeline(pipeline_cfg: DictConfig, is_train: bool | None) -> ModelPipeline:
-    """Instantiate the pipeline and log it to HTML.
+    """Instantiate the pipeline.
 
     :param pipeline_cfg: The model pipeline config. Root node should be a ModelPipeline
     :param output_dir: The directory to save the pipeline to.
@@ -111,107 +111,79 @@ def update_model_cfg_test_size(
     return model_cfg_dict
 
 
-def setup_data(raw_path: str) -> tuple[XData, np.ndarray[Any, Any] | None]:
+def setup_data(raw_path: Path, cache_path: Path | None, use_test_data: bool = False) -> tuple[XData, np.ndarray[Any, Any] | None]:
     """Read the metadata and return the data and target in the proper format.
 
     :param raw_path: Path to the raw data.
     :return: X and y data for training
     """
+
     # Turn raw path into separate paths
-    raw_path = raw_path if raw_path[-1] == "/" else raw_path + "/"
-    metadata_path = raw_path + "train.csv"
-    eeg_path = raw_path + "train_eegs"
-    spectrogram_path = raw_path + "train_spectrograms"
+    if use_test_data:
+        metadata_path = raw_path / "test.csv"
+        eeg_path = raw_path / "test_eegs"
+        spectrogram_path = raw_path / "test_spectrograms"
+    else:
+        metadata_path = raw_path / "train.csv"
+        eeg_path = raw_path / "train_eegs"
+        spectrogram_path = raw_path / "train_spectrograms"
 
-    # Check that metadata_path is not None
-    if metadata_path is None:
-        raise ValueError("metadata_path should not be None")
-
-    # Check that at least one of the paths is not None
-    if eeg_path is None and spectrogram_path is None:
-        raise ValueError("At least one of the paths should not be None")
-
+    # Check that all paths exist
+    if not os.path.exists(metadata_path):
+        raise ValueError(f"Metadata_path {metadata_path} does not exist")
+    if not os.path.exists(eeg_path):
+        raise ValueError(f"EEG_path {eeg_path} does not exist")
+    if not os.path.exists(spectrogram_path):
+        raise ValueError(f"Spectrogram_path {spectrogram_path} does not exist")
+    
     # Read the metadata
     metadata = pd.read_csv(metadata_path)
-    # Now split the metadata into the 3 parts: ids, offsets, and labels
+
+    # Process the metadata (Extract ids, offsets, and labels)
     ids = metadata[["patient_id", "eeg_id", "spectrogram_id"]]
-
-    if "eeg_label_offset_seconds" in metadata.columns and "spectrogram_label_offset_seconds" in metadata.columns:
-        # If the offsets exist in metadata, use them
-        offsets = metadata[["eeg_label_offset_seconds", "spectrogram_label_offset_seconds"]]
-    else:
-        # If the offsets do not exist fill them with zeros
+    if use_test_data:
         offsets = pd.DataFrame(np.zeros((metadata.shape[0], 2)), columns=["eeg_label_offset_seconds", "spectrogram_label_offset_seconds"])
-
-    label_columns = ["seizure_vote", "lpd_vote", "gpd_vote", "lrda_vote", "grda_vote", "other_vote"]
-
-    if all(column in metadata.columns for column in label_columns):
-        labels = metadata[label_columns]
-
-        # Convert the labels to a numpy array
-        labels_np = labels.to_numpy()
-    else:
         labels_np = None
-        raise ValueError("Column(s) missing from metadata")
+    else:
+        offsets = metadata[["eeg_label_offset_seconds", "spectrogram_label_offset_seconds"]]
+        labels = metadata[["seizure_vote", "lpd_vote", "gpd_vote", "lrda_vote", "grda_vote", "other_vote"]]
+        labels_np = labels.to_numpy()
 
-    # If labels is None raise error
-    if labels is None:
-        raise ValueError("No labels found")
-
-    # Get one of the paths that is not None
-    path = eeg_path if eeg_path is not None else spectrogram_path
-
-    cache_loc = "train" if "train" in path else "test"
-
-    # Get the cache path
-    cache_path = f"data/processed/{cache_loc}"
-    if not os.path.exists(cache_path):
+    # Create the cache path if it doesn't exist
+    if cache_path is not None and not os.path.exists(cache_path):
         os.makedirs(cache_path)
 
-    if eeg_path is not None:
-        # Initialize the dictionary to store the EEG data
-        all_eegs = load_all_eegs(eeg_path, cache_path, ids)
-    else:
-        logger.info("No EEG data to read, skipping...")
-        all_eegs = None
-
-    if spectrogram_path is not None:
-        all_spectrograms = load_all_spectrograms(spectrogram_path, cache_path, ids)
-    else:
-        logger.info("No spectrogram data to read, skipping...")
-        all_spectrograms = None
-
+    X_eeg = load_all_eegs(eeg_path, cache_path, ids)
+    X_kaggle_spec = load_all_spectrograms(spectrogram_path, cache_path, ids)
     X_meta = pd.concat([ids, offsets], axis=1)
+    X_shared = {"eeg_freq": 200, "eeg_len_s": 50, "kaggle_spec_freq": 0.5, "kaggle_spec_len_s": 600}
 
-    shared = {"eeg_freq": 200, "eeg_len_s": 50, "kaggle_spec_freq": 0.5, "kaggle_spec_len_s": 600}
-
-    return XData(eeg=all_eegs, kaggle_spec=all_spectrograms, eeg_spec=None, meta=X_meta, shared=shared), labels_np
+    return XData(eeg=X_eeg, kaggle_spec=X_kaggle_spec, eeg_spec=None, meta=X_meta, shared=X_shared), labels_np
 
 
-def setup_splitter_data(raw_path: str) -> pd.DataFrame:
-    metadata_path = raw_path + "/train.csv"
+def setup_splitter_data(raw_path: Path) -> pd.DataFrame:
+    metadata_path = raw_path / "train.csv"
     metadata = pd.read_csv(metadata_path)
     # Now split the metadata into the 3 parts: ids, offsets, and labels
     return metadata[["patient_id", "eeg_id", "spectrogram_id"]]
 
 
-def setup_label_data(raw_path: str) -> np.ndarray[Any, Any] | None:
+def setup_label_data(raw_path: Path) -> np.ndarray[Any, Any] | None:
     """Read labels from raw_path for training.
 
     :param raw_path: Raw_path for location of labels
     :return: Labels for training
     """
-    raw_path = raw_path if raw_path[-1] == "/" else raw_path + "/"
-    metadata_path = raw_path + "train.csv"
 
-    if metadata_path is None:
-        raise ValueError("Metadata_path should not be None")
+    if raw_path is None:
+        raise ValueError("raw_path should not be None")
+    metadata_path = raw_path / "train.csv"
 
     # Read the metadata
     metadata = pd.read_csv(metadata_path)
 
+    # Check that columns exist
     label_columns = ["seizure_vote", "lpd_vote", "gpd_vote", "lrda_vote", "grda_vote", "other_vote"]
-
     if all(column in metadata.columns for column in label_columns):
         labels = metadata[label_columns]
     else:
@@ -222,22 +194,22 @@ def setup_label_data(raw_path: str) -> np.ndarray[Any, Any] | None:
     return labels.to_numpy()
 
 
-def load_eeg(eeg_path: str, eeg_id: int) -> tuple[int, pd.DataFrame]:
+def load_eeg(eeg_path: Path, eeg_id: int) -> tuple[int, pd.DataFrame]:
     """Load the EEG data from the parquet file.
 
     :param eeg_path: The path to the EEG data.
     :param eeg_id: The EEG id.
     """
-    return eeg_id, pq.read_table(f"{eeg_path}/{eeg_id}.parquet").to_pandas()
+    return eeg_id, pq.read_table(eeg_path / f"{eeg_id}.parquet").to_pandas()
 
 
-def load_spectrogram(spectrogram_path: str, spectrogram_id: int) -> tuple[int, npt.NDArray[np.float32]]:
+def load_spectrogram(spectrogram_path: Path, spectrogram_id: int) -> tuple[int, npt.NDArray[np.float32]]:
     """Load the spectrogram data from the parquet file.
 
     :param spectrogram_path: The path to the spectrogram data.
     :param spectrogram_id: The spectrogram id.
     """
-    data = pd.read_parquet(f"{spectrogram_path}/{spectrogram_id}.parquet")
+    data = pd.read_parquet(spectrogram_path / f"{spectrogram_id}.parquet")
     LL = data.filter(regex="^LL")
     LP = data.filter(regex="^LP")
     RP = data.filter(regex="^RP")
@@ -255,18 +227,19 @@ def load_spectrogram(spectrogram_path: str, spectrogram_id: int) -> tuple[int, n
     return spectrogram_id, spectrogram
 
 
-def load_all_eegs(eeg_path: str, cache_path: str, ids: pd.DataFrame) -> dict[int, pd.DataFrame]:
+def load_all_eegs(eeg_path: Path, cache_path: Path | None, ids: pd.DataFrame) -> dict[int, pd.DataFrame]:
     """Read the EEG data and return it as a dictionary.
-
+    
     :param eeg_path: Path to the EEG data.
+    :param cache_path: Path to the cache, or None if no cache should be used.
     :param eeg_ids: The EEG ids.
     """
     all_eegs = {}
     # Read the EEG data
     logger.info("Reading the EEG data")
-    if os.path.exists(cache_path + "/eeg_cache.pkl"):
-        logger.info("Found pickle cache for EEG data at: " + cache_path + "/eeg_cache.pkl")
-        with open(cache_path + "/eeg_cache.pkl", "rb") as f:
+    if cache_path is not None and os.path.exists(cache_path / "eeg_cache.pkl"):
+        logger.info(f"Found pickle cache for EEG data at: {cache_path / 'eeg_cache.pkl'}")
+        with open(cache_path / "eeg_cache.pkl", "rb") as f:
             all_eegs = pickle.load(f)  # noqa: S301
         logger.info("Loaded pickle cache for EEG data")
     else:
@@ -274,26 +247,29 @@ def load_all_eegs(eeg_path: str, cache_path: str, ids: pd.DataFrame) -> dict[int
             all_eegs = dict(executor.map(load_eeg, itertools.repeat(eeg_path), ids["eeg_id"].unique()))
             executor.shutdown()
         logger.info("Finished reading the EEG data")
-        logger.info("Saving pickle cache for EEG data")
-        with open(cache_path + "/eeg_cache.pkl", "wb") as f:
-            pickle.dump(all_eegs, f)
-        logger.info("Saved pickle cache for EEG data to: " + cache_path + "/eeg_cache.pkl")
+
+        if cache_path is not None:
+            logger.info("Saving pickle cache for EEG data")
+            with open(cache_path / "eeg_cache.pkl", "wb") as f:
+                pickle.dump(all_eegs, f)
+            logger.info(f"Saved pickle cache for EEG data to: {cache_path / 'eeg_cache.pkl'}")
 
     return all_eegs
 
 
-def load_all_spectrograms(spectrogram_path: str, cache_path: str, ids: pd.DataFrame) -> dict[int, torch.Tensor]:
+def load_all_spectrograms(spectrogram_path: Path, cache_path: Path, ids: pd.DataFrame) -> dict[int, torch.Tensor]:
     """Read the spectrogram data and return it as a dictionary.
 
     :param spectrogram_path: Path to the spectrogram data.
+    :param cache_path: Path to the cache, or None if no cache should be used.
     :param spectrogram_ids: The spectrogram ids.
     """
     all_spec = {}
     # Read the spectrogram data
     logger.info("Reading the spectrogram data")
-    if os.path.exists(cache_path + "/spectrogram_cache.pkl"):
-        logger.info("Found pickle cache for spectrogram data at: " + cache_path + "/spectrogram_cache.pkl")
-        with open(cache_path + "/spectrogram_cache.pkl", "rb") as f:
+    if cache_path is not None and os.path.exists(cache_path / "spectrogram_cache.pkl"):
+        logger.info(f"Found pickle cache for spectrogram data at: {cache_path / 'spectrogram_cache.pkl'}")
+        with open(cache_path / "spectrogram_cache.pkl", "rb") as f:
             all_spec = pickle.load(f)  # noqa: S301
         logger.info("Loaded pickle cache for spectrogram data")
     else:
@@ -303,10 +279,12 @@ def load_all_spectrograms(spectrogram_path: str, cache_path: str, ids: pd.DataFr
         for spectrogram_id in all_spec:
             all_spec[spectrogram_id] = torch.tensor(all_spec[spectrogram_id])
         logger.info("Finished reading the spectrogram data")
-        logger.info("Saving pickle cache for spectrogram data")
-        with open(cache_path + "/spectrogram_cache.pkl", "wb") as f:
-            pickle.dump(all_spec, f)
-        logger.info("Saved pickle cache for spectrogram data to: " + cache_path + "/spectrogram_cache.pkl")
+
+        if cache_path is not None:
+            logger.info("Saving pickle cache for spectrogram data")
+            with open(cache_path / "spectrogram_cache.pkl", "wb") as f:
+                pickle.dump(all_spec, f)
+            logger.info(f"Saved pickle cache for spectrogram data to: {cache_path / 'spectrogram_cache.pkl'}")
 
     return all_spec
 
