@@ -232,7 +232,7 @@ class UNet1DDecoder(nn.Module):
         x: torch.Tensor,
         labels: Optional[torch.Tensor] = None,
     ) -> dict[str, Optional[torch.Tensor]]:
-        """Forward
+        """Forward.
 
         Args:
         ----

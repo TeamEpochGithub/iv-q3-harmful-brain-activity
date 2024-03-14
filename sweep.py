@@ -10,13 +10,13 @@ from typing import NamedTuple
 import hydra
 import numpy as np
 import randomname
-import wandb
 from distributed import Client
 from epochalyst.logging.section_separator import print_section_separator
 from hydra.core.config_store import ConfigStore
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 
+import wandb
 from src.config.cross_validation_config import CVConfig
 from src.logging_utils.logger import logger
 from src.utils.script.lock import Lock
@@ -105,7 +105,7 @@ def run_cv_cfg(cfg: DictConfig) -> None:
 
     # Read the data if required and split in X, y
 
-    # Read the label data 
+    # Read the label data
     y = setup_label_data(cfg.raw_path)
     if y is None:
         raise ValueError("No labels loaded to train with")
@@ -250,8 +250,8 @@ def _one_fold(cfg: DictConfig, output_dir: Path, fold: int, wandb_group_name: st
         "storage_path": "data/processed",
     }
 
-    x_cache_exists = model_pipeline.x_sys._cache_exists(model_pipeline.x_sys.get_hash(), cache_args) # noqa: SLF001
-    y_cache_exists = model_pipeline.y_sys._cache_exists(model_pipeline.y_sys.get_hash(), cache_args) # noqa: SLF001
+    x_cache_exists = model_pipeline.x_sys._cache_exists(model_pipeline.x_sys.get_hash(), cache_args)  # noqa: SLF001
+    y_cache_exists = model_pipeline.y_sys._cache_exists(model_pipeline.y_sys.get_hash(), cache_args)  # noqa: SLF001
 
     if x_cache_exists and not y_cache_exists:
         # Only read y data

@@ -14,11 +14,11 @@ import numpy.typing as npt
 import pandas as pd
 import pyarrow.parquet as pq
 import torch
-import wandb
 from epochalyst.pipeline.model.model import ModelPipeline
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
+import wandb
 from src.logging_utils.logger import logger
 from src.typing.typing import XData
 from src.utils.replace_list_with_dict import replace_list_with_dict
@@ -189,6 +189,7 @@ def setup_data(raw_path: str) -> tuple[XData, np.ndarray[Any, Any] | None]:
 
 
 def setup_splitter_data(raw_path: str) -> pd.DataFrame:
+    """Read the metadata and return the data and target in the proper format."""
     metadata_path = raw_path + "/train.csv"
     metadata = pd.read_csv(metadata_path)
     # Now split the metadata into the 3 parts: ids, offsets, and labels

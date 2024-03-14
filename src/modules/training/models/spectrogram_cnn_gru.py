@@ -4,7 +4,7 @@ from segmentation_models_pytorch import Unet
 from torch import nn
 
 from src.modules.training.models.multi_res_bi_GRU import MultiResidualBiGRU
-from src.modules.training.models.Unet_decoder import UNet1DDecoder
+from src.modules.training.models.unet_decoder import UNet1DDecoder
 
 
 class MultiResidualBiGRUwSpectrogramCNN(nn.Module):
