@@ -1,12 +1,22 @@
 from torch import nn
 
-
 from src.modules.training.models.res_bi_GRU import ResidualBiGRU
 
 
 class MultiResidualBiGRU(nn.Module):
-    def __init__(self, input_size, hidden_size=64, out_size=2, n_layers=5, bidir=True, activation: str = None, flatten: bool = False, dropout: float = 0,
-                 internal_layers: int = 1, model_name=''):
+    def __init__(
+        self,
+        input_size,
+        hidden_size=64,
+        out_size=2,
+        n_layers=5,
+        bidir=True,
+        activation: str = None,
+        flatten: bool = False,
+        dropout: float = 0,
+        internal_layers: int = 1,
+        model_name="",
+    ):
         super(MultiResidualBiGRU, self).__init__()
 
         self.input_size = input_size
@@ -19,9 +29,7 @@ class MultiResidualBiGRU(nn.Module):
         self.fc_in = nn.Linear(input_size, hidden_size)
         self.ln = nn.LayerNorm(hidden_size)
         self.res_bigrus = nn.ModuleList(
-            [ResidualBiGRU(hidden_size, internal_layers=internal_layers, bidir=bidir, dropout=dropout)
-             for _ in range(n_layers)
-             ]
+            [ResidualBiGRU(hidden_size, internal_layers=internal_layers, bidir=bidir, dropout=dropout) for _ in range(n_layers)],
         )
         self.fc_out = nn.Linear(hidden_size, out_size)
 
@@ -50,8 +58,7 @@ class MultiResidualBiGRU(nn.Module):
             x, new_hi = res_bigru(x, h[i] if i == 0 else new_h[i - 1])
             new_h.append(new_hi)
 
-
         x = self.fc_out(x)
         if use_activation:
             x = self.activation(x)
-        return x, new_h  
+        return x, new_h

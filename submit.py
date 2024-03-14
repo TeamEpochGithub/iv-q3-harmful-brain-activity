@@ -1,14 +1,13 @@
 """Submit.py is the main script for running inference on the test set and creating a submission."""
 import os
 import warnings
+from pathlib import Path
 
 import hydra
-from distributed import Client
+import pandas as pd
 from epochalyst.logging.section_separator import print_section_separator
 from hydra.core.config_store import ConfigStore
 from omegaconf import DictConfig
-import pandas as pd
-from pathlib import Path
 
 from src.config.submit_config import SubmitConfig
 from src.logging_utils.logger import logger
@@ -32,6 +31,7 @@ def run_submit(cfg: DictConfig) -> None:
 
     # Set up logging
     import coloredlogs
+
     coloredlogs.install()
 
     # Check for missing keys in the config file

@@ -31,4 +31,3 @@ class TrainConfig:
     wandb: WandBConfig
     splitter: str
     allow_multiple_instances: bool = False
-    

@@ -45,6 +45,7 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
     set_torch_seed()
 
     import coloredlogs
+
     coloredlogs.install()
 
     # Check for missing keys in the config file
