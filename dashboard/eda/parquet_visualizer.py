@@ -56,7 +56,6 @@ def create_parquet_visualizer(app, file_path):
 
         # Ensure eeg_id is compared as the correct type; casting to int might be necessary
         # Adjust this part according to your 'eeg_id' column data type
-        print(eeg_id)
         try:
             matching_eeg_id = int(eeg_id)
         except ValueError:
