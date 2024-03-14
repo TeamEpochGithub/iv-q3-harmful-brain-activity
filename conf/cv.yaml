@@ -4,7 +4,9 @@ defaults:
   - model: gru_simple
   - wandb: train
 
-raw_path: data/raw/
+raw_data_path: data/...
+raw_target_path: data/...
+metadata_path: data/...
 scorer:
   _target_: src.scoring.kldiv.KLDiv
 cache_size: -1

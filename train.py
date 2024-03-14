@@ -69,9 +69,9 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
         # Only read y data
         logger.info("x_sys has an existing cache, only loading in labels")
         X = None
-        y = setup_label_data(cfg.raw_path)
+        y = setup_data(cfg.metadata_path, None, None)[1]
     else:
-        X, y = setup_data(raw_path=cfg.raw_path)
+        X, y = setup_data(cfg.metadata_path, cfg.eeg_path, cfg.spectrogram_path)
     if y is None:
         raise ValueError("No labels loaded to train with")
 
@@ -79,7 +79,7 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
     if X is not None:
         splitter_data = X.meta
     else:
-        splitter_data = setup_splitter_data(cfg.raw_path)
+        splitter_data = setup_data(cfg.metadata_path, None, None)[0].meta
 
     # Split indices into train and test
     indices = np.arange(len(y))

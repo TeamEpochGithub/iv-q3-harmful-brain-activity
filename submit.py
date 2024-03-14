@@ -43,7 +43,7 @@ def run_submit(cfg: DictConfig) -> None:
     model_pipeline = setup_pipeline(cfg, is_train=False)
 
     # Load the test data
-    X, filenames = setup_data(raw_path=cfg.raw_path)
+    X, filenames = setup_data(cfg.metadata_path, cfg.eeg_path, cfg.spectrogram_path)
 
     # Predict on the test data
     logger.info("Now transforming the pipeline...")

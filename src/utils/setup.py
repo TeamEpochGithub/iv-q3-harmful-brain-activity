@@ -111,25 +111,19 @@ def update_model_cfg_test_size(
     return model_cfg_dict
 
 
-def setup_data(raw_path: str) -> tuple[XData, np.ndarray[Any, Any] | None]:
+def setup_data(
+    metadata_path: str,
+    eeg_path: str,
+    spectrogram_path: str,
+) -> tuple[XData, pd.DataFrame | None]:
     """Read the metadata and return the data and target in the proper format.
 
     :param raw_path: Path to the raw data.
     :return: X and y data for training
     """
-    # Turn raw path into separate paths
-    raw_path = raw_path if raw_path[-1] == "/" else raw_path + "/"
-    metadata_path = raw_path + "train.csv"
-    eeg_path = raw_path + "train_eegs"
-    spectrogram_path = raw_path + "train_spectrograms"
-
     # Check that metadata_path is not None
     if metadata_path is None:
         raise ValueError("metadata_path should not be None")
-
-    # Check that at least one of the paths is not None
-    if eeg_path is None and spectrogram_path is None:
-        raise ValueError("At least one of the paths should not be None")
 
     # Read the metadata
     metadata = pd.read_csv(metadata_path)
@@ -160,8 +154,10 @@ def setup_data(raw_path: str) -> tuple[XData, np.ndarray[Any, Any] | None]:
 
     # Get one of the paths that is not None
     path = eeg_path if eeg_path is not None else spectrogram_path
-
-    cache_loc = "train" if "train" in path else "test"
+    if path is None:
+        cache_loc = ''
+    else:
+        cache_loc = "train" if "train" in path else "test"
 
     # Get the cache path
     cache_path = f"data/processed/{cache_loc}"

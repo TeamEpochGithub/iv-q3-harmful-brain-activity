@@ -56,6 +56,9 @@ def run_cv_cfg(cfg: DictConfig) -> None:
     setup_config(cfg)
     output_dir = Path(hydra.core.hydra_config.HydraConfig.get().runtime.output_dir)
 
+    # Lazily read the raw data with dask, and find the shape after processing
+    X, y = setup_data(cfg.metadata_path, cfg.eeg_path, cfg.spectrogram_path)
+
     # Set up Weights & Biases group name
     wandb_group_name = randomname.get_name()
 

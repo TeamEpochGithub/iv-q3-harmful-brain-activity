@@ -4,8 +4,9 @@ defaults:
   - model: cnn2d_timm_eeg
   - wandb: train
 
-raw_path: data/raw
-
+metadata_path: data/raw/train.csv
+eeg_path: data/raw/train_eegs
+spectrogram_path: data/raw/train_spectrograms
 scorer:
   _target_: src.scoring.kldiv.KLDiv
 test_size: 0.2
