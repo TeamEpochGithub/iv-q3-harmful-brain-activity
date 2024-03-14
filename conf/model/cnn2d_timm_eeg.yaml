@@ -24,7 +24,7 @@ train_sys:
         _target_: src.modules.training.models.timm.Timm
         in_channels: 4
         out_channels: 6
-        model_name: "resnet18"
+        model_name: "efficientnet_b0"
       optimizer: # Partially instantiate optimizer, so model parameters can be linked at runtime
         _target_: functools.partial
         _args_:
@@ -34,6 +34,7 @@ train_sys:
       criterion:
         _target_: src.modules.training.losses.kldiv.CustomKLDivLoss
         reduction: "batchmean"
+        weighted: true
       epochs: 5
       batch_size: 256
       patience: 10
