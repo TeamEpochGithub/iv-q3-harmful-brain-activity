@@ -11,7 +11,7 @@ class SEModule(nn.Module):
     """Squeeze-and-Excitation block."""
 
     def __init__(self, channel: int, reduction: int = 8) -> None:
-        """The constructor for the SEModule class."""
+        """Construct the SEModule class."""
         super().__init__()
         self.avg_pool = nn.AdaptiveAvgPool1d(1)
         self.fc = nn.Sequential(
@@ -38,14 +38,14 @@ class DoubleConv(nn.Module):
 
     def __init__(
         self,
-        in_channels,
-        out_channels,
-        mid_channels=None,
-        norm=nn.BatchNorm1d,
-        se=False,
-        res=False,
-    ):
-        """The constructor for the DoubleConv class."""
+        in_channels: int,
+        out_channels: int,
+        mid_channels: None | int = None,
+        norm: nn.Module = nn.BatchNorm1d,
+        se: bool = False,  # noqa: FBT001, FBT002
+        res: bool = False,  # noqa: FBT001, FBT002
+    ) -> None:
+        """Construct the DoubleConv class."""
         super().__init__()
         self.res = res
         if not mid_channels:
@@ -64,6 +64,7 @@ class DoubleConv(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Forward pass."""
         if self.res:
             return x + self.double_conv(x)
         else:
