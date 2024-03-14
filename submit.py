@@ -58,7 +58,4 @@ def run_submit(cfg: DictConfig) -> None:
 
 
 if __name__ == "__main__":
-    # Run with dask client, which will automatically close if there is an error
-    with Client() as client:
-        logger.info(f"Client: {client}")
-        run_submit()
+    run_submit()
