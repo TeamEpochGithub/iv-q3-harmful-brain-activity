@@ -161,8 +161,9 @@ def setup_data(raw_path: Path, cache_path: Path | None, use_test_data: bool = Fa
     return XData(eeg=X_eeg, kaggle_spec=X_kaggle_spec, eeg_spec=None, meta=X_meta, shared=X_shared), labels_np
 
 
-def setup_splitter_data(raw_path: Path) -> pd.DataFrame:
-    metadata_path = raw_path / "train.csv"
+def setup_splitter_data(raw_path: str) -> pd.DataFrame:
+    """Read the metadata and return the data and target in the proper format."""
+    metadata_path = raw_path + "/train.csv"
     metadata = pd.read_csv(metadata_path)
     # Now split the metadata into the 3 parts: ids, offsets, and labels
     return metadata[["patient_id", "eeg_id", "spectrogram_id"]]

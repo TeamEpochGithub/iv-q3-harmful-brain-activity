@@ -11,4 +11,4 @@ defaults:
 raw_path: data/raw/
 result_path: data/results/
 
-test_size: 0
+test_size: 0.2
