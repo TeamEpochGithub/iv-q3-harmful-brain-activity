@@ -24,7 +24,7 @@ cs.store(name="base_submit", node=SubmitConfig)
 
 
 @hydra.main(version_base=None, config_path="conf", config_name="submit")
-# TODO: Use SubmitConfig instead of DictConfig
+# TODO(Epoch): Use SubmitConfig instead of DictConfig
 def run_submit(cfg: DictConfig) -> None:
     """Run the main script for submitting the predictions."""
     print_section_separator("Q3 Detect Harmful Brain Activity - Submit")
@@ -59,14 +59,14 @@ def run_submit(cfg: DictConfig) -> None:
         submission["eeg_id"] = X.meta["eeg_id"]
 
         # Reorder the columns
-        submission = submission[["eeg_id"] + label_columns]
+        submission = submission[["eeg_id", *label_columns]]
 
         # Save the submission
         result_path = Path(cfg.result_path)
         os.makedirs(result_path, exist_ok=True)
         submission_path = result_path / "submission.csv"
         submission.to_csv(submission_path, index=False)
-        print(f"Submission saved to {submission_path}")
+        logger.info(f"Submission saved to {submission_path}")
     else:
         raise ValueError("Predictions are None")
 

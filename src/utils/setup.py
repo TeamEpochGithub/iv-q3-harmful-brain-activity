@@ -111,13 +111,12 @@ def update_model_cfg_test_size(
     return model_cfg_dict
 
 
-def setup_data(raw_path: Path, cache_path: Path | None, use_test_data: bool = False) -> tuple[XData, np.ndarray[Any, Any] | None]:
+def setup_data(raw_path: Path, cache_path: Path | None, use_test_data: bool = False) -> tuple[XData, np.ndarray[Any, Any] | None]:  # noqa: FBT001, FBT002
     """Read the metadata and return the data and target in the proper format.
 
     :param raw_path: Path to the raw data.
     :return: X and y data for training
     """
-
     # Turn raw path into separate paths
     if use_test_data:
         metadata_path = raw_path / "test.csv"
@@ -135,7 +134,7 @@ def setup_data(raw_path: Path, cache_path: Path | None, use_test_data: bool = Fa
         raise ValueError(f"EEG_path {eeg_path} does not exist")
     if not os.path.exists(spectrogram_path):
         raise ValueError(f"Spectrogram_path {spectrogram_path} does not exist")
-    
+
     # Read the metadata
     metadata = pd.read_csv(metadata_path)
 
@@ -175,7 +174,6 @@ def setup_label_data(raw_path: Path) -> np.ndarray[Any, Any] | None:
     :param raw_path: Raw_path for location of labels
     :return: Labels for training
     """
-
     if raw_path is None:
         raise ValueError("raw_path should not be None")
     metadata_path = raw_path / "train.csv"
@@ -230,7 +228,7 @@ def load_spectrogram(spectrogram_path: Path, spectrogram_id: int) -> tuple[int, 
 
 def load_all_eegs(eeg_path: Path, cache_path: Path | None, ids: pd.DataFrame) -> dict[int, pd.DataFrame]:
     """Read the EEG data and return it as a dictionary.
-    
+
     :param eeg_path: Path to the EEG data.
     :param cache_path: Path to the cache, or None if no cache should be used.
     :param eeg_ids: The EEG ids.
@@ -258,7 +256,7 @@ def load_all_eegs(eeg_path: Path, cache_path: Path | None, ids: pd.DataFrame) ->
     return all_eegs
 
 
-def load_all_spectrograms(spectrogram_path: Path, cache_path: Path, ids: pd.DataFrame) -> dict[int, torch.Tensor]:
+def load_all_spectrograms(spectrogram_path: Path, cache_path: Path | None, ids: pd.DataFrame) -> dict[int, torch.Tensor]:
     """Read the spectrogram data and return it as a dictionary.
 
     :param spectrogram_path: Path to the spectrogram data.

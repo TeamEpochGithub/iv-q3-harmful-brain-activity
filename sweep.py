@@ -244,11 +244,18 @@ def _one_fold(cfg: DictConfig, output_dir: Path, fold: int, wandb_group_name: st
     logger.info("Creating clean pipeline for this fold")
     model_pipeline = setup_pipeline(cfg, is_train=True)
 
+    # Cache arguments for x_sys
+    processed_data_path = Path(cfg.processed_path)
+    processed_data_path.mkdir(parents=True, exist_ok=True)
     cache_args = {
         "output_data_type": "numpy_array",
         "storage_type": ".pkl",
-        "storage_path": "data/processed",
+        "storage_path": f"{processed_data_path}",
     }
+
+    # Read the data if required and split it in X, y
+    raw_path = Path(cfg.raw_path)
+    cache_path = Path(cfg.cache_path)
 
     x_cache_exists = model_pipeline.x_sys._cache_exists(model_pipeline.x_sys.get_hash(), cache_args)  # noqa: SLF001
     y_cache_exists = model_pipeline.y_sys._cache_exists(model_pipeline.y_sys.get_hash(), cache_args)  # noqa: SLF001
@@ -257,9 +264,9 @@ def _one_fold(cfg: DictConfig, output_dir: Path, fold: int, wandb_group_name: st
         # Only read y data
         logger.info("x_sys has an existing cache, only loading in labels")
         X = None
-        y = setup_label_data(cfg.raw_path)
+        y = setup_label_data(raw_path)
     else:
-        X, y = setup_data(raw_path=cfg.raw_path)
+        X, y = setup_data(raw_path, cache_path)
     if y is None:
         raise ValueError("No labels loaded to train with")
 
