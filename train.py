@@ -6,13 +6,13 @@ from pathlib import Path
 
 import hydra
 import numpy as np
+import wandb
 from epochalyst.logging.section_separator import print_section_separator
 from hydra.core.config_store import ConfigStore
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 from sklearn.model_selection import train_test_split
 
-import wandb
 from src.config.train_config import TrainConfig
 from src.logging_utils.logger import logger
 from src.utils.script.lock import Lock
@@ -53,18 +53,22 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
     if cfg.wandb.enabled:
         setup_wandb(cfg, "train", output_dir)
 
-    # Preload the pipeline and save it to HTML
+    # Preload the pipeline
     print_section_separator("Setup pipeline")
     model_pipeline = setup_pipeline(cfg, is_train=True)
 
     # Cache arguments for x_sys
+    processed_data_path = Path(cfg.processed_path)
+    processed_data_path.mkdir(parents=True, exist_ok=True)
     cache_args = {
         "output_data_type": "numpy_array",
         "storage_type": ".pkl",
-        "storage_path": "data/processed",
+        "storage_path": f"{processed_data_path}",
     }
 
     # Read the data if required and split it in X, y
+    raw_path = Path(cfg.raw_path)
+    cache_path = Path(cfg.cache_path)
     if model_pipeline.x_sys._cache_exists(model_pipeline.x_sys.get_hash(), cache_args) and not model_pipeline.y_sys._cache_exists(model_pipeline.y_sys.get_hash(), cache_args):  # noqa: SLF001
         # Only read y data
         logger.info("x_sys has an existing cache, only loading in labels")

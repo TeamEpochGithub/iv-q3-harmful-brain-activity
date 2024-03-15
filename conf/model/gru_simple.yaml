@@ -4,7 +4,6 @@ defaults:
 
 x_sys:
   steps:
-    - _target_: src.modules.transformation.example_transformation_block.ExampleTransformationBlock
     - _target_: src.modules.transformation.eeg.clip.ClipEEG
       lower: -1024
       upper: 1024

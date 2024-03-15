@@ -1,6 +1,6 @@
 """Example transformation block for the transformation pipeline."""
-
-import dask.array as da
+import numpy as np
+import numpy.typing as npt
 
 from src.modules.transformation.verbose_transformation_block import VerboseTransformationBlock
 
@@ -8,7 +8,7 @@ from src.modules.transformation.verbose_transformation_block import VerboseTrans
 class ExampleTransformationBlock(VerboseTransformationBlock):
     """An example transformation block for the transformation pipeline."""
 
-    def custom_transform(self, data: da.Array) -> da.Array:
+    def custom_transform(self, data: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
         """Apply a custom transformation to the data.
 
         :param data: The data to transform

@@ -1,9 +1,10 @@
 """Submit.py is the main script for running inference on the test set and creating a submission."""
 import os
 import warnings
+from pathlib import Path
 
 import hydra
-from distributed import Client
+import pandas as pd
 from epochalyst.logging.section_separator import print_section_separator
 from hydra.core.config_store import ConfigStore
 from omegaconf import DictConfig
@@ -23,12 +24,10 @@ cs.store(name="base_submit", node=SubmitConfig)
 
 
 @hydra.main(version_base=None, config_path="conf", config_name="submit")
-# TODO(Jeffrey): Use SubmitConfig instead of DictConfig
+# TODO(Epoch): Use SubmitConfig instead of DictConfig
 def run_submit(cfg: DictConfig) -> None:
     """Run the main script for submitting the predictions."""
-    # Print section separator
     print_section_separator("Q3 Detect Harmful Brain Activity - Submit")
-    # output_dir = Path(hydra.core.hydra_config.HydraConfig.get().runtime.output_dir)
 
     # Set up logging
     import coloredlogs
@@ -38,7 +37,7 @@ def run_submit(cfg: DictConfig) -> None:
     # Check for missing keys in the config file
     setup_config(cfg)
 
-    # Preload the pipeline and save it to HTML
+    # Preload the pipeline
     print_section_separator("Setup pipeline")
     model_pipeline = setup_pipeline(cfg, is_train=False)
 
@@ -46,19 +45,30 @@ def run_submit(cfg: DictConfig) -> None:
     X, filenames = setup_data(cfg.metadata_path, cfg.eeg_path, cfg.spectrogram_path)
 
     # Predict on the test data
-    logger.info("Now transforming the pipeline...")
-    predictions = model_pipeline.transform(X)
+    logger.info("Making predictions...")
+    predictions = model_pipeline.predict(X)
 
     # Make submission
     if predictions is not None:
-        # TODO(For issue #34): make_submission(output_dir, predictions, filenames)
-        pass
+        # Create a dataframe from the predictions
+        label_columns = ["seizure_vote", "lpd_vote", "gpd_vote", "lrda_vote", "grda_vote", "other_vote"]
+        submission = pd.DataFrame(predictions, columns=label_columns)
+
+        # Add the eeg_id to the submission
+        submission["eeg_id"] = X.meta["eeg_id"]
+
+        # Reorder the columns
+        submission = submission[["eeg_id", *label_columns]]
+
+        # Save the submission
+        result_path = Path(cfg.result_path)
+        os.makedirs(result_path, exist_ok=True)
+        submission_path = result_path / "submission.csv"
+        submission.to_csv(submission_path, index=False)
+        logger.info(f"Submission saved to {submission_path}")
     else:
         raise ValueError("Predictions are None")
 
 
 if __name__ == "__main__":
-    # Run with dask client, which will automatically close if there is an error
-    with Client() as client:
-        logger.info(f"Client: {client}")
-        run_submit()
+    run_submit()

@@ -1,8 +1,14 @@
 defaults:
   - base_submit
   - hydra/logging
-  - ensemble: 21-02-1st
+  - model: cnn1d
 
-raw_data_path: data/...
-raw_target_path: data/...
-test_size: 0
+# Use this when uploading to Kaggle
+# raw_path: /kaggle/input/hms-harmful-brain-activity-classification/
+# result_path: /kaggle/working/
+
+# Use this when running locally
+raw_path: data/raw/
+result_path: data/results/
+
+test_size: 0.2
