@@ -1,7 +1,15 @@
+"""Visualize the vote distribution of the training and validation sets."""
+from collections.abc import Iterable
+
 import matplotlib.pyplot as plt
+import numpy as np
+import numpy.typing as npt
 
 
-def visualize_vote_distribution(y, train_indices, test_indices):
+def visualize_vote_distribution(y: npt.NDArray[np.float32], train_indices: Iterable[int], test_indices: Iterable[int]) -> None:
+    """Visualize the vote distribution of the training and validation sets."""
+    train_indices = np.array(list(train_indices))
+    test_indices = np.array(list(test_indices))
     vote_columns = ["seizure_vote", "lpd_vote", "gpd_vote", "lrda_vote", "grda_vote", "other_vote"]
     # Aggregate vote counts for the training set
     train_votes = y[train_indices].sum(axis=0)

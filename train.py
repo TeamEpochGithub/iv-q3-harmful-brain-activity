@@ -6,14 +6,13 @@ from pathlib import Path
 
 import hydra
 import numpy as np
-import wandb
-from distributed import Client
 from epochalyst.logging.section_separator import print_section_separator
 from hydra.core.config_store import ConfigStore
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 from sklearn.model_selection import train_test_split
 
+import wandb
 from src.config.train_config import TrainConfig
 from src.logging_utils.logger import logger
 from src.utils.script.lock import Lock
@@ -34,8 +33,7 @@ def run_train(cfg: DictConfig) -> None:
     """Train a model pipeline with a train-test split. Entry point for Hydra which loads the config file."""
     # Run the train config with a dask client, and optionally a lock
     optional_lock = Lock if not cfg.allow_multiple_instances else nullcontext
-    with optional_lock(), Client() as client:
-        logger.info(f"Client: {client}")
+    with optional_lock():
         run_train_cfg(cfg)
 
 
@@ -81,18 +79,22 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
     if y is None:
         raise ValueError("No labels loaded to train with")
 
+    # if cache exists, need to read the meta data for the splitter
+    if X is not None:
+        splitter_data = X.meta
+    else:
+        splitter_data = setup_splitter_data(cfg.raw_path)
+
     # Split indices into train and test
-    splitter_metadata = X.meta if X is not None else setup_splitter_data(raw_path)
-    if cfg.splitter == "stratified_splitter":
+    indices = np.arange(len(y))
+    if cfg.test_size == 0:
+        train_indices, test_indices = list(indices), []  # type: ignore[var-annotated]
+    elif cfg.splitter == "stratified_splitter":
         logger.info("Using stratified splitter to split data into train and test sets.")
-        train_indices, test_indices = create_stratified_cv_splits(splitter_metadata, y, int(1 / cfg.test_size))[0]
+        train_indices, test_indices = create_stratified_cv_splits(splitter_data, y, int(1 / cfg.test_size))[0]
     else:
         logger.info("Using train_test_split to split data into train and test sets.")
-        indices = np.arange(len(y))
-        if cfg.test_size == 0:
-            train_indices, test_indices = list(indices), []
-        else:
-            train_indices, test_indices = train_test_split(indices, test_size=cfg.test_size, random_state=42)
+        train_indices, test_indices = train_test_split(indices, test_size=cfg.test_size, random_state=42)
 
     logger.info(f"Train/Test size: {len(train_indices)}/{len(test_indices)}")
 
