@@ -243,5 +243,6 @@ xgboost==2.0.3
 lightgbm==4.2.0
 MedPy==0.4.0
 pyarrow==15.0.0
+kaggle==1.6.6
 
 -e ./

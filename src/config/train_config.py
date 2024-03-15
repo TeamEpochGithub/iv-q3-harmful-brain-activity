@@ -24,6 +24,8 @@ class TrainConfig:
     ensemble: Any
     test_size: float
     raw_path: str
+    cache_path: str
+    processed_path: str
     scorer: Any
     cache_size: int
     wandb: WandBConfig

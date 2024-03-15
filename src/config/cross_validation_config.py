@@ -23,6 +23,8 @@ class CVConfig:
     model: Any
     ensemble: Any
     raw_path: str
+    cache_path: str
+    processed_path: str
     scorer: Any
     cache_size: int
     wandb: WandBConfig
