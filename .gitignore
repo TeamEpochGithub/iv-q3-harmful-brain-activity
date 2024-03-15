@@ -211,3 +211,7 @@ plots/images/train
 .lock*
 
 notebooks/similarity
+
+# Ignore Submission related files
+submission/dependencies
+submission/source-code
