@@ -28,12 +28,6 @@ dependencies = [
     "polars>=0.19.19",
     "epochalyst>=0.0.1",
 
-    # Reading Image Data
-    "imagecodecs>=2023.9.18",
-    "Pillow>=10.1.0",
-    "opencv-python>=4.9.0.80",
-    "tifffile>=2023.9.26",
-
     # Visualizations
     "seaborn>=0.13.0",
     "matplotlib>=3.8.2",
@@ -43,52 +37,22 @@ dependencies = [
     "torch==2.1.2+cu118",
     "torchaudio==2.1.2+cu118",
     "torchvision==0.16.2+cu118",
-    "torch-summary>=1.4.5",
-    "open-clip-torch>=2.23.0",
-    "einops>=0.7.0",
-    "kornia>=0.7.1",
-    "kornia-rs>=0.0.8",
 
     # Dash
     "dash>=2.14.2",
     "dash-bootstrap-components>=1.5.0",
     "dash-bootstrap-templates>=1.1.1",
-    "rasterio>=1.3.9",
-
-    # Dask
-    "dask>=2023.12.0",
-    "dask-glm>=0.3.2",
-    "dask_image>=2023.8.1",
-    "dask-ml>=2023.3.24",
-    "bokeh>=3.3.2",
-    "distributed>=2023.12.0",
-    "fsspec>=2023.5.0",
 
     # Pretrained Models
     "segmentation-models-pytorch>=0.3.3",
-    "catboost>=1.2.2",
-    "sentence-transformers>=2.2.2",
-    "monai>=1.3.0",
-    "xgboost>=2.0.3",
-    "lightgbm>=4.2.0",
-
-    # Data Augmentation
-    "albumentations>=1.3.1",
-
-    # Sphinx
-    "Sphinx>=7.2.6",
-    "sphinx-autodoc-typehints>=1.25.2",
-    "sphinxawesome-theme>=5.0.0",
-    "myst-parser>=2.0.0",
-    "pygit2>=1.13.3",
 
     # pre-commit & MyPy
     "pre-commit>=3.6.0",
     "mypy>=1.7.1",
     "typing_extensions>=4.9.0",
     "annotated-types>=0.6.0",
-    "pandas-stubs>=2.1.1.230928",
-    "traitlets>=5.14.1",
+    "pandas-stubs>=2.2.0.240218",
+    "traitlets>=5.14.2",
 
     # Hydra
     "hydra-core>=1.3.2",
@@ -105,9 +69,9 @@ dependencies = [
     "jupyter>=1.0.0",
     "ipykernel>=6.27.1",
 
-    # Other
-    "pyngrok>=7.0.3",
-    "zarr>=2.16.1",
+    # Distribution
+    "distributed>=2024.3.1",
+
 ]
 
 
@@ -166,6 +130,9 @@ ignore = [
 
 [tool.ruff.format]
 docstring-code-format = true
+
+[tool.isort]
+known_third_party = ["wandb"]
 
 # allow unsused **kwargs of type Any
 [tool.ruff.lint.flake8-annotations]
