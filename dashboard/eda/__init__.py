@@ -1,1 +1,1 @@
-"""EDA modules for the dash dashboard"""
+"""EDA modules for the dash dashboard."""
