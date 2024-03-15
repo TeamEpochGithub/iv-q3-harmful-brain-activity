@@ -106,7 +106,7 @@ def run_cv_cfg(cfg: DictConfig) -> None:
     # Read the data if required and split in X, y
 
     # Read the label data
-    y = setup_label_data(cfg.raw_path)
+    y = setup_label_data(Path(cfg.raw_path))
     if y is None:
         raise ValueError("No labels loaded to train with")
 
