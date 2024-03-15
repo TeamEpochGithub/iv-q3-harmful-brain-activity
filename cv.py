@@ -7,13 +7,12 @@ from pathlib import Path
 import hydra
 import numpy as np
 import randomname
-from distributed import Client
+import wandb
 from epochalyst.logging.section_separator import print_section_separator
 from hydra.core.config_store import ConfigStore
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 
-import wandb
 from src.config.cross_validation_config import CVConfig
 from src.logging_utils.logger import logger
 from src.typing.typing import XData
@@ -36,8 +35,7 @@ def run_cv(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use CVConfig instead of D
     """Do cv on a model pipeline with K fold split. Entry point for Hydra which loads the config file."""
     # Run the cv config with a dask client, and optionally a lock
     optional_lock = Lock if not cfg.allow_multiple_instances else nullcontext
-    with optional_lock(), Client() as client:
-        logger.info(f"Client: {client}")
+    with optional_lock():
         run_cv_cfg(cfg)
 
 
