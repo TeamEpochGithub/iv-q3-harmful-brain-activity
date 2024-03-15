@@ -43,7 +43,7 @@ def create_parquet_visualizer(app: Dash, file_path: str) -> tuple[Any, Any]:  # 
         [Input("parquet-dropdown", "value")],
     )
     def update_dropdown(_: str) -> list[dict[str, str]]:
-        parquet_files = glob.glob(file_path)[:100]
+        parquet_files = glob.glob(file_path)
         return [{"label": file, "value": file} for file in parquet_files]
 
     @app.callback(

@@ -11,7 +11,7 @@ from dashboard.eda.parquet_visualizer import create_parquet_visualizer
 # Initialize the Dash app
 app = dash.Dash(__name__)
 
-parquet_app, parquet_layout = create_parquet_visualizer(app=app, file_path="./data/raw/train_eegs/*")
+parquet_app, parquet_layout = create_parquet_visualizer(app=app, file_path="data/raw/train_eegs/*")
 
 # Define the layout of the dashboard
 app.layout = html.Div(
