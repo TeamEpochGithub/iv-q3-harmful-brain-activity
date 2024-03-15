@@ -1,9 +1,9 @@
 """A logger that logs to the terminal and to W&B."""
 from typing import Any
 
+import wandb
 from epochalyst._core._logging._logger import _Logger
 
-import wandb
 from src.logging_utils.logger import logger
 
 
