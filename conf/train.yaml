@@ -1,7 +1,7 @@
 defaults:
   - base_train
   - hydra/logging
-  - model: cnn1d
+  - model: cnn2d_timm_eeg
   - wandb: train
 
 metadata_path: data/raw/train.csv

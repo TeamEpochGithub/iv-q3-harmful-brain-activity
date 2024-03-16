@@ -48,8 +48,8 @@ def create_stratified_cv_splits(X: pd.DataFrame, y: npt.NDArray[np.float32], n_s
         test_patient_ids = patient_id_to_predominant_label.iloc[test_index]["patient_id"]
 
         # Determine the indices in the original dataset corresponding to these patient_ids
-        train_indices = list(data[data["patient_id"].isin(train_patient_ids)].reset_index().index)
-        test_indices = list(data[data["patient_id"].isin(test_patient_ids)].reset_index().index)
+        train_indices = list(data[data["patient_id"].isin(train_patient_ids)].index)
+        test_indices = list(data[data["patient_id"].isin(test_patient_ids)].index)
 
         # Append the indices to the splits list
         splits.append((train_indices, test_indices))

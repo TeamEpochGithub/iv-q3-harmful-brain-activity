@@ -42,7 +42,10 @@ def run_submit(cfg: DictConfig) -> None:
     model_pipeline = setup_pipeline(cfg, is_train=False)
 
     # Load the test data
-    X, filenames = setup_data(cfg.metadata_path, cfg.eeg_path, cfg.spectrogram_path)
+    eeg_path = Path(cfg.eeg_path)
+    spectrogram_path = Path(cfg.spectrogram_path)
+    metadata_path = Path(cfg.metadata_path)
+    X, _ = setup_data(metadata_path, eeg_path, spectrogram_path, use_test_data=True)
 
     # Predict on the test data
     logger.info("Making predictions...")

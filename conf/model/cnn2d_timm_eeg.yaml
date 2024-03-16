@@ -9,13 +9,17 @@ x_sys:
       upper: 1024
     - _target_: src.modules.transformation.nantozero.NaNToZero
       eeg: true
-      kaggle_spec: true
+      kaggle_spec: false
     - _target_: src.modules.transformation.eeg.divide.Divide
       value: 32
     - _target_: src.modules.transformation.eeg.butter.ButterFilter
     - _target_: src.modules.transformation.spectrogram.eeg_to_spectrogram.EEGToSpectrogram
       size: [128, 320]
       fitting_method: 'pad'
+
+y_sys:
+  steps:
+    - _target_: src.modules.transformation.target.sum_to_one.SumToOne
 
 train_sys:
   steps:
@@ -30,13 +34,13 @@ train_sys:
         _args_:
           - _target_: hydra.utils.get_class
             path: torch.optim.Adam
-        lr: 0.001
+        lr: 0.00002
       criterion:
         _target_: src.modules.training.losses.kldiv.CustomKLDivLoss
         reduction: "batchmean"
-        weighted: true
-      epochs: 20
-      batch_size: 256
+        weighted: false
+      epochs: 10
+      batch_size: 32
       patience: 10
       dataset:
         _target_: src.modules.training.datasets.main_dataset.MainDataset

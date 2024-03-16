@@ -17,7 +17,7 @@ from src.config.train_config import TrainConfig
 from src.logging_utils.logger import logger
 from src.utils.script.lock import Lock
 from src.utils.seed_torch import set_torch_seed
-from src.utils.setup import setup_config, setup_data, setup_label_data, setup_pipeline, setup_splitter_data, setup_wandb
+from src.utils.setup import setup_config, setup_data, setup_pipeline, setup_wandb
 from src.utils.stratified_splitter import create_stratified_cv_splits
 
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -67,15 +67,17 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
     }
 
     # Read the data if required and split it in X, y
-    raw_path = Path(cfg.raw_path)
+    eeg_path = Path(cfg.eeg_path)
+    spectrogram_path = Path(cfg.spectrogram_path)
+    metadata_path = Path(cfg.metadata_path)
     cache_path = Path(cfg.cache_path)
     if model_pipeline.x_sys._cache_exists(model_pipeline.x_sys.get_hash(), cache_args) and not model_pipeline.y_sys._cache_exists(model_pipeline.y_sys.get_hash(), cache_args):  # noqa: SLF001
         # Only read y data
         logger.info("x_sys has an existing cache, only loading in labels")
         X = None
-        y = setup_data(cfg.metadata_path, None, None)[1]
+        y = setup_data(metadata_path, None, None)[1]
     else:
-        X, y = setup_data(cfg.metadata_path, cfg.eeg_path, cfg.spectrogram_path)
+        X, y = setup_data(metadata_path, eeg_path, None)
     if y is None:
         raise ValueError("No labels loaded to train with")
 
@@ -83,7 +85,7 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
     if X is not None:
         splitter_data = X.meta
     else:
-        splitter_data = setup_data(cfg.metadata_path, None, None)[0].meta
+        splitter_data = setup_data(metadata_path, None, None)[0].meta
 
     # Split indices into train and test
     indices = np.arange(len(y))

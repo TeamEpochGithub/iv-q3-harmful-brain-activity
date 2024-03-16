@@ -115,6 +115,7 @@ def setup_data(
     metadata_path: str,
     eeg_path: str,
     spectrogram_path: str,
+    use_test_data: bool = False,
 ) -> tuple[XData, pd.DataFrame | None]:
     """Read the metadata and return the data and target in the proper format.
 
@@ -138,41 +139,48 @@ def setup_data(
         labels = metadata[["seizure_vote", "lpd_vote", "gpd_vote", "lrda_vote", "grda_vote", "other_vote"]]
         labels_np = labels.to_numpy()
 
-    # If labels is None raise error
-    if labels is None:
-        raise ValueError("No labels found")
-
     # Get one of the paths that is not None
     path = eeg_path if eeg_path is not None else spectrogram_path
     if path is None:
-        cache_loc = ''
+        cache_loc = ""
     else:
-        cache_loc = "train" if "train" in path else "test"
+        cache_loc = "train" if "train" in path.name else "test"
 
     # Get the cache path
-    cache_path = f"data/processed/{cache_loc}"
+    cache_path = Path(f"data/processed/{cache_loc}")
     if not os.path.exists(cache_path):
         os.makedirs(cache_path)
 
-    X_eeg = load_all_eegs(eeg_path, cache_path, ids)
-    X_kaggle_spec = load_all_spectrograms(spectrogram_path, cache_path, ids)
+    if eeg_path is not None:
+        X_eeg = load_all_eegs(eeg_path, cache_path, ids)
+    else:
+        logger.info("No EEG data to read, skipping...")
+        X_eeg = None
+
+    if spectrogram_path is not None:
+        X_kaggle_spec = load_all_spectrograms(spectrogram_path, cache_path, ids)
+    else:
+        logger.info("No EEG data to read, skipping...")
+        X_kaggle_spec = None
+
     X_meta = pd.concat([ids, offsets], axis=1)
     X_shared = {"eeg_freq": 200, "eeg_len_s": 50, "kaggle_spec_freq": 0.5, "kaggle_spec_len_s": 600}
-
-    shared = {"eeg_freq": 200, "eeg_len_s": 50, "kaggle_spec_freq": 0.5, "kaggle_spec_len_s": 600}
 
     # append an index column to the meta data
     X_meta["index"] = range(len(X_meta))
     # Get the first occurance of each eeg_id
     unique_indices = X_meta.groupby("eeg_id").first()["index"]
     # Use the index column from X to index the y data
-    y_unique = labels_np[unique_indices]
+    if not use_test_data:
+        y_unique = labels_np[unique_indices]
+    else:
+        y_unique = None
     # Remove the index column from the meta data
     X_meta.pop("index")
     # Use the unique indices to index the meta data
     X_meta = X_meta.iloc[unique_indices]
-
-    return XData(eeg=X_eeg, kaggle_spec=X_kaggle_spec, eeg_spec=None, meta=X_meta, shared=X_shared), labels_np
+    X_meta.reset_index(inplace=True)
+    return XData(eeg=X_eeg, kaggle_spec=X_kaggle_spec, eeg_spec=None, meta=X_meta, shared=X_shared), y_unique
 
 
 def setup_splitter_data(raw_path: str) -> pd.DataFrame:

@@ -17,4 +17,7 @@ class SubmitConfig:
     ensemble: Any
     test_size: float
     raw_path: str
+    metadata_path: str | None
+    eeg_path: str | None
+    spectrogram_path: str | None
     result_path: str

@@ -1,14 +1,20 @@
 defaults:
   - base_submit
   - hydra/logging
-  - model: cnn1d
+  - model: cnn2d_timm_eeg
 
 # Use this when uploading to Kaggle
-# raw_path: /kaggle/input/hms-harmful-brain-activity-classification/
-# result_path: /kaggle/working/
+raw_path: /kaggle/input/hms-harmful-brain-activity-classification/
+metadata_path: /kaggle/input/hms-harmful-brain-activity-classification/test.csv
+eeg_path: /kaggle/input/hms-harmful-brain-activity-classification/test_eegs
+spectrogram_path: /kaggle/input/hms-harmful-brain-activity-classification/test_spectrograms
+result_path: /kaggle/working/
 
 # Use this when running locally
-raw_path: data/raw/
-result_path: data/results/
+# metadata_path: data/raw/test.csv
+# eeg_path: data/raw/test_eegs
+# spectrogram_path: data/raw/test_spectrograms
+# raw_path: data/raw/
+# result_path: data/results/
 
 test_size: 0.2
