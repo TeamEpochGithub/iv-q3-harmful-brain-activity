@@ -41,7 +41,13 @@ train_sys:
         weighted: false
       epochs: 10
       batch_size: 32
-      patience: 10
+      patience: 20
       dataset:
         _target_: src.modules.training.datasets.main_dataset.MainDataset
         data_type: "eeg_spec"
+        augmentations: 
+          _target_: kornia.augmentation.AugmentationSequential
+          _args_:
+            - _target_: kornia.augmentation.RandomHorizontalFlip
+              p: 0.5
+

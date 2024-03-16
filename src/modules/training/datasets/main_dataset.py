@@ -18,6 +18,7 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
     X: XData | None = None
     y: pd.DataFrame | None = None
     indices: list[int] | None = None
+    augmentations: Any | None = None
 
     def setup(self, X: XData, y: pd.DataFrame, indices: list[int]) -> None:
         """Set up the dataset."""
@@ -49,13 +50,19 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
         # Create a switch statement to handle the different data types
         match self.data_type:
             case "eeg":
-                return self._eeg_getitem(idx)
+                x, y = self._eeg_getitem(idx)
             case "kaggle_spec":
-                return self._kaggle_spec_getitem(idx)
+                x, y = self._kaggle_spec_getitem(idx)
             case "eeg_spec":
-                return self._eeg_spec_getitem(idx)
+                x, y = self._eeg_spec_getitem(idx)
             case _:
                 raise ValueError(f"Data type {self.data_type} not recognized.")
+        
+        if self.augmentations is not None:
+            x = self.augmentations(x).squeeze(0)
+
+        return x, y
+            
 
     @typing.no_type_check
     def _eeg_getitem(self, idx: int) -> tuple[Any, Any]:  # type: ignore[no-untyped-def]
