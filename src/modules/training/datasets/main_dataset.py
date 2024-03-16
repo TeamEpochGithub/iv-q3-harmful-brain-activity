@@ -20,7 +20,7 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
     indices: list[int] | None = None
     augmentations: Any | None = None
 
-    def setup(self, X: XData, y: pd.DataFrame, indices: list[int]) -> None:
+    def setup(self, X: XData, y: pd.DataFrame, indices: list[int], use_aug: bool = True) -> None:
         """Set up the dataset."""
         self.X = X
         self.y = y
