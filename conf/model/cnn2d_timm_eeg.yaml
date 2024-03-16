@@ -34,12 +34,12 @@ train_sys:
         _args_:
           - _target_: hydra.utils.get_class
             path: torch.optim.Adam
-        lr: 0.00002
+        lr: 1e-4
       criterion:
         _target_: src.modules.training.losses.kldiv.CustomKLDivLoss
         reduction: "batchmean"
         weighted: false
-      epochs: 10
+      epochs: 20
       batch_size: 32
       patience: 20
       dataset:
@@ -50,4 +50,15 @@ train_sys:
           _args_:
             - _target_: kornia.augmentation.RandomHorizontalFlip
               p: 0.5
+      scheduler:
+        _target_: functools.partial
+        _args_:
+          - _target_: hydra.utils.get_class
+            path: timm.scheduler.cosine_lr.CosineLRScheduler
+        t_initial: 10
+        cycle_mul: 1
+        cycle_decay: 1
+        cycle_limit: 1
+        warmup_t: 5
+        warmup_lr_init: 1e-5
 
