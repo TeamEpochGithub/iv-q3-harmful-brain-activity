@@ -45,7 +45,7 @@ class MainTrainer(TorchTrainer, Logger):
         # from src.utils.visualize_vote_distribution import visualize_vote_distribution
         # visualize_vote_distribution(y, train_indices, test_indices)
         train_dataset = deepcopy(self.dataset)
-        train_dataset.setup(x, y, train_indices)  # type: ignore[attr-defined]
+        train_dataset.setup(x, y, train_indices, use_aug = True)  # type: ignore[attr-defined]
 
         # Set up the test dataset
         if test_indices is not None:

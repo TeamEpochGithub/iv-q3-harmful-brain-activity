@@ -20,11 +20,12 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
     indices: list[int] | None = None
     augmentations: Any | None = None
 
-    def setup(self, X: XData, y: pd.DataFrame, indices: list[int], use_aug: bool = True) -> None:
+    def setup(self, X: XData, y: pd.DataFrame, indices: list[int], use_aug: bool = False) -> None:
         """Set up the dataset."""
         self.X = X
         self.y = y
         self.indices = indices
+        self.use_aug = use_aug
 
     def setup_prediction(self, X: XData) -> None:
         """Set up the dataset for prediction."""
@@ -58,7 +59,7 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
             case _:
                 raise ValueError(f"Data type {self.data_type} not recognized.")
         
-        if self.augmentations is not None:
+        if self.augmentations is not None and self.use_aug:
             x = self.augmentations(x).squeeze(0)
 
         return x, y

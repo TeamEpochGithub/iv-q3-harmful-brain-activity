@@ -34,14 +34,14 @@ train_sys:
         _args_:
           - _target_: hydra.utils.get_class
             path: torch.optim.Adam
-        lr: 1e-4
+        lr: 5e-5
       criterion:
         _target_: src.modules.training.losses.kldiv.CustomKLDivLoss
         reduction: "batchmean"
         weighted: false
-      epochs: 20
+      epochs: 60
       batch_size: 32
-      patience: 20
+      patience: 30
       dataset:
         _target_: src.modules.training.datasets.main_dataset.MainDataset
         data_type: "eeg_spec"
@@ -50,15 +50,23 @@ train_sys:
           _args_:
             - _target_: kornia.augmentation.RandomHorizontalFlip
               p: 0.5
+            - _target_: kornia.augmentation.RandomContrast
+              p: 0.5
+            - _target_: kornia.augmentation.RandomBrightness
+              p: 0.5
+            - _target_: kornia.augmentation.RandomGaussianBlur
+              p: 0.5
+              kernel_size: [3, 3]
+              sigma: [0.1, 2.0]
       scheduler:
         _target_: functools.partial
         _args_:
           - _target_: hydra.utils.get_class
             path: timm.scheduler.cosine_lr.CosineLRScheduler
-        t_initial: 10
+        t_initial: 60
         cycle_mul: 1
         cycle_decay: 1
         cycle_limit: 1
-        warmup_t: 5
+        warmup_t: 20
         warmup_lr_init: 1e-5
 
