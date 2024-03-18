@@ -8,7 +8,7 @@ import torch
 from torch.utils.data import Dataset
 
 from src.typing.typing import XData
-
+import copy
 
 @dataclass
 class MainDataset(Dataset):  # type: ignore[type-arg]
@@ -20,11 +20,19 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
     indices: list[int] | None = None
     augmentations: Any | None = None
 
-    def setup(self, X: XData, y: pd.DataFrame, indices: list[int], use_aug: bool = False) -> None:
+    def setup(self, X: XData, y: pd.DataFrame, indices: list[int], use_aug: bool = False, subsample_data: bool = False) -> None:
         """Set up the dataset."""
         self.X = X
         self.y = y
         self.indices = indices
+        if subsample_data:
+            X_meta = copy.deepcopy(self.X.meta.iloc[indices])
+            # append an index column to the meta data
+            X_meta["index"] = copy.deepcopy(X_meta.index)
+            # Get the first occurance of each eeg_id
+            unique_indices = X_meta.groupby("eeg_id").first()["index"]
+            # Use the unique indices to index the meta data
+            self.indices = unique_indices.to_list()
         self.use_aug = use_aug
 
     def setup_prediction(self, X: XData) -> None:

@@ -166,21 +166,7 @@ def setup_data(
     X_meta = pd.concat([ids, offsets], axis=1)
     X_shared = {"eeg_freq": 200, "eeg_len_s": 50, "kaggle_spec_freq": 0.5, "kaggle_spec_len_s": 600}
 
-    # append an index column to the meta data
-    X_meta["index"] = range(len(X_meta))
-    # Get the first occurance of each eeg_id
-    unique_indices = X_meta.groupby("eeg_id").first()["index"]
-    # Use the index column from X to index the y data
-    if not use_test_data:
-        y_unique = labels_np[unique_indices]
-    else:
-        y_unique = None
-    # Remove the index column from the meta data
-    X_meta.pop("index")
-    # Use the unique indices to index the meta data
-    X_meta = X_meta.iloc[unique_indices]
-    X_meta.reset_index(inplace=True)
-    return XData(eeg=X_eeg, kaggle_spec=X_kaggle_spec, eeg_spec=None, meta=X_meta, shared=X_shared), y_unique
+    return XData(eeg=X_eeg, kaggle_spec=X_kaggle_spec, eeg_spec=None, meta=X_meta, shared=X_shared), labels_np
 
 
 def setup_splitter_data(raw_path: str) -> pd.DataFrame:
