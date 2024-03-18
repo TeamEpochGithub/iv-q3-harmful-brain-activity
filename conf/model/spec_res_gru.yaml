@@ -11,11 +11,13 @@ x_sys:
       eeg: true
     - _target_: src.modules.transformation.eeg.divide.Divide
       value: 32
+    - _target_: src.modules.transformation.eeg.butter.ButterFilter
 
 
 y_sys:
   steps:
     - _target_: src.modules.transformation.target.sum_to_one.SumToOne
+    - _target_: src.modules.transformation.target.gaussian_target.GaussianTarget
 
 train_sys:
   steps:
@@ -31,8 +33,7 @@ train_sys:
             path: torch.optim.Adam
         lr: 0.001
       criterion:
-        _target_: src.modules.training.losses.kldiv.CustomKLDivLoss
-        reduction: "batchmean"
+        _target_: torch.nn.MSELoss
       epochs: 5
       batch_size: 32
       patience: 10
