@@ -19,7 +19,7 @@ from src.typing.typing import XData
 from src.utils.script.lock import Lock
 from src.utils.script.reset_wandb_env import reset_wandb_env
 from src.utils.seed_torch import set_torch_seed
-from src.utils.setup import setup_config, setup_data, setup_label_data, setup_pipeline, setup_wandb
+from src.utils.setup import setup_config, setup_data, setup_pipeline, setup_wandb
 
 warnings.filterwarnings("ignore", category=UserWarning)
 # Makes hydra give full error messages
@@ -39,10 +39,10 @@ def run_cv(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use CVConfig instead of D
         run_cv_cfg(cfg)
 
 
-def run_cv_cfg(cfg: DictConfig) -> None:
+def run_cv_cfg(cfg: DictConfig) -> None:  # noqa: PLR0915
     """Do cv on a model pipeline with K fold split."""
     print_section_separator("Q3 Detect Harmful Brain Activity - CV")
-
+    X: XData | None
     import coloredlogs
 
     coloredlogs.install()
@@ -72,15 +72,16 @@ def run_cv_cfg(cfg: DictConfig) -> None:
     }
 
     # Read the data if required and split in X, y
-    raw_path = Path(cfg.raw_path)
-    cache_path = Path(cfg.cache_path)
+    eeg_path = Path(cfg.eeg_path)
+    spectrogram_path = Path(cfg.spectrogram_path)
+    metadata_path = Path(cfg.metadata_path)
     if model_pipeline.x_sys._cache_exists(model_pipeline.x_sys.get_hash(), cache_args) and not model_pipeline.y_sys._cache_exists(model_pipeline.y_sys.get_hash(), cache_args):  # noqa: SLF001
         # Only read y data
         logger.info("x_sys has an existing cache, only loading in labels")
         X = None
-        y = setup_label_data(raw_path)
+        y = setup_data(metadata_path, None, None)[1]
     else:
-        X, y = setup_data(raw_path, cache_path)
+        X, y = setup_data(metadata_path, eeg_path, spectrogram_path)
     if y is None:
         raise ValueError("No labels loaded to train with")
 

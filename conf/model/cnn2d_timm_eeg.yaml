@@ -45,7 +45,7 @@ train_sys:
       dataset:
         _target_: src.modules.training.datasets.main_dataset.MainDataset
         data_type: "eeg_spec"
-        augmentations: 
+        augmentations:
           _target_: kornia.augmentation.AugmentationSequential
           _args_:
             - _target_: kornia.augmentation.RandomHorizontalFlip
@@ -69,4 +69,3 @@ train_sys:
         cycle_limit: 1
         warmup_t: 20
         warmup_lr_init: 1e-5
-

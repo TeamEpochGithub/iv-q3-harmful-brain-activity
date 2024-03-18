@@ -112,11 +112,11 @@ def update_model_cfg_test_size(
 
 
 def setup_data(
-    metadata_path: str,
-    eeg_path: str,
-    spectrogram_path: str,
-    use_test_data: bool = False,
-) -> tuple[XData, pd.DataFrame | None]:
+    metadata_path: Path | None,
+    eeg_path: Path | None,
+    spectrogram_path: Path | None,
+    use_test_data: bool = False,  # noqa: FBT001, FBT002
+) -> tuple[XData, npt.NDArray[np.float32] | None]:
     """Read the metadata and return the data and target in the proper format.
 
     :param raw_path: Path to the raw data.

@@ -50,7 +50,7 @@ class MainTrainer(TorchTrainer, Logger):
         # Set up the test dataset
         if test_indices is not None:
             test_dataset = deepcopy(self.dataset)
-            test_dataset.setup(x, y, test_indices, use_aug = False, subsample_data=False)  # type: ignore[attr-defined]
+            test_dataset.setup(x, y, test_indices, use_aug=False, subsample_data=False)  # type: ignore[attr-defined]
         else:
             test_dataset = None
 

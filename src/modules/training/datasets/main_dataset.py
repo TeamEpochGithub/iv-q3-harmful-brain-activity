@@ -1,4 +1,5 @@
 """Main dataset for EEG / Spectrogram data."""
+import copy
 import typing
 from dataclasses import dataclass
 from typing import Any
@@ -8,7 +9,7 @@ import torch
 from torch.utils.data import Dataset
 
 from src.typing.typing import XData
-import copy
+
 
 @dataclass
 class MainDataset(Dataset):  # type: ignore[type-arg]
@@ -20,7 +21,7 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
     indices: list[int] | None = None
     augmentations: Any | None = None
 
-    def setup(self, X: XData, y: pd.DataFrame, indices: list[int], use_aug: bool = False, subsample_data: bool = False) -> None:
+    def setup(self, X: XData, y: pd.DataFrame, indices: list[int], use_aug: bool = False, subsample_data: bool = False) -> None:  # noqa: FBT001, FBT002
         """Set up the dataset."""
         self.X = X
         self.y = y
@@ -66,12 +67,11 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
                 x, y = self._eeg_spec_getitem(idx)
             case _:
                 raise ValueError(f"Data type {self.data_type} not recognized.")
-        
+
         if self.augmentations is not None and self.use_aug:
             x = self.augmentations(x).squeeze(0)
 
         return x, y
-            
 
     @typing.no_type_check
     def _eeg_getitem(self, idx: int) -> tuple[Any, Any]:  # type: ignore[no-untyped-def]

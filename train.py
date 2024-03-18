@@ -37,7 +37,7 @@ def run_train(cfg: DictConfig) -> None:
         run_train_cfg(cfg)
 
 
-def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig instead of DictConfig
+def run_train_cfg(cfg: DictConfig) -> None:  # noqa: PLR0915
     """Train a model pipeline with a train-test split."""
     print_section_separator("Q3 Detect Harmful Brain Activity - Training")
     set_torch_seed()
@@ -70,14 +70,13 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
     eeg_path = Path(cfg.eeg_path)
     spectrogram_path = Path(cfg.spectrogram_path)
     metadata_path = Path(cfg.metadata_path)
-    cache_path = Path(cfg.cache_path)
     if model_pipeline.x_sys._cache_exists(model_pipeline.x_sys.get_hash(), cache_args) and not model_pipeline.y_sys._cache_exists(model_pipeline.y_sys.get_hash(), cache_args):  # noqa: SLF001
         # Only read y data
         logger.info("x_sys has an existing cache, only loading in labels")
         X = None
         y = setup_data(metadata_path, None, None)[1]
     else:
-        X, y = setup_data(metadata_path, eeg_path, None)
+        X, y = setup_data(metadata_path, eeg_path, spectrogram_path)
     if y is None:
         raise ValueError("No labels loaded to train with")
 
