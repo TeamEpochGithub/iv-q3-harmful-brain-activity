@@ -37,6 +37,7 @@ class MultiResidualBiGRUwSpectrogramCNN(nn.Module):
         )
         # will shape the encoder outputs to the same shape as the original inputs
         self.liner = nn.Linear(in_features=32, out_features=in_channels)
+        self.linear2 = nn.Linear(in_features=10016, out_features=1)
 
         self.decoder = UNet1DDecoder(
             n_channels=32,
@@ -64,9 +65,9 @@ class MultiResidualBiGRUwSpectrogramCNN(nn.Module):
         x_encoded_linear += x.permute(0, 2, 1)
 
         y, _ = self.GRU(x_encoded_linear, use_activation=use_activation)
-        out = y.permute(0, 2, 1) + x_decoded.permute(0, 2, 1)
+        out = self.linear2(y.permute(0, 2, 1) + x_decoded.permute(0, 2, 1))
         out = nn.functional.softmax(out, dim=1)
-        return out.permute(0, 2, 1)[:,:-16,:]
+        return out.permute(0, 2, 1)
 
 
 class SpecNormalize(nn.Module):
