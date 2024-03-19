@@ -1,6 +1,7 @@
 """Main dataset for EEG / Spectrogram data."""
+import copy
 import typing
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 import pandas as pd
@@ -18,12 +19,23 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
     X: XData | None = None
     y: pd.DataFrame | None = None
     indices: list[int] | None = None
+    augmentations: Any | None = None
+    use_aug: bool = field(hash=False, repr=False, init=False, default=False)
 
-    def setup(self, X: XData, y: pd.DataFrame, indices: list[int]) -> None:
+    def setup(self, X: XData, y: pd.DataFrame, indices: list[int], *, use_aug: bool = False, subsample_data: bool = False) -> None:
         """Set up the dataset."""
         self.X = X
         self.y = y
         self.indices = indices
+        if subsample_data:
+            X_meta = copy.deepcopy(self.X.meta.iloc[indices])
+            # append an index column to the meta data
+            X_meta["index"] = copy.deepcopy(X_meta.index)
+            # Get the first occurance of each eeg_id
+            unique_indices = X_meta.groupby("eeg_id").first()["index"]
+            # Use the unique indices to index the meta data
+            self.indices = unique_indices.to_list()
+        self.use_aug = use_aug
 
     def setup_prediction(self, X: XData) -> None:
         """Set up the dataset for prediction."""
@@ -49,13 +61,18 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
         # Create a switch statement to handle the different data types
         match self.data_type:
             case "eeg":
-                return self._eeg_getitem(idx)
+                x, y = self._eeg_getitem(idx)
             case "kaggle_spec":
-                return self._kaggle_spec_getitem(idx)
+                x, y = self._kaggle_spec_getitem(idx)
             case "eeg_spec":
-                return self._eeg_spec_getitem(idx)
+                x, y = self._eeg_spec_getitem(idx)
             case _:
                 raise ValueError(f"Data type {self.data_type} not recognized.")
+
+        if self.augmentations is not None and self.use_aug:
+            x = self.augmentations(x).squeeze(0)
+
+        return x, y
 
     @typing.no_type_check
     def _eeg_getitem(self, idx: int) -> tuple[Any, Any]:  # type: ignore[no-untyped-def]
