@@ -7,10 +7,10 @@ class ResNet_1D_Block(nn.Module):
 
     def __init__(self, in_channels: int, out_channels: int, kernel_size: int, stride: int, padding: int, downsampling: int):
         super(ResNet_1D_Block, self).__init__()
-        self.bn1 == nn.BatchNorm1d(num_features=in_channels)
-        self.bn2 == nn.BatchNorm1d(num_features=out_channels)
+        self.bn1 = nn.BatchNorm1d(num_features=in_channels)
+        self.bn2 = nn.BatchNorm1d(num_features=out_channels)
         self.relu = nn.ReLU(inplace=False)
-        self.dropout = nn.dropout(p=0.0, inplace=False)
+        self.dropout = nn.Dropout(p=0.0, inplace=False)
         self.conv1 = nn.Conv1d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, stride=stride, padding=padding, bias=False)
         self.conv2 = nn.Conv1d(in_channels=out_channels, out_channels=out_channels, kernel_size=kernel_size, stride=stride, padding=padding, bias=False)
         self.maxpool = nn.MaxPool1d(kernel_size=2, stride=2, padding=0)
