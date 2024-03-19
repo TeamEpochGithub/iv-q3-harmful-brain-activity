@@ -211,3 +211,6 @@ plots/images/train
 .lock*
 
 notebooks/similarity
+
+notebooks/feature_engineering/plots
+notebooks/feature_engineering/*pkl
