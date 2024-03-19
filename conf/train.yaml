@@ -1,11 +1,7 @@
 defaults:
   - base_train
   - hydra/logging
-<<<<<<< HEAD
   - model: eeg_net
-=======
-  - model: gru_simple
->>>>>>> 75-refactor-sweeps-without-distributed
   - wandb: train
 
 metadata_path: data/raw/train.csv
