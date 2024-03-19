@@ -5,6 +5,7 @@ from contextlib import nullcontext
 from pathlib import Path
 
 import hydra
+import numpy as np
 import randomname
 import wandb
 from epochalyst.logging.section_separator import print_section_separator
