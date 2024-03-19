@@ -32,4 +32,5 @@ class TrainConfig:
     scorer: Any
     cache_size: int
     wandb: WandBConfig
+    splitter: Any
     allow_multiple_instances: bool = False
