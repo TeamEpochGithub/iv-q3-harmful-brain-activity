@@ -59,6 +59,8 @@ class EEGNet(nn.Module):
         self.rnn = nn.GRU(input_size=self.in_channels, hidden_size=128, num_layers=1, bidirectional=True)
         self.fc = nn.Linear(in_features=424, out_features=num_classes)
         self.rnn1 = nn.GRU(input_size=156, hidden_size=156, num_layers=1, bidirectional=True)
+        self.softmax = nn.Softmax()
+
 
     def _make_resnet_layer(self, kernel_size, stride, blocks=9, padding=0):
         layers = []
@@ -74,7 +76,7 @@ class EEGNet(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
         out_sep = []
 
         for i in range(len(self.kernels)):
@@ -99,4 +101,5 @@ class EEGNet(nn.Module):
         new_out = torch.cat([out, new_rnn_h], dim=1)  
         result = self.fc(new_out)  
 
-        return result
+        return self.softmax(result)
+

@@ -41,3 +41,12 @@ train_sys:
       dataset:
         _target_: src.modules.training.datasets.main_dataset.MainDataset
         data_type: "eeg"
+        augmentations:
+          _target_: torch_audiomentations.Compose
+          transforms:
+            - _target_: torch_audiomentations.AddColoredNoise
+              p: 0.15
+              mode: "per_channel"
+              p_mode: "per_channel"
+              max_snr_in_db: 15
+              sample_rate: 200
