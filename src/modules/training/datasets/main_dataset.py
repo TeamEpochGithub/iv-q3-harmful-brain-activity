@@ -22,7 +22,7 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
     augmentations: Any | None = None
     use_aug: bool = field(hash=False, repr=False, init=False, default=False)
 
-    def setup(self, X: XData, y: pd.DataFrame, indices: list[int], use_aug: bool = False, subsample_data: bool = False) -> None:  # noqa: FBT001, FBT002
+    def setup(self, X: XData, y: pd.DataFrame, indices: list[int], *, use_aug: bool = False, subsample_data: bool = False) -> None:
         """Set up the dataset."""
         self.X = X
         self.y = y
