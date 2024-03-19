@@ -66,19 +66,15 @@ def run_train_cfg(cfg: DictConfig) -> None:
     }
 
     # Read the data if required and split it in X, y
-    eeg_path = Path(cfg.eeg_path)
-    spectrogram_path = Path(cfg.spectrogram_path)
-    metadata_path = Path(cfg.metadata_path)
-    cache_path = Path(cfg.cache_path)
 
     x_cache_exists = model_pipeline.x_sys._cache_exists(model_pipeline.x_sys.get_hash(), cache_args)  # noqa: SLF001
     y_cache_exists = model_pipeline.y_sys._cache_exists(model_pipeline.y_sys.get_hash(), cache_args)  # noqa: SLF001
 
     X, y = load_training_data(
-        metadata_path=metadata_path,
-        eeg_path=eeg_path,
-        spectrogram_path=spectrogram_path,
-        cache_path=cache_path,
+        metadata_path=cfg.metadata_path,
+        eeg_path=cfg.eeg_path,
+        spectrogram_path=cfg.spectrogram_path,
+        cache_path=cfg.cache_path,
         x_cache_exists=x_cache_exists,
         y_cache_exists=y_cache_exists,
     )
@@ -89,7 +85,7 @@ def run_train_cfg(cfg: DictConfig) -> None:
     if X is not None:
         splitter_data = X.meta
     else:
-        X, _ = setup_data(metadata_path, None, None)
+        X, _ = setup_data(cfg.metadata_path, None, None)
         splitter_data = X.meta
 
     # Split indices into train and test

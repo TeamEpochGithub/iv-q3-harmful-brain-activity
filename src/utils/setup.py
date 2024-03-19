@@ -112,10 +112,10 @@ def update_model_cfg_test_size(
 
 
 def setup_data(
-    metadata_path: Path | None,
-    eeg_path: Path | None,
-    spectrogram_path: Path | None,
-    cache_path: Path | None = None,
+    metadata_path: str | Path | None,
+    eeg_path: str | Path | None,
+    spectrogram_path: str | Path | None,
+    cache_path: str | Path | None = None,
     *,
     use_test_data: bool = False,
 ) -> tuple[XData, npt.NDArray[np.float32] | None]:
@@ -124,6 +124,14 @@ def setup_data(
     :param raw_path: Path to the raw data.
     :return: X and y data for training
     """
+    if isinstance(metadata_path, str):
+        metadata_path = Path(metadata_path)
+    if isinstance(eeg_path, str):
+        eeg_path = Path(eeg_path)
+    if isinstance(spectrogram_path, str):
+        spectrogram_path = Path(spectrogram_path)
+    if isinstance(cache_path, str):
+        cache_path = Path(cache_path)
     # Check that metadata_path is not None
     if metadata_path is None:
         raise ValueError("metadata_path should not be None")
@@ -205,10 +213,10 @@ def setup_label_data(raw_path: Path) -> np.ndarray[Any, Any] | None:
 
 
 def load_training_data(
-    metadata_path: Path,
-    eeg_path: Path,
-    spectrogram_path: Path,
-    cache_path: Path,
+    metadata_path: str | Path | None,
+    eeg_path: str | Path | None,
+    spectrogram_path: str | Path | None,
+    cache_path: str | Path | None,
     *,
     x_cache_exists: bool,
     y_cache_exists: bool,
@@ -223,6 +231,14 @@ def load_training_data(
     :param y_cache_exists: Whether the y cache exists.
     :return: X and y data for training
     """
+    if isinstance(metadata_path, str):
+        metadata_path = Path(metadata_path)
+    if isinstance(eeg_path, str):
+        eeg_path = Path(eeg_path)
+    if isinstance(spectrogram_path, str):
+        spectrogram_path = Path(spectrogram_path)
+    if isinstance(cache_path, str):
+        cache_path = Path(cache_path)
     if x_cache_exists and not y_cache_exists:
         # Only read y data
         logger.info("x_sys has an existing cache, only loading in labels")
