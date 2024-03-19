@@ -5,9 +5,10 @@ defaults:
 x_sys:
   steps:
     - _target_: src.modules.transformation.example_transformation_block.ExampleTransformationBlock
-    - _target_: src.modules.transformation.eeg.clip.ClipEEG
+    - _target_: src.modules.transformation.clip.Clip
       lower: -1024
       upper: 1024
+      eeg: true
     - _target_: src.modules.transformation.nantozero.NaNToZero
       eeg: true
     - _target_: src.modules.transformation.eeg.divide.Divide
