@@ -17,8 +17,7 @@ from src.config.train_config import TrainConfig
 from src.logging_utils.logger import logger
 from src.utils.script.lock import Lock
 from src.utils.seed_torch import set_torch_seed
-from src.utils.setup import setup_config, setup_data, setup_pipeline, setup_wandb
-from src.utils.stratified_splitter import create_stratified_cv_splits
+from src.utils.setup import load_training_data, setup_config, setup_pipeline, setup_wandb
 
 warnings.filterwarnings("ignore", category=UserWarning)
 # Makes hydra give full error messages
@@ -37,7 +36,7 @@ def run_train(cfg: DictConfig) -> None:
         run_train_cfg(cfg)
 
 
-def run_train_cfg(cfg: DictConfig) -> None:  # noqa: PLR0915
+def run_train_cfg(cfg: DictConfig) -> None:
     """Train a model pipeline with a train-test split."""
     print_section_separator("Q3 Detect Harmful Brain Activity - Training")
     set_torch_seed()
@@ -70,29 +69,26 @@ def run_train_cfg(cfg: DictConfig) -> None:  # noqa: PLR0915
     eeg_path = Path(cfg.eeg_path)
     spectrogram_path = Path(cfg.spectrogram_path)
     metadata_path = Path(cfg.metadata_path)
-    if model_pipeline.x_sys._cache_exists(model_pipeline.x_sys.get_hash(), cache_args) and not model_pipeline.y_sys._cache_exists(model_pipeline.y_sys.get_hash(), cache_args):  # noqa: SLF001
-        # Only read y data
-        logger.info("x_sys has an existing cache, only loading in labels")
-        X = None
-        y = setup_data(metadata_path, None, None)[1]
-    else:
-        X, y = setup_data(metadata_path, eeg_path, spectrogram_path)
+    cache_path = Path(cfg.cache_path)
+
+    x_cache_exists = model_pipeline.x_sys._cache_exists(model_pipeline.x_sys.get_hash(), cache_args)  # noqa: SLF001
+    y_cache_exists = model_pipeline.y_sys._cache_exists(model_pipeline.y_sys.get_hash(), cache_args)  # noqa: SLF001
+
+    X, y = load_training_data(
+        metadata_path=metadata_path,
+        eeg_path=eeg_path,
+        spectrogram_path=spectrogram_path,
+        cache_path=cache_path,
+        x_cache_exists=x_cache_exists,
+        y_cache_exists=y_cache_exists,
+    )
     if y is None:
         raise ValueError("No labels loaded to train with")
-
-    # if cache exists, need to read the meta data for the splitter
-    if X is not None:
-        splitter_data = X.meta
-    else:
-        splitter_data = setup_data(metadata_path, None, None)[0].meta
 
     # Split indices into train and test
     indices = np.arange(len(y))
     if cfg.test_size == 0:
         train_indices, test_indices = list(indices), []  # type: ignore[var-annotated]
-    elif cfg.splitter == "stratified_splitter":
-        logger.info("Using stratified splitter to split data into train and test sets.")
-        train_indices, test_indices = create_stratified_cv_splits(splitter_data, y, int(1 / cfg.test_size))[0]
     else:
         logger.info("Using train_test_split to split data into train and test sets.")
         train_indices, test_indices = train_test_split(indices, test_size=cfg.test_size, random_state=42)

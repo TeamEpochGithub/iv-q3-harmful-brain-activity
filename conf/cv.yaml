@@ -15,5 +15,6 @@ scorer:
   _target_: src.scoring.kldiv.KLDiv
 cache_size: -1
 splitter:
-  'stratified_splitter'
+  _target_: src.utils.stratified_splitter.StratifiedSplitter
+  n_splits: 5
 allow_multiple_instances: True

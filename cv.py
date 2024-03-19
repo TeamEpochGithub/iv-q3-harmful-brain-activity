@@ -5,7 +5,6 @@ from contextlib import nullcontext
 from pathlib import Path
 
 import hydra
-import numpy as np
 import randomname
 import wandb
 from epochalyst.logging.section_separator import print_section_separator
@@ -19,8 +18,7 @@ from src.typing.typing import XData
 from src.utils.script.lock import Lock
 from src.utils.script.reset_wandb_env import reset_wandb_env
 from src.utils.seed_torch import set_torch_seed
-from src.utils.setup import setup_config, setup_data, setup_pipeline, setup_wandb
-from src.utils.stratified_splitter import create_stratified_cv_splits
+from src.utils.setup import load_training_data, setup_config, setup_data, setup_pipeline, setup_wandb
 
 warnings.filterwarnings("ignore", category=UserWarning)
 # Makes hydra give full error messages
@@ -40,7 +38,7 @@ def run_cv(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use CVConfig instead of D
         run_cv_cfg(cfg)
 
 
-def run_cv_cfg(cfg: DictConfig) -> None:  # noqa: PLR0915, PLR0912, C901
+def run_cv_cfg(cfg: DictConfig) -> None:  # noqa: PLR0915
     """Do cv on a model pipeline with K fold split."""
     print_section_separator("Q3 Detect Harmful Brain Activity - CV")
     X: XData | None
@@ -73,13 +71,20 @@ def run_cv_cfg(cfg: DictConfig) -> None:  # noqa: PLR0915, PLR0912, C901
     eeg_path = Path(cfg.eeg_path)
     spectrogram_path = Path(cfg.spectrogram_path)
     metadata_path = Path(cfg.metadata_path)
-    if model_pipeline.x_sys._cache_exists(model_pipeline.x_sys.get_hash(), cache_args) and not model_pipeline.y_sys._cache_exists(model_pipeline.y_sys.get_hash(), cache_args):  # noqa: SLF001
-        # Only read y data
-        logger.info("x_sys has an existing cache, only loading in labels")
-        X = None
-        y = setup_data(metadata_path, None, None)[1]
-    else:
-        X, y = setup_data(metadata_path, eeg_path, spectrogram_path)
+    cache_path = Path(cfg.cache_path)
+
+    x_cache_exists = model_pipeline.x_sys._cache_exists(model_pipeline.x_sys.get_hash(), cache_args)  # noqa: SLF001
+    y_cache_exists = model_pipeline.y_sys._cache_exists(model_pipeline.y_sys.get_hash(), cache_args)  # noqa: SLF001
+
+    X, y = load_training_data(
+        metadata_path=metadata_path,
+        eeg_path=eeg_path,
+        spectrogram_path=spectrogram_path,
+        cache_path=cache_path,
+        x_cache_exists=x_cache_exists,
+        y_cache_exists=y_cache_exists,
+    )
+
     if y is None:
         raise ValueError("No labels loaded to train with")
 
@@ -89,26 +94,15 @@ def run_cv_cfg(cfg: DictConfig) -> None:  # noqa: PLR0915, PLR0912, C901
     if model_pipeline.y_sys is not None:
         processed_y = model_pipeline.y_sys.transform(y)
 
-    indices = np.arange(len(y))
-
     if X is not None:
         splitter_data = X.meta
     else:
-        splitter_data = setup_data(metadata_path, None, None)[0].meta
-
-    # TODO(Jasper): Replace with actual splitter
-    from sklearn.model_selection import KFold
-
-    if cfg.splitter == "stratified_splitter":
-        logger.info("Using stratified splitter to split data into train and test sets.")
-        fold_indices = create_stratified_cv_splits(splitter_data, y, 3)
-    else:
-        skf = KFold(3)
-        fold_indices = skf.split(np.zeros(len(indices)), indices)
+        X, _ = setup_data(metadata_path, eeg_path, spectrogram_path)
+        splitter_data = X.meta
 
     scorer = instantiate(cfg.scorer)
 
-    for i, (train_indices, test_indices) in enumerate(fold_indices):
+    for i, (train_indices, test_indices) in enumerate(instantiate(cfg.splitter).split(splitter_data, y)):
         # https://github.com/wandb/wandb/issues/5119
         # This is a workaround for the issue where sweeps override the run id annoyingly
         reset_wandb_env()

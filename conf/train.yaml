@@ -1,7 +1,7 @@
 defaults:
   - base_train
   - hydra/logging
-  - model: gru_simple
+  - model: cnn2d_timm_eeg
   - wandb: train
 
 metadata_path: data/raw/train.csv
@@ -15,6 +15,4 @@ scorer:
   _target_: src.scoring.kldiv.KLDiv
 test_size: 0.2
 cache_size: -1
-splitter:
-  'stratified_splitter'
 allow_multiple_instances: true

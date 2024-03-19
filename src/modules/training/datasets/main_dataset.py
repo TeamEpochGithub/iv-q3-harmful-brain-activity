@@ -1,7 +1,7 @@
 """Main dataset for EEG / Spectrogram data."""
 import copy
 import typing
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 import pandas as pd
@@ -20,6 +20,7 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
     y: pd.DataFrame | None = None
     indices: list[int] | None = None
     augmentations: Any | None = None
+    use_aug: bool = field(hash=False, repr=False, init=False, default=False)
 
     def setup(self, X: XData, y: pd.DataFrame, indices: list[int], use_aug: bool = False, subsample_data: bool = False) -> None:  # noqa: FBT001, FBT002
         """Set up the dataset."""

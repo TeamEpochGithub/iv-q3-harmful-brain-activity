@@ -265,7 +265,7 @@ def _one_fold(cfg: DictConfig, output_dir: Path, fold: int, wandb_group_name: st
         # Only read y data
         logger.info("x_sys has an existing cache, only loading in labels")
         X = None
-        y = setup_data(metadata_path, None, None)[1]
+        _, y = setup_data(metadata_path, None, None)
     else:
         X, y = setup_data(metadata_path, eeg_path, spectrogram_path)
     if y is None:

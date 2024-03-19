@@ -1,7 +1,7 @@
 defaults:
   - base_submit
   - hydra/logging
-  - model: gru_simple
+  - model: cnn2d_timm_eeg
 
 # Use this when uploading to Kaggle
 raw_path: /kaggle/input/hms-harmful-brain-activity-classification/

@@ -115,7 +115,9 @@ def setup_data(
     metadata_path: Path | None,
     eeg_path: Path | None,
     spectrogram_path: Path | None,
-    use_test_data: bool = False,  # noqa: FBT001, FBT002
+    cache_path: Path | None = None,
+    *,
+    use_test_data: bool = False,
 ) -> tuple[XData, npt.NDArray[np.float32] | None]:
     """Read the metadata and return the data and target in the proper format.
 
@@ -140,15 +142,7 @@ def setup_data(
         labels_np = labels.to_numpy()
 
     # Get one of the paths that is not None
-    path = eeg_path if eeg_path is not None else spectrogram_path
-    if path is None:
-        cache_loc = ""
-    else:
-        cache_loc = "train" if "train" in path.name else "test"
-
-    # Get the cache path
-    cache_path = Path(f"data/processed/{cache_loc}")
-    if not os.path.exists(cache_path):
+    if cache_path is not None and not os.path.exists(cache_path):
         os.makedirs(cache_path)
 
     if eeg_path is not None:
@@ -208,6 +202,36 @@ def setup_label_data(raw_path: Path) -> np.ndarray[Any, Any] | None:
     if labels is None:
         return None
     return labels.to_numpy()
+
+
+def load_training_data(
+    metadata_path: Path,
+    eeg_path: Path,
+    spectrogram_path: Path,
+    cache_path: Path,
+    *,
+    x_cache_exists: bool,
+    y_cache_exists: bool,
+) -> tuple[XData | None, npt.NDArray[np.float32] | None]:
+    """Read the data if required and split it in X, y.
+
+    :param metadata_path: Path to the metadata.
+    :param eeg_path: Path to the EEG data.
+    :param spectrogram_path: Path to the spectrogram data.
+    :param cache_path: Path to the cache.
+    :param x_cache_exists: Whether the X cache exists.
+    :param y_cache_exists: Whether the y cache exists.
+    :return: X and y data for training
+    """
+    if x_cache_exists and not y_cache_exists:
+        # Only read y data
+        logger.info("x_sys has an existing cache, only loading in labels")
+        X = None
+        _, y = setup_data(metadata_path, None, None)
+    else:
+        X, y = setup_data(metadata_path, eeg_path, spectrogram_path, cache_path)
+
+    return X, y
 
 
 def load_eeg(eeg_path: Path, eeg_id: int) -> tuple[int, pd.DataFrame]:
