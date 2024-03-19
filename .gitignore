@@ -214,3 +214,8 @@ notebooks/similarity
 
 notebooks/feature_engineering/plots
 notebooks/feature_engineering/*pkl
+
+
+# Ignore Submission related files
+submission/dependencies
+submission/source-code

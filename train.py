@@ -7,7 +7,6 @@ from pathlib import Path
 import hydra
 import numpy as np
 import wandb
-from distributed import Client
 from epochalyst.logging.section_separator import print_section_separator
 from hydra.core.config_store import ConfigStore
 from hydra.utils import instantiate
@@ -18,8 +17,7 @@ from src.config.train_config import TrainConfig
 from src.logging_utils.logger import logger
 from src.utils.script.lock import Lock
 from src.utils.seed_torch import set_torch_seed
-from src.utils.setup import setup_config, setup_data, setup_label_data, setup_pipeline, setup_splitter_data, setup_wandb
-from src.utils.stratified_splitter import create_stratified_cv_splits
+from src.utils.setup import load_training_data, setup_config, setup_data, setup_pipeline, setup_wandb
 
 warnings.filterwarnings("ignore", category=UserWarning)
 # Makes hydra give full error messages
@@ -34,12 +32,11 @@ def run_train(cfg: DictConfig) -> None:
     """Train a model pipeline with a train-test split. Entry point for Hydra which loads the config file."""
     # Run the train config with a dask client, and optionally a lock
     optional_lock = Lock if not cfg.allow_multiple_instances else nullcontext
-    with optional_lock(), Client() as client:
-        logger.info(f"Client: {client}")
+    with optional_lock():
         run_train_cfg(cfg)
 
 
-def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig instead of DictConfig
+def run_train_cfg(cfg: DictConfig) -> None:
     """Train a model pipeline with a train-test split."""
     print_section_separator("Q3 Detect Harmful Brain Activity - Training")
     set_torch_seed()
@@ -55,44 +52,52 @@ def run_train_cfg(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use TrainConfig in
     if cfg.wandb.enabled:
         setup_wandb(cfg, "train", output_dir)
 
-    # Preload the pipeline and save it to HTML
+    # Preload the pipeline
     print_section_separator("Setup pipeline")
     model_pipeline = setup_pipeline(cfg, is_train=True)
 
     # Cache arguments for x_sys
+    processed_data_path = Path(cfg.processed_path)
+    processed_data_path.mkdir(parents=True, exist_ok=True)
     cache_args = {
         "output_data_type": "numpy_array",
         "storage_type": ".pkl",
-        "storage_path": "data/processed",
+        "storage_path": f"{processed_data_path}",
     }
 
     # Read the data if required and split it in X, y
-    if model_pipeline.x_sys._cache_exists(model_pipeline.x_sys.get_hash(), cache_args) and not model_pipeline.y_sys._cache_exists(model_pipeline.y_sys.get_hash(), cache_args):  # noqa: SLF001
-        # Only read y data
-        logger.info("x_sys has an existing cache, only loading in labels")
-        X = None
-        y = setup_label_data(cfg.raw_path)
-    else:
-        X, y = setup_data(raw_path=cfg.raw_path)
+
+    x_cache_exists = model_pipeline.x_sys._cache_exists(model_pipeline.x_sys.get_hash(), cache_args)  # noqa: SLF001
+    y_cache_exists = model_pipeline.y_sys._cache_exists(model_pipeline.y_sys.get_hash(), cache_args)  # noqa: SLF001
+
+    X, y = load_training_data(
+        metadata_path=cfg.metadata_path,
+        eeg_path=cfg.eeg_path,
+        spectrogram_path=cfg.spectrogram_path,
+        cache_path=cfg.cache_path,
+        x_cache_exists=x_cache_exists,
+        y_cache_exists=y_cache_exists,
+    )
     if y is None:
         raise ValueError("No labels loaded to train with")
 
+    # if cache exists, need to read the meta data for the splitter
     if X is not None:
         splitter_data = X.meta
     else:
-        splitter_data = setup_splitter_data(cfg.raw_path)
+        X, _ = setup_data(cfg.metadata_path, None, None)
+        splitter_data = X.meta
 
     # Split indices into train and test
-    if cfg.splitter == "stratified_splitter":
+    indices = np.arange(len(y))
+    if cfg.test_size == 0:
+        train_indices, test_indices = list(indices), []  # type: ignore[var-annotated]
+    elif cfg.splitter is not None:
         logger.info("Using stratified splitter to split data into train and test sets.")
-        train_indices, test_indices = create_stratified_cv_splits(splitter_data, y, int(1 / cfg.test_size))[0]
+        train_indices, test_indices = instantiate(cfg.splitter).split(splitter_data, y)[0]
     else:
         logger.info("Using train_test_split to split data into train and test sets.")
-        indices = np.arange(len(y))
-        if cfg.test_size == 0:
-            train_indices, test_indices = list(indices), []
-        else:
-            train_indices, test_indices = train_test_split(indices, test_size=cfg.test_size, random_state=42)
+        train_indices, test_indices = train_test_split(indices, test_size=cfg.test_size, random_state=42)
 
     logger.info(f"Train/Test size: {len(train_indices)}/{len(test_indices)}")
 

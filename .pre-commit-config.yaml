@@ -1,4 +1,4 @@
-exclude: ^(external/|venv/|.venv/|tests/|notebooks/|scripts/|src/modules/models/swin/)
+exclude: ^(external/|venv/|.venv/|tests/|notebooks/|scripts/|src/modules/models/swin/|src/modules/training/models/res_bi_GRU|src/modules/training/models/multi_res_bi_GRU|src/modules/training/models/spectrogram_cnn_gru|src/modules/training/models/unet_decoder)
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
@@ -34,11 +34,6 @@ repos:
           - -d
           - md013
           - scan
-  - repo: https://github.com/sphinx-contrib/sphinx-lint
-    rev: v0.9.1
-    hooks:
-      - id: sphinx-lint
-        args: [ --enable=default-role ]
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.1.9
     hooks:
@@ -54,10 +49,6 @@ repos:
           - scipy
           - tqdm
           - polars
-          - imagecodecs
-          - Pillow
-          - opencv-python
-          - tifffile
           - seaborn
           - matplotlib
           - plotly
@@ -65,28 +56,18 @@ repos:
           - torchaudio
           - torchvision
           - torch-summary
-          - open-clip-torch
           - dash
           - dash-bootstrap-components
           - dash-bootstrap-templates
-          - rasterio
-          - dask
-          - dask-glm
-          - dask_image
-          - dask-ml
           - distributed
-          - fsspec
           - segmentation-models-pytorch
-          - catboost
-          - albumentations
           - typing_extensions
           - annotated-types
           - pandas-stubs
           - traitlets
+          - scikit-learn
           - hydra-core
           - wandb
           - randomname
           - coloredlogs
-          - kornia
-          - einops
         args: [ --disallow-any-generics, --disallow-untyped-defs, --disable-error-code=import-untyped]

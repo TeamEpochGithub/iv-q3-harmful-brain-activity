@@ -5,10 +5,8 @@ from contextlib import nullcontext
 from pathlib import Path
 
 import hydra
-import numpy as np
 import randomname
 import wandb
-from distributed import Client
 from epochalyst.logging.section_separator import print_section_separator
 from hydra.core.config_store import ConfigStore
 from hydra.utils import instantiate
@@ -20,7 +18,7 @@ from src.typing.typing import XData
 from src.utils.script.lock import Lock
 from src.utils.script.reset_wandb_env import reset_wandb_env
 from src.utils.seed_torch import set_torch_seed
-from src.utils.setup import setup_config, setup_data, setup_label_data, setup_pipeline, setup_wandb
+from src.utils.setup import load_training_data, setup_config, setup_data, setup_pipeline, setup_wandb
 
 warnings.filterwarnings("ignore", category=UserWarning)
 # Makes hydra give full error messages
@@ -36,15 +34,14 @@ def run_cv(cfg: DictConfig) -> None:  # TODO(Jeffrey): Use CVConfig instead of D
     """Do cv on a model pipeline with K fold split. Entry point for Hydra which loads the config file."""
     # Run the cv config with a dask client, and optionally a lock
     optional_lock = Lock if not cfg.allow_multiple_instances else nullcontext
-    with optional_lock(), Client() as client:
-        logger.info(f"Client: {client}")
+    with optional_lock():
         run_cv_cfg(cfg)
 
 
 def run_cv_cfg(cfg: DictConfig) -> None:
     """Do cv on a model pipeline with K fold split."""
     print_section_separator("Q3 Detect Harmful Brain Activity - CV")
-
+    X: XData | None
     import coloredlogs
 
     coloredlogs.install()
@@ -59,23 +56,31 @@ def run_cv_cfg(cfg: DictConfig) -> None:
     # Set up Weights & Biases group name
     wandb_group_name = randomname.get_name()
 
+    model_pipeline = setup_pipeline(cfg, is_train=True)
+
+    processed_data_path = Path(cfg.processed_path)
+    processed_data_path.mkdir(parents=True, exist_ok=True)
     # Cache arguments for x_sys
     cache_args = {
         "output_data_type": "numpy_array",
         "storage_type": ".pkl",
-        "storage_path": "data/processed",
+        "storage_path": f"{processed_data_path}",
     }
 
-    model_pipeline = setup_pipeline(cfg, is_train=True)
-
     # Read the data if required and split in X, y
-    if model_pipeline.x_sys._cache_exists(model_pipeline.x_sys.get_hash(), cache_args) and not model_pipeline.y_sys._cache_exists(model_pipeline.y_sys.get_hash(), cache_args):  # noqa: SLF001
-        # Only read y data
-        logger.info("x_sys has an existing cache, only loading in labels")
-        X = None
-        y = setup_label_data(cfg.raw_path)
-    else:
-        X, y = setup_data(raw_path=cfg.raw_path)
+
+    x_cache_exists = model_pipeline.x_sys._cache_exists(model_pipeline.x_sys.get_hash(), cache_args)  # noqa: SLF001
+    y_cache_exists = model_pipeline.y_sys._cache_exists(model_pipeline.y_sys.get_hash(), cache_args)  # noqa: SLF001
+
+    X, y = load_training_data(
+        metadata_path=cfg.metadata_path,
+        eeg_path=cfg.eeg_path,
+        spectrogram_path=cfg.spectrogram_path,
+        cache_path=cfg.cache_path,
+        x_cache_exists=x_cache_exists,
+        y_cache_exists=y_cache_exists,
+    )
+
     if y is None:
         raise ValueError("No labels loaded to train with")
 
@@ -85,16 +90,15 @@ def run_cv_cfg(cfg: DictConfig) -> None:
     if model_pipeline.y_sys is not None:
         processed_y = model_pipeline.y_sys.transform(y)
 
-    indices = np.arange(len(y))
-
-    # TODO(Jasper): Replace with actual splitter
-    from sklearn.model_selection import KFold
-
-    skf = KFold(3)
+    if X is not None:
+        splitter_data = X.meta
+    else:
+        X, _ = setup_data(cfg.metadata_path, cfg.eeg_path, cfg.spectrogram_path)
+        splitter_data = X.meta
 
     scorer = instantiate(cfg.scorer)
 
-    for i, (train_indices, test_indices) in enumerate(skf.split(np.zeros(len(indices)), indices)):
+    for i, (train_indices, test_indices) in enumerate(instantiate(cfg.splitter).split(splitter_data, y)):
         # https://github.com/wandb/wandb/issues/5119
         # This is a workaround for the issue where sweeps override the run id annoyingly
         reset_wandb_env()

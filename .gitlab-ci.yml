@@ -27,7 +27,7 @@ pre-commit_py3.10:
   script:
     - pip install pre-commit
     - pre-commit run --all-files
-  allow_failure: true
+  allow_failure: false
 
 pre-commit_py3.11:
   stage: lint
@@ -35,4 +35,4 @@ pre-commit_py3.11:
   script:
     - pip install pre-commit
     - pre-commit run --all-files
-  allow_failure: true
+  allow_failure: false

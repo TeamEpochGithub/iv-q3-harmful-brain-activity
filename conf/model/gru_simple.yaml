@@ -4,7 +4,6 @@ defaults:
 
 x_sys:
   steps:
-    - _target_: src.modules.transformation.example_transformation_block.ExampleTransformationBlock
     - _target_: src.modules.transformation.eeg.clip.ClipEEG
       lower: -1024
       upper: 1024
@@ -13,6 +12,10 @@ x_sys:
     - _target_: src.modules.transformation.eeg.divide.Divide
       value: 32
     - _target_: src.modules.transformation.eeg.butter.ButterFilter
+
+y_sys:
+  steps:
+    - _target_: src.modules.transformation.target.sum_to_one.SumToOne
 
 train_sys:
   steps:
@@ -31,7 +34,7 @@ train_sys:
       criterion:
         _target_: src.modules.training.losses.kldiv.CustomKLDivLoss
         reduction: "batchmean"
-      epochs: 3
+      epochs: 20
       batch_size: 64
       patience: 10
       dataset:
