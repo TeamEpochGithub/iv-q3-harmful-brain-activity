@@ -29,7 +29,7 @@ class Clip(VerboseTransformationBlock):
     def custom_transform(self, data: XData, **kwargs: Any) -> XData:
         """Clip the data to a specified range.
 
-        :param data: The X data to transform, as tuple (eeg, spec, meta)
+        :param data: The X data to transform
         :return: The transformed data
         """
         if self.eeg:
