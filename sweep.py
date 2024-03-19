@@ -254,8 +254,9 @@ def _one_fold(cfg: DictConfig, output_dir: Path, fold: int, wandb_group_name: st
     }
 
     # Read the data if required and split it in X, y
-    raw_path = Path(cfg.raw_path)
-    cache_path = Path(cfg.cache_path)
+    eeg_path = Path(cfg.eeg_path)
+    spectrogram_path = Path(cfg.spectrogram_path)
+    metadata_path = Path(cfg.metadata_path)
 
     x_cache_exists = model_pipeline.x_sys._cache_exists(model_pipeline.x_sys.get_hash(), cache_args)  # noqa: SLF001
     y_cache_exists = model_pipeline.y_sys._cache_exists(model_pipeline.y_sys.get_hash(), cache_args)  # noqa: SLF001
@@ -264,9 +265,9 @@ def _one_fold(cfg: DictConfig, output_dir: Path, fold: int, wandb_group_name: st
         # Only read y data
         logger.info("x_sys has an existing cache, only loading in labels")
         X = None
-        y = setup_label_data(raw_path)
+        _, y = setup_data(metadata_path, None, None)
     else:
-        X, y = setup_data(raw_path, cache_path)
+        X, y = setup_data(metadata_path, eeg_path, spectrogram_path)
     if y is None:
         raise ValueError("No labels loaded to train with")
 

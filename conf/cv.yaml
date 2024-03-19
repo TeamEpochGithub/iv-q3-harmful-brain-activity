@@ -4,7 +4,10 @@ defaults:
   - model: gru_simple
   - wandb: train
 
-raw_path: data/raw/
+metadata_path: data/raw/train.csv
+eeg_path: data/raw/train_eegs
+spectrogram_path: data/raw/train_spectrograms
+raw_path: data/raw
 cache_path: data/cache
 processed_path: data/processed
 
@@ -12,5 +15,6 @@ scorer:
   _target_: src.scoring.kldiv.KLDiv
 cache_size: -1
 splitter:
-  # To be implemented
+  _target_: src.utils.stratified_splitter.StratifiedSplitter
+  n_splits: 5
 allow_multiple_instances: True

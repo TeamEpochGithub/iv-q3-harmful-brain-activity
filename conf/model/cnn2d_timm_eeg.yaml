@@ -9,13 +9,17 @@ x_sys:
       upper: 1024
     - _target_: src.modules.transformation.nantozero.NaNToZero
       eeg: true
-      kaggle_spec: true
+      kaggle_spec: false
     - _target_: src.modules.transformation.eeg.divide.Divide
       value: 32
     - _target_: src.modules.transformation.eeg.butter.ButterFilter
     - _target_: src.modules.transformation.spectrogram.eeg_to_spectrogram.EEGToSpectrogram
       size: [128, 320]
       fitting_method: 'pad'
+
+y_sys:
+  steps:
+    - _target_: src.modules.transformation.target.sum_to_one.SumToOne
 
 train_sys:
   steps:
@@ -30,14 +34,38 @@ train_sys:
         _args_:
           - _target_: hydra.utils.get_class
             path: torch.optim.Adam
-        lr: 0.001
+        lr: 1e-4
       criterion:
         _target_: src.modules.training.losses.kldiv.CustomKLDivLoss
         reduction: "batchmean"
-        weighted: true
-      epochs: 5
-      batch_size: 256
-      patience: 10
+        weighted: false
+      epochs: 61
+      batch_size: 32
+      patience: 30
       dataset:
         _target_: src.modules.training.datasets.main_dataset.MainDataset
         data_type: "eeg_spec"
+        augmentations:
+          _target_: kornia.augmentation.AugmentationSequential
+          _args_:
+            - _target_: kornia.augmentation.RandomHorizontalFlip
+              p: 0.5
+            - _target_: kornia.augmentation.RandomContrast
+              p: 0.5
+            - _target_: kornia.augmentation.RandomBrightness
+              p: 0.5
+            - _target_: kornia.augmentation.RandomGaussianBlur
+              p: 0.5
+              kernel_size: [3, 3]
+              sigma: [0.1, 2.0]
+      scheduler:
+        _target_: functools.partial
+        _args_:
+          - _target_: hydra.utils.get_class
+            path: timm.scheduler.cosine_lr.CosineLRScheduler
+        t_initial: 40
+        cycle_mul: 1
+        cycle_decay: 1
+        cycle_limit: 1
+        warmup_t: 20
+        warmup_lr_init: 1e-5

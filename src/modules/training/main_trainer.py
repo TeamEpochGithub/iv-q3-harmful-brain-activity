@@ -41,13 +41,16 @@ class MainTrainer(TorchTrainer, Logger):
         :return: The training and validation datasets.
         """
         # Set up the train dataset
+
+        # from src.utils.visualize_vote_distribution import visualize_vote_distribution
+        # visualize_vote_distribution(y, train_indices, test_indices)
         train_dataset = deepcopy(self.dataset)
-        train_dataset.setup(x, y, train_indices)  # type: ignore[attr-defined]
+        train_dataset.setup(x, y, train_indices, use_aug=True, subsample_data=True)  # type: ignore[attr-defined]
 
         # Set up the test dataset
         if test_indices is not None:
             test_dataset = deepcopy(self.dataset)
-            test_dataset.setup(x, y, test_indices)  # type: ignore[attr-defined]
+            test_dataset.setup(x, y, test_indices, use_aug=False, subsample_data=True)  # type: ignore[attr-defined]
         else:
             test_dataset = None
 

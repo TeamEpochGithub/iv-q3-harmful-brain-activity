@@ -111,29 +111,30 @@ def update_model_cfg_test_size(
     return model_cfg_dict
 
 
-def setup_data(raw_path: Path, cache_path: Path | None, use_test_data: bool = False) -> tuple[XData, np.ndarray[Any, Any] | None]:  # noqa: FBT001, FBT002
+def setup_data(
+    metadata_path: str | Path | None,
+    eeg_path: str | Path | None,
+    spectrogram_path: str | Path | None,
+    cache_path: str | Path | None = None,
+    *,
+    use_test_data: bool = False,
+) -> tuple[XData, npt.NDArray[np.float32] | None]:
     """Read the metadata and return the data and target in the proper format.
 
     :param raw_path: Path to the raw data.
     :return: X and y data for training
     """
-    # Turn raw path into separate paths
-    if use_test_data:
-        metadata_path = raw_path / "test.csv"
-        eeg_path = raw_path / "test_eegs"
-        spectrogram_path = raw_path / "test_spectrograms"
-    else:
-        metadata_path = raw_path / "train.csv"
-        eeg_path = raw_path / "train_eegs"
-        spectrogram_path = raw_path / "train_spectrograms"
-
-    # Check that all paths exist
-    if not os.path.exists(metadata_path):
-        raise ValueError(f"Metadata_path {metadata_path} does not exist")
-    if not os.path.exists(eeg_path):
-        raise ValueError(f"EEG_path {eeg_path} does not exist")
-    if not os.path.exists(spectrogram_path):
-        raise ValueError(f"Spectrogram_path {spectrogram_path} does not exist")
+    if isinstance(metadata_path, str):
+        metadata_path = Path(metadata_path)
+    if isinstance(eeg_path, str):
+        eeg_path = Path(eeg_path)
+    if isinstance(spectrogram_path, str):
+        spectrogram_path = Path(spectrogram_path)
+    if isinstance(cache_path, str):
+        cache_path = Path(cache_path)
+    # Check that metadata_path is not None
+    if metadata_path is None:
+        raise ValueError("metadata_path should not be None")
 
     # Read the metadata
     metadata = pd.read_csv(metadata_path)
@@ -148,12 +149,22 @@ def setup_data(raw_path: Path, cache_path: Path | None, use_test_data: bool = Fa
         labels = metadata[["seizure_vote", "lpd_vote", "gpd_vote", "lrda_vote", "grda_vote", "other_vote"]]
         labels_np = labels.to_numpy()
 
-    # Create the cache path if it doesn't exist
+    # Get one of the paths that is not None
     if cache_path is not None and not os.path.exists(cache_path):
         os.makedirs(cache_path)
 
-    X_eeg = load_all_eegs(eeg_path, cache_path, ids)
-    X_kaggle_spec = load_all_spectrograms(spectrogram_path, cache_path, ids)
+    if eeg_path is not None:
+        X_eeg = load_all_eegs(eeg_path, cache_path, ids)
+    else:
+        logger.info("No EEG data to read, skipping...")
+        X_eeg = None
+
+    if spectrogram_path is not None:
+        X_kaggle_spec = load_all_spectrograms(spectrogram_path, cache_path, ids)
+    else:
+        logger.info("No EEG data to read, skipping...")
+        X_kaggle_spec = None
+
     X_meta = pd.concat([ids, offsets], axis=1)
     X_shared = {"eeg_freq": 200, "eeg_len_s": 50, "kaggle_spec_freq": 0.5, "kaggle_spec_len_s": 600}
 
@@ -164,6 +175,14 @@ def setup_splitter_data(raw_path: str) -> pd.DataFrame:
     """Read the metadata and return the data and target in the proper format."""
     metadata_path = raw_path + "/train.csv"
     metadata = pd.read_csv(metadata_path)
+    metadata["index"] = range(len(metadata))
+    # Get the first occurance of each eeg_id
+    unique_indices = metadata.groupby("eeg_id").first()["index"]
+    # Use the index column from X to index the y data
+    # Remove the index column from the meta data
+    metadata.pop("index")
+    # Use the unique indices to index the meta data
+    metadata = metadata.iloc[unique_indices]
     # Now split the metadata into the 3 parts: ids, offsets, and labels
     return metadata[["patient_id", "eeg_id", "spectrogram_id"]]
 
@@ -191,6 +210,44 @@ def setup_label_data(raw_path: Path) -> np.ndarray[Any, Any] | None:
     if labels is None:
         return None
     return labels.to_numpy()
+
+
+def load_training_data(
+    metadata_path: str | Path | None,
+    eeg_path: str | Path | None,
+    spectrogram_path: str | Path | None,
+    cache_path: str | Path | None,
+    *,
+    x_cache_exists: bool,
+    y_cache_exists: bool,
+) -> tuple[XData | None, npt.NDArray[np.float32] | None]:
+    """Read the data if required and split it in X, y.
+
+    :param metadata_path: Path to the metadata.
+    :param eeg_path: Path to the EEG data.
+    :param spectrogram_path: Path to the spectrogram data.
+    :param cache_path: Path to the cache.
+    :param x_cache_exists: Whether the X cache exists.
+    :param y_cache_exists: Whether the y cache exists.
+    :return: X and y data for training
+    """
+    if isinstance(metadata_path, str):
+        metadata_path = Path(metadata_path)
+    if isinstance(eeg_path, str):
+        eeg_path = Path(eeg_path)
+    if isinstance(spectrogram_path, str):
+        spectrogram_path = Path(spectrogram_path)
+    if isinstance(cache_path, str):
+        cache_path = Path(cache_path)
+    if x_cache_exists and not y_cache_exists:
+        # Only read y data
+        logger.info("x_sys has an existing cache, only loading in labels")
+        X = None
+        _, y = setup_data(metadata_path, None, None)
+    else:
+        X, y = setup_data(metadata_path, eeg_path, spectrogram_path, cache_path)
+
+    return X, y
 
 
 def load_eeg(eeg_path: Path, eeg_id: int) -> tuple[int, pd.DataFrame]:
