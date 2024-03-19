@@ -20,9 +20,9 @@ class Log(VerboseTransformationBlock):
     eeg_spec: bool = False
 
     def custom_transform(self, data: XData, **kwargs: Any) -> XData:
-        """Clip the EEG data to a specified range.
+        """Log transform spectrogram data.
 
-        :param data: The X data to transform, as tuple (eeg, spec, meta)
+        :param data: The X data to transform
         :return: The transformed data
         """
 

@@ -2,6 +2,7 @@ from unittest import TestCase
 
 import pandas as pd
 import torch
+import copy
 
 from src.modules.transformation.spectrogram.log import Log
 from src.typing.typing import XData
@@ -23,7 +24,7 @@ def setup_data() -> XData:
 class TestLog(TestCase):
     def test_transform(self):
         data = setup_data()
-        test_data = setup_data()
+        test_data = copy.deepcopy(data)
 
         log = Log(kaggle_spec=True)
         data = log.transform(data)
