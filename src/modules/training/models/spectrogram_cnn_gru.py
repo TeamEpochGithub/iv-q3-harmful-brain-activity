@@ -2,6 +2,7 @@ import torch.nn.functional as F
 import torchaudio.transforms as T
 from segmentation_models_pytorch import Unet
 from torch import nn
+import torch
 
 from src.modules.training.models.multi_res_bi_GRU import MultiResidualBiGRU
 from src.modules.training.models.unet_decoder import UNet1DDecoder
@@ -19,13 +20,13 @@ class MultiResidualBiGRUwSpectrogramCNN(nn.Module):
             encoder_depth=5,
         )
         self.spectrogram = nn.Sequential(
-            T.Spectrogram(n_fft=63, hop_length=1),
+            T.Spectrogram(n_fft=127, hop_length=1),
             T.AmplitudeToDB(top_db=80),
             SpecNormalize(),
         )
         self.GRU = MultiResidualBiGRU(
             input_size=in_channels,
-            hidden_size=32,
+            hidden_size=64,
             out_size=out_channels,
             n_layers=5,
             bidir=True,
@@ -36,21 +37,23 @@ class MultiResidualBiGRUwSpectrogramCNN(nn.Module):
             model_name="",
         )
         # will shape the encoder outputs to the same shape as the original inputs
-        self.liner = nn.Linear(in_features=32, out_features=in_channels)
+        self.liner = nn.Linear(in_features=64, out_features=in_channels)
 
         self.decoder = UNet1DDecoder(
-            n_channels=32,
+            n_channels=64,
             n_classes=out_channels,
             bilinear=False,
             scale_factor=2,
             # hardcoded for now
             # TODO make this a config
-            duration=10016,
+            duration=2016,
         )
+        self.batch_norm = nn.BatchNorm1d(in_channels)
 
     def forward(self, x, use_activation=True):
         x = F.pad(x, (0, 0, 0, 16))
         x = x.permute(0, 2, 1)
+        x = self.batch_norm(x)
         x_spec = self.spectrogram(x)
         x_encoded = self.encoder(x_spec).squeeze(1)
         # The rest of the features are subsampled and passed to the decoder
@@ -65,7 +68,6 @@ class MultiResidualBiGRUwSpectrogramCNN(nn.Module):
 
         y, _ = self.GRU(x_encoded_linear, use_activation=use_activation)
         out = y.permute(0, 2, 1) + x_decoded.permute(0, 2, 1)
-        out = nn.functional.softmax(out, dim=1)
         return out.permute(0, 2, 1)[:,:-16,:]
 
 

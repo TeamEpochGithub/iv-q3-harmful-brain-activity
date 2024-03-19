@@ -10,7 +10,9 @@ from src.modules.transformation.verbose_transformation_block import VerboseTrans
 
 @dataclass
 class GaussianTarget(VerboseTransformationBlock):
-    """Sum to One class."""
+    """Create gaussian labels."""
+
+    labels_length: int = 10000
 
     def custom_transform(self, data: np.ndarray[Any, Any], **kwargs: Any) -> np.ndarray[Any, Any]:
         """Make gaussian curves for the labels.
@@ -20,13 +22,13 @@ class GaussianTarget(VerboseTransformationBlock):
         """
         logging.info("Creating Gaussian labels...")
         # create a sequence that is 10000 samples long and has a gaussian curve with amplitude 1 at the center ith sigma 400
-        num_samples = 10000
+        num_samples = self.labels_length
         time = np.linspace(-5000, 5000, num_samples, dtype=np.float32)
         sigma = 400  # Standard deviation of the Gaussian
         # Original Gaussian curve
-        original_curve = np.exp(-time**2 / (2 * sigma**2), dtype=np.float32)
+        original_curve = np.exp(-(time**2) / (2 * sigma**2), dtype=np.float32)
         # Add 3rd dimension to the data
-        labels_reshaped = data.copy().astype(np.float32)[:,:,np.newaxis]
+        labels_reshaped = data.copy().astype(np.float32)[:, :, np.newaxis]
         # Repeat the original curve for each sample in the gaussian
         labels_reshaped = labels_reshaped.repeat(num_samples, axis=2)
         # Multiply the original curve by the labels in-place

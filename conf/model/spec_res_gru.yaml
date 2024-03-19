@@ -13,11 +13,15 @@ x_sys:
       value: 32
     - _target_: src.modules.transformation.eeg.butter.ButterFilter
 
+    - _target_: src.modules.transformation.eeg.downsample.Downsample
+      downsample_factor: 5
+
 
 y_sys:
   steps:
     - _target_: src.modules.transformation.target.sum_to_one.SumToOne
     - _target_: src.modules.transformation.target.gaussian_target.GaussianTarget
+      labels_length: 2000
 
 train_sys:
   steps:
@@ -34,8 +38,8 @@ train_sys:
         lr: 0.001
       criterion:
         _target_: torch.nn.MSELoss
-      epochs: 5
-      batch_size: 32
+      epochs: 10
+      batch_size: 16
       patience: 10
       dataset:
         _target_: src.modules.training.datasets.main_dataset.MainDataset
