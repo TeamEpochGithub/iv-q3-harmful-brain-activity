@@ -10,10 +10,10 @@ from src.typing.typing import XData
 
 @dataclass
 class Clip(VerboseTransformationBlock):
-    """Clip the EEG data to a specified range.
+    """Clip the data to a specified range.
 
-    :param lower: The minimum value to clip the EEG data to, or None to not clip the minimum value
-    :param upper: The maximum value to clip the EEG data to, or None to not clip the maximum value
+    :param lower: The minimum value to clip the data to, or None to not clip the minimum value
+    :param upper: The maximum value to clip the data to, or None to not clip the maximum value
     :param eeg: Apply the transformation to the EEG data
     :param kaggle_spec: Apply the transformation to the Kaggle spectrogram data
     :param eeg_spec: Apply the transformation to the EEG spectrogram data
@@ -27,7 +27,7 @@ class Clip(VerboseTransformationBlock):
     eeg_spec: bool = False
 
     def custom_transform(self, data: XData, **kwargs: Any) -> XData:
-        """Clip the EEG data to a specified range.
+        """Clip the data to a specified range.
 
         :param data: The X data to transform, as tuple (eeg, spec, meta)
         :return: The transformed data
