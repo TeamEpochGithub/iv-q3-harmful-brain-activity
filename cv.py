@@ -5,6 +5,7 @@ from contextlib import nullcontext
 from pathlib import Path
 
 import hydra
+import numpy as np
 import randomname
 import wandb
 from epochalyst.logging.section_separator import print_section_separator
@@ -16,7 +17,6 @@ from src.config.cross_validation_config import CVConfig
 from src.logging_utils.logger import logger
 from src.typing.typing import XData
 from src.utils.script.lock import Lock
-from src.utils.script.reset_wandb_env import reset_wandb_env
 from src.utils.seed_torch import set_torch_seed
 from src.utils.setup import load_training_data, setup_config, setup_data, setup_pipeline, setup_wandb
 
@@ -98,17 +98,15 @@ def run_cv_cfg(cfg: DictConfig) -> None:
 
     scorer = instantiate(cfg.scorer)
 
-    for i, (train_indices, test_indices) in enumerate(instantiate(cfg.splitter).split(splitter_data, y)):
-        # https://github.com/wandb/wandb/issues/5119
-        # This is a workaround for the issue where sweeps override the run id annoyingly
-        reset_wandb_env()
+    if cfg.wandb.enabled:
+        setup_wandb(cfg, "cv", output_dir, name=wandb_group_name, group=wandb_group_name)
 
+    scores: list[int] = []
+
+    for i, (train_indices, test_indices) in enumerate(instantiate(cfg.splitter).split(splitter_data, y)):
         # Print section separator
         print_section_separator(f"CV - Fold {i}")
         logger.info(f"Train/Test size: {len(train_indices)}/{len(test_indices)}")
-
-        if cfg.wandb.enabled:
-            setup_wandb(cfg, "cv", output_dir, name=f"{wandb_group_name}_{i}", group=wandb_group_name)
 
         logger.info("Creating clean pipeline for this fold")
         model_pipeline = setup_pipeline(cfg, is_train=True)
@@ -121,6 +119,7 @@ def run_cv_cfg(cfg: DictConfig) -> None:
                 "train_indices": train_indices,
                 "test_indices": test_indices,
                 "save_model": False,
+                "fold": i,
             },
         }
 
@@ -134,11 +133,15 @@ def run_cv_cfg(cfg: DictConfig) -> None:
             raise ValueError("Predictions are not in correct format to get a score")
 
         score = scorer(y[test_indices], predictions[test_indices], metadata=X.meta.iloc[test_indices, :])
-        logger.info(f"Score: {score}")
-        wandb.log({"Score": score})
+        logger.info(f"Score, fold {i}: {score}")
+        scores.append(score)
 
-        logger.info("Finishing wandb run")
-        wandb.finish()
+    avg_score = np.average(np.array(scores))
+    logger.info(f"Score: {avg_score}")
+    wandb.log({"Score": avg_score})
+
+    logger.info("Finishing wandb run")
+    wandb.finish()
 
 
 if __name__ == "__main__":

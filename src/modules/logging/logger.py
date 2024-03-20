@@ -56,7 +56,7 @@ class Logger(_Logger):
                     title=plot_data["title"],
                     xname=plot_data["xname"],
                 )
-                wandb.log({"Training/Loss": plot}, commit=False, **kwargs)
+                wandb.log({plot_data["title"]: plot}, commit=False, **kwargs)
             else:
                 wandb.log(message, **kwargs)
 
@@ -67,4 +67,4 @@ class Logger(_Logger):
         :param metric_type: The type of the metric
         """
         if wandb.run:
-            wandb.define_metric(metric, summary=metric_type)
+            wandb.define_metric(metric, step_metric=metric_type)
