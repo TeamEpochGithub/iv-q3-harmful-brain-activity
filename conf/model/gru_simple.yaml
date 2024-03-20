@@ -4,6 +4,9 @@ defaults:
 
 x_sys:
   steps:
+    - _target_: src.modules.transformation.eeg.bipolar.BipolarEEG
+      use_full_map: false
+      keep_ekg: false
     - _target_: src.modules.transformation.eeg.clip.ClipEEG
       lower: -1024
       upper: 1024
