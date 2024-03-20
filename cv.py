@@ -133,7 +133,7 @@ def run_cv_cfg(cfg: DictConfig) -> None:
         if predictions is None or isinstance(predictions, XData):
             raise ValueError("Predictions are not in correct format to get a score")
 
-        score = scorer(y[test_indices], predictions[test_indices])
+        score = scorer(y[test_indices], predictions[test_indices], metadata=X.meta.iloc[test_indices, :])
         logger.info(f"Score: {score}")
         wandb.log({"Score": score})
 

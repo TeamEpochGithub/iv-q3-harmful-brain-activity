@@ -121,7 +121,7 @@ def run_train_cfg(cfg: DictConfig) -> None:
     if len(test_indices) > 0:
         print_section_separator("Scoring")
         scorer = instantiate(cfg.scorer)
-        score = scorer(y[test_indices], predictions[test_indices])
+        score = scorer(y[test_indices], predictions[test_indices], metadata=X.meta.iloc[test_indices, :])
         logger.info(f"Score: {score}")
 
         if wandb.run:
