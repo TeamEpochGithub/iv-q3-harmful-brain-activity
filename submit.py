@@ -49,7 +49,15 @@ def run_submit(cfg: DictConfig) -> None:
 
     # Predict on the test data
     logger.info("Making predictions...")
-    predictions = model_pipeline.predict(X)
+
+    train_args = {
+        "train_sys": {
+            "MainTrainer": {
+                "batch_size": 16,
+            },
+        },
+    }
+    predictions = model_pipeline.predict(X, **train_args)
 
     # Make submission
     if predictions is not None:

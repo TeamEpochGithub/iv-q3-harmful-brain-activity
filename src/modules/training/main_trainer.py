@@ -5,7 +5,9 @@ from typing import Any
 
 import numpy as np
 import wandb
+from epochalyst.logging.section_separator import print_section_separator
 from epochalyst.pipeline.model.training.torch_trainer import TorchTrainer
+from monai.data import DataLoader
 from numpy import typing as npt
 from torch import Tensor
 from torch.utils.data import Dataset
@@ -84,6 +86,34 @@ class MainTrainer(TorchTrainer, Logger):
         indices = list(range(len(train_dataset.X.meta)))  # type: ignore[attr-defined]
         train_dataset.indices = indices  # type: ignore[attr-defined]
         return train_dataset
+
+
+
+    def custom_predict(
+        self, x: npt.NDArray[np.float32], **pred_args: Any
+    ) -> npt.NDArray[np.float32]:
+        """Predict on the test data
+
+        :param x: The input to the system.
+        :return: The output of the system.
+        """
+        self._load_model()
+
+        print_section_separator(f"Predicting model: {self.model.__class__.__name__}")
+        self.log_to_debug(f"Predicting model: {self.model.__class__.__name__}")
+
+
+        #Check if pred_args contains batch_size
+        curr_batch_size = pred_args.get("batch_size", self.batch_size)
+
+        # Create dataset
+        pred_dataset = self.create_prediction_dataset(x)
+        pred_dataloader = DataLoader(
+            pred_dataset, batch_size=curr_batch_size, shuffle=False
+        )
+
+        # Predict
+        return self.predict_on_loader(pred_dataloader)
 
     def _save_model(self) -> None:
         super()._save_model()
