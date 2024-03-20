@@ -9,7 +9,7 @@ from src.modules.training.models.unet_decoder import UNet1DDecoder
 
 
 class MultiResidualBiGRUwSpectrogramCNN(nn.Module):
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels, n_fft=127, hop_length=1, n_layers=5):
         super(MultiResidualBiGRUwSpectrogramCNN, self).__init__()
         # TODO exclude some of the features from the spectrogram
         self.encoder = Unet(
@@ -26,9 +26,9 @@ class MultiResidualBiGRUwSpectrogramCNN(nn.Module):
         )
         self.GRU = MultiResidualBiGRU(
             input_size=in_channels,
-            hidden_size=64,
+            hidden_size=(n_fft+1)//2,
             out_size=out_channels,
-            n_layers=5,
+            n_layers=n_layers,
             bidir=True,
             activation="relu",
             flatten=False,
@@ -37,15 +37,13 @@ class MultiResidualBiGRUwSpectrogramCNN(nn.Module):
             model_name="",
         )
         # will shape the encoder outputs to the same shape as the original inputs
-        self.liner = nn.Linear(in_features=64, out_features=in_channels)
+        self.liner = nn.Linear(in_features=(n_fft+1)//2, out_features=in_channels)
 
         self.decoder = UNet1DDecoder(
-            n_channels=64,
+            n_channels=(n_fft+1)//2,
             n_classes=out_channels,
             bilinear=False,
             scale_factor=2,
-            # hardcoded for now
-            # TODO make this a config
             duration=2016,
         )
         self.batch_norm = nn.BatchNorm1d(in_channels)
