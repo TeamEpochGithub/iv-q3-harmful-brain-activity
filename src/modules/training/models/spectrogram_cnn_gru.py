@@ -9,7 +9,7 @@ from src.modules.training.models.unet_decoder import UNet1DDecoder
 
 
 class MultiResidualBiGRUwSpectrogramCNN(nn.Module):
-    def __init__(self, in_channels, out_channels, n_fft=127, hop_length=1, n_layers=5):
+    def __init__(self, in_channels, out_channels, n_fft=127, n_layers=5):
         super(MultiResidualBiGRUwSpectrogramCNN, self).__init__()
         # TODO exclude some of the features from the spectrogram
         self.encoder = Unet(
@@ -20,7 +20,7 @@ class MultiResidualBiGRUwSpectrogramCNN(nn.Module):
             encoder_depth=5,
         )
         self.spectrogram = nn.Sequential(
-            T.Spectrogram(n_fft=127, hop_length=1),
+            T.Spectrogram(n_fft=n_fft, hop_length=1),
             T.AmplitudeToDB(top_db=80),
             SpecNormalize(),
         )

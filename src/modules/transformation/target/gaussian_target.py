@@ -24,7 +24,8 @@ class GaussianTarget(VerboseTransformationBlock):
         logging.info("Creating Gaussian labels...")
         # create a sequence that is 10000 samples long and has a gaussian curve with amplitude 1 at the center ith sigma 400
         num_samples = self.labels_length
-        time = np.linspace(-25, 25, num_samples, dtype=np.float32)
+        SECOND_OFFSET = 25
+        time = np.linspace(-SECOND_OFFSET, SECOND_OFFSET, num_samples, dtype=np.float32)
         # Original Gaussian curve
         original_curve = np.exp(-(time**2) / (2 * self.sigma**2), dtype=np.float32)
         # Add 3rd dimension to the data
