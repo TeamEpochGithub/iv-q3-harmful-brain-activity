@@ -25,7 +25,6 @@ class Log(VerboseTransformationBlock):
         :param data: The X data to transform
         :return: The transformed data
         """
-
         if self.kaggle_spec:
             if data.kaggle_spec is None:
                 raise ValueError("Data type kaggle_spec is not present in the data.")

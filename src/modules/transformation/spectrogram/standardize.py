@@ -1,10 +1,9 @@
 """Contains the transformation block for clipping the EEG data."""
 from dataclasses import dataclass
-from typing import Any, Dict
+from typing import Any
 
-from tqdm import tqdm
 import torch
-
+from tqdm import tqdm
 
 from src.modules.transformation.verbose_transformation_block import VerboseTransformationBlock
 from src.typing.typing import XData
@@ -21,14 +20,13 @@ class Standardize(VerboseTransformationBlock):
     kaggle_spec: bool = False
     eeg_spec: bool = False
 
-    def _standardize(self, data: Dict[str, torch.Tensor], description: str) -> XData:
+    def _standardize(self, data: dict[int, torch.Tensor], description: str) -> None:
         """Standardize the spectrogram data.
 
         :param data: The X data to transform
         :param description: The description of the transformation
         :return: The transformed data
         """
-
         ep = 1e-6
         for key in tqdm(data, desc=description):
             if len(data[key].shape) != 3:
@@ -40,12 +38,11 @@ class Standardize(VerboseTransformationBlock):
                 m = img.float().mean()
                 s = img.float().std()
 
-                img = (img - m)
+                img = img - m
                 img = img / (s + ep)
                 result.append(img)
-            
-            data[key] = torch.stack(result)
 
+            data[key] = torch.stack(result)
 
     def custom_transform(self, data: XData, **kwargs: Any) -> XData:
         """Standardize the spectrogram data.
@@ -53,12 +50,11 @@ class Standardize(VerboseTransformationBlock):
         :param data: The X data to transform
         :return: The transformed data
         """
-
         if self.kaggle_spec:
             if data.kaggle_spec is None:
                 raise ValueError("Data type kaggle_spec is not present in the data.")
             self._standardize(data.kaggle_spec, "Kaggle Spec - Standardize")
-                
+
         if self.eeg_spec:
             if data.eeg_spec is None:
                 raise ValueError("Data type eeg_spec is not present in the data.")

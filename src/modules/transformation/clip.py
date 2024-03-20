@@ -37,7 +37,7 @@ class Clip(VerboseTransformationBlock):
                 raise ValueError("Data type eeg is not present in the data.")
             for key in tqdm(data.eeg, desc="EEG - Clipping"):
                 data.eeg[key] = data.eeg[key].clip(self.lower, self.upper)
-        
+
         if self.kaggle_spec:
             if data.kaggle_spec is None:
                 raise ValueError("Data type kaggle_spec is not present in the data.")
