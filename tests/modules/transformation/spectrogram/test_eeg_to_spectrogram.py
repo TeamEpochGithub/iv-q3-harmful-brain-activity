@@ -33,7 +33,7 @@ def setup_data_sine() -> XData:
         signals_df = pd.DataFrame(data=signals_array, columns=column_names)
         return signals_df
 
-    return XData(eeg={ 0: create_test_eeg() }, kaggle_spec=None, eeg_spec=None, meta=None, shared=None)
+    return XData(eeg={ 0: create_test_eeg() }, kaggle_spec=None, eeg_spec=None, meta=None, shared={'eeg_freq': 200})
 
 def expected_data_sine(input: XData) -> XData:
     return XData(eeg=input.eeg, kaggle_spec=None, eeg_spec={ 0: torch.load('tests/modules/transformation/spectrogram/test_eeg_spec.pt') }, meta=None, shared=None)
@@ -41,7 +41,7 @@ def expected_data_sine(input: XData) -> XData:
 class TestEEGToSpectrogram(TestCase):
     def test_transform(self):
         data = setup_data_sine()
-        eeg_to_spectrogram = EEGToSpectrogram(200)
+        eeg_to_spectrogram = EEGToSpectrogram()
         eeg_spec = eeg_to_spectrogram.transform(data).eeg_spec
         expected = expected_data_sine(data).eeg_spec
         for key in eeg_spec.keys():
