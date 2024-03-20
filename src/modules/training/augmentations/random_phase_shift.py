@@ -1,14 +1,16 @@
 """Randomly shift the phase of all the frequencies frequencies."""
 from dataclasses import dataclass
-import torch
+
 import numpy as np
+import torch
+
 
 @dataclass
-class RandomPhaseShift():
+class RandomPhaseShift:
     """Randomly shift the phase of all the frequencies frequencies."""
+
     shift_limit: float = 0.25
     p: float = 0.5
-        
 
     def __call__(self, x: torch.Tensor) -> torch.Tensor:
         """Apply Random phase shift to each frequency of the fft of the input signal."""
@@ -21,7 +23,5 @@ class RandomPhaseShift():
             # multiply the rfft with the random phase
             x_freq = x_freq * random_phase
             # take the irfft of the result
-            phase_shifted = torch.fft.irfft(x_freq, dim=0)
-            return phase_shifted
-        else:
-            return x
+            return torch.fft.irfft(x_freq, dim=0)
+        return x

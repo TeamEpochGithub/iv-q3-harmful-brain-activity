@@ -70,7 +70,7 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
                 raise ValueError(f"Data type {self.data_type} not recognized.")
 
         if self.augmentations is not None and self.use_aug:
-            x = self.augmentations(torch.from_numpy(x).to('cuda')).squeeze(0)
+            x = self.augmentations(torch.from_numpy(x).to("cuda")).squeeze(0)
 
         return x, y
 
