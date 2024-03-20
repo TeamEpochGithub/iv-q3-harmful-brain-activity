@@ -31,8 +31,11 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
             X_meta = copy.deepcopy(self.X.meta.iloc[indices])
             # append an index column to the meta data
             X_meta["index"] = copy.deepcopy(X_meta.index)
-            # Get the first occurance of each eeg_id
-            unique_indices = X_meta.groupby("eeg_id").first()["index"]
+
+            # Get a random occurance of each eeg_id
+            # Set sample seed for consistent results
+            seed = 42
+            unique_indices = X_meta.groupby("eeg_id").sample(1, random_state=seed)["index"]
             # Use the unique indices to index the meta data
             self.indices = unique_indices.to_list()
         self.use_aug = use_aug
