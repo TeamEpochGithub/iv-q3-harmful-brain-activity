@@ -1,9 +1,9 @@
 """KL Div class contains a wrapper of the KLDivLoss function from PyTorch. It is used to calculate the Kullback-Leibler divergence between two probability distributions."""
+from dataclasses import dataclass
 
 import torch
 from torch import nn
 from torch.nn import KLDivLoss
-
 
 class CustomKLDivLoss(nn.Module):
     """Custom KLDivLoss class. Wrapper for the KLDivLoss function from PyTorch."""
@@ -33,3 +33,6 @@ class CustomKLDivLoss(nn.Module):
         if self.weighted:
             loss = loss * factor.mean()
         return loss
+
+    def __repr__(self):
+        return f"CustomKLDivLoss(reduction={self.reduction}, weighted={self.weighted})"

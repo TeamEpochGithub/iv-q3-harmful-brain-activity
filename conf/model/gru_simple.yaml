@@ -14,6 +14,10 @@ x_sys:
       value: 32
     - _target_: src.modules.transformation.eeg.butter.ButterFilter
 
+y_sys:
+  steps:
+    - _target_: src.modules.transformation.target.sum_to_one.SumToOne
+
 train_sys:
   steps:
     - _target_: src.modules.training.main_trainer.MainTrainer
@@ -31,7 +35,7 @@ train_sys:
       criterion:
         _target_: src.modules.training.losses.kldiv.CustomKLDivLoss
         reduction: "batchmean"
-        weighted: true
+        weighted: false
       epochs: 10
       batch_size: 128
       patience: 10

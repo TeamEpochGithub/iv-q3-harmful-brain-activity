@@ -13,7 +13,7 @@ processed_path: data/processed
 
 scorer:
   _target_: src.scoring.kldiv.KLDiv
-test_size: 0
+test_size: 0.2
 cache_size: -1
 splitter:
   _target_: src.utils.stratified_splitter.StratifiedSplitter

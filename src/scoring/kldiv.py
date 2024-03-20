@@ -23,7 +23,7 @@ class KLDiv(Scorer):
         :param y_pred: The predicted labels.
         :return: The Kullback-Leibler divergence between the two probability distributions.
         """
-        # Normalize the true labels to be a probability distribution8
+        # Normalize the true labels to be a probability distribution
         y_true = y_true / y_true.sum(axis=1)[:, None]
 
         # Get the metadata
