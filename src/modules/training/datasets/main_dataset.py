@@ -1,5 +1,4 @@
 """Main dataset for EEG / Spectrogram data."""
-import numpy as np
 import copy
 import typing
 from dataclasses import dataclass, field
@@ -63,7 +62,7 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
         match self.data_type:
             case "eeg":
                 x, y = self._eeg_getitem(idx)
-                x = x.transpose(1,0)
+                x = x.transpose(1, 0)
                 if self.augmentations is not None and self.use_aug:
                     x_torch = torch.from_numpy(x)
                     x = self.augmentations(x_torch.unsqueeze(0)).squeeze(0)

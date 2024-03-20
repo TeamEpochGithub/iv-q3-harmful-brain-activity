@@ -12,6 +12,7 @@ x_sys:
     - _target_: src.modules.transformation.eeg.divide.Divide
       value: 32
     - _target_: src.modules.transformation.eeg.butter.ButterFilter
+    - _target_: src.modules.transformation.eeg.quantize.Quantizer
 
 y_sys:
   steps:
@@ -25,7 +26,9 @@ train_sys:
         _target_: src.modules.training.models.eeg_net.EEGNet
         num_classes: 6
         in_channels: 20
-        kernels: [3,5,7,9]
+        fixed_kernel_size: 5
+        linear_layer_features: 448
+        kernels: [3, 5,7,9,11]
       optimizer: # Partially instantiate optimizer, so model parameters can be linked at runtime
         _target_: functools.partial
         _args_:
@@ -50,3 +53,18 @@ train_sys:
               p_mode: "per_channel"
               max_snr_in_db: 15
               sample_rate: 200
+            - _target_: torch_audiomentations.Shift
+              p: 0.15
+              rollover: true
+              mode: "per_example"
+      scheduler:
+        _target_: functools.partial
+        _args_:
+          - _target_: hydra.utils.get_class
+            path: timm.scheduler.cosine_lr.CosineLRScheduler
+        t_initial: 40
+        cycle_mul: 1
+        cycle_decay: 1
+        cycle_limit: 1
+        warmup_t: 3
+        warmup_lr_init: 1e-5
