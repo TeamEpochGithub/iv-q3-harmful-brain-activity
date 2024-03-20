@@ -22,6 +22,7 @@ y_sys:
     - _target_: src.modules.transformation.target.sum_to_one.SumToOne
     - _target_: src.modules.transformation.target.gaussian_target.GaussianTarget
       labels_length: 2000
+      sigma: 2
 
 train_sys:
   steps:

@@ -1,4 +1,4 @@
-"""Contains the SumToOne transformation block that makes sure the labels for each eeg / spectrogram add up to 1."""
+"""Gaussian target transformation block."""
 import logging
 from dataclasses import dataclass
 from typing import Any
@@ -12,7 +12,8 @@ from src.modules.transformation.verbose_transformation_block import VerboseTrans
 class GaussianTarget(VerboseTransformationBlock):
     """Create gaussian labels."""
 
-    labels_length: int = 10000
+    labels_length: int = 10000  # in samples
+    sigma: int = 2  # in seconds
 
     def custom_transform(self, data: np.ndarray[Any, Any], **kwargs: Any) -> np.ndarray[Any, Any]:
         """Make gaussian curves for the labels.
@@ -23,10 +24,9 @@ class GaussianTarget(VerboseTransformationBlock):
         logging.info("Creating Gaussian labels...")
         # create a sequence that is 10000 samples long and has a gaussian curve with amplitude 1 at the center ith sigma 400
         num_samples = self.labels_length
-        time = np.linspace(-5000, 5000, num_samples, dtype=np.float32)
-        sigma = 400  # Standard deviation of the Gaussian
+        time = np.linspace(-25, 25, num_samples, dtype=np.float32)
         # Original Gaussian curve
-        original_curve = np.exp(-(time**2) / (2 * sigma**2), dtype=np.float32)
+        original_curve = np.exp(-(time**2) / (2 * self.sigma**2), dtype=np.float32)
         # Add 3rd dimension to the data
         labels_reshaped = data.copy().astype(np.float32)[:, :, np.newaxis]
         # Repeat the original curve for each sample in the gaussian
