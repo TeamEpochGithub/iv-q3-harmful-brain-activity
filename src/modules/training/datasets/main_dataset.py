@@ -4,6 +4,7 @@ import typing
 from dataclasses import dataclass, field
 from typing import Any
 
+import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import Dataset
@@ -69,8 +70,13 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
             case _:
                 raise ValueError(f"Data type {self.data_type} not recognized.")
 
+        if isinstance(x, np.ndarray):
+            x = torch.from_numpy(x).to("cuda").float()
         if self.augmentations is not None and self.use_aug:
-            x = self.augmentations(torch.from_numpy(x).to("cuda")).squeeze(0)
+            for augmentation in self.augmentations:
+                x = augmentation(x).squeeze(0)
+            if torch.any(torch.isnan(x)):
+                print('Nan here')            
 
         return x, y
 

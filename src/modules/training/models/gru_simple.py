@@ -1,6 +1,6 @@
 """Module containing simple gru model."""
 from torch import Tensor, nn
-
+import torch
 
 class GRUTimeSeriesClassifier(nn.Module):
     """Classifier using GRU architecture.
@@ -48,4 +48,6 @@ class GRUTimeSeriesClassifier(nn.Module):
             gru_out = gru_out[:, -1, :]
         out = self.dropout(gru_out)
         out = self.fc(out)
+        if torch.any(torch.isnan(out)):
+            print("NAN in output")
         return self.softmax(out)
