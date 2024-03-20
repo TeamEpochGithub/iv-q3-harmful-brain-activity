@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+import torch
 
 CHAIN_ORDER = ["LT", "RT", "LP", "RP", "C"]
 CHAINS = {
@@ -37,6 +38,7 @@ BIPOLAR_MAP_FULL = {
     "C2": ("Cz", "Pz"),
 }
 
+
 def to_bipolar(df: pd.DataFrame) -> pd.DataFrame:
     """Convert the raw EEG signal to bipolar signal.
 
@@ -47,6 +49,25 @@ def to_bipolar(df: pd.DataFrame) -> pd.DataFrame:
     for key, (elektrode1, elektrode2) in BIPOLAR_MAP_FULL.items():
         df_[key] = df[elektrode1] - df[elektrode2]
     return df_
+
+
+def plot_torch_eeg(eeg: torch.Tensor, layout: str, title: str = "EEG Signal") -> None:
+    """Plot the EEG, given a layout."""
+
+    if layout == "raw":
+        columns = ['Fp1', 'F3', 'C3', 'P3', 'F7', 'T3', 'T5', 'O1', 'Fz', 'Cz', 'Pz',
+       'Fp2', 'F4', 'C4', 'P4', 'F8', 'T4', 'T6', 'O2', 'EKG']
+    elif layout == "bipolar":
+        columns = ['LT1', 'LT2', 'LT3', 'LT4', 'RT1', 'RT2', 'RT3', 'RT4', 'LP1', 'LP2', 'LP3',
+       'LP4', 'RP1', 'RP2', 'RP3', 'RP4', 'C1', 'C2', 'EKG']
+        if eeg.shape[1] == 19:
+            columns = columns[:-1]
+    elif layout == "bipolar_half":
+        columns = ['LT1', 'LT2', 'RT1', 'RT2', 'LP1', 'LP2', 'RP1', 'RP2', 'C1']
+    else:
+        raise ValueError(f"Layout {layout} not supported")
+    df = pd.DataFrame(eeg.numpy(), columns=columns)
+    plot_eeg(df, title)
 
 
 def plot_eeg(df: pd.DataFrame, title: str = "EEG Signal",) -> None:
@@ -94,7 +115,7 @@ def plot_bipolar_eeg(df: pd.DataFrame, title: str = "EEG Signal") -> None:
             df_[f"{chain_name}_{i}"] = df[chain_name + str(i + 1)] + total_offset
             total_offset -= y_offset
             i += 1
-        total_offset -= y_offset
+        total_offset -= 2*y_offset
     df_.plot(title=title, figsize=(20, 10), legend=False, color="black")
 
     for chain_name in CHAIN_ORDER:
@@ -123,7 +144,7 @@ def plot_raw_eeg(df: pd.DataFrame, title: str = "EEG Signal") -> None:
         for i, elektrode in enumerate(chain):
             df_[f"{chain_name}_{elektrode}"] = df[elektrode] + total_offset
             total_offset -= y_offset
-        total_offset -= y_offset
+        total_offset -= 2*y_offset
     df_.plot(title=title, figsize=(20, 10), legend=False, color="black")
     for chain_name in CHAIN_ORDER:
         chain = CHAINS[chain_name]
