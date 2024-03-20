@@ -1,0 +1,14 @@
+defaults:
+  - pipeline/default@_here_
+  - _self_
+
+x_sys:
+  steps: []
+
+y_sys:
+  steps:
+    - _target_: src.modules.transformation.target.sum_to_one.SumToOne
+
+train_sys:
+  steps:
+    - _target_: src.modules.training.models.stupid.average_predictor.AveragePredictor
