@@ -33,3 +33,7 @@ class CustomKLDivLoss(nn.Module):
         if self.weighted:
             loss = loss * factor.mean()
         return loss
+
+    def __repr__(self) -> str:
+        """Return representation of the CustomKLDivLoss class."""
+        return f"CustomKLDivLoss(reduction={self.reduction}, weighted={self.weighted})"

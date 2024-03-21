@@ -121,7 +121,7 @@ def run_train_cfg(cfg: DictConfig) -> None:
     if len(test_indices) > 0:
         print_section_separator("Scoring")
         scorer = instantiate(cfg.scorer)
-        score = scorer(y[test_indices], predictions[test_indices])
+        score = scorer(y[test_indices], predictions[test_indices], metadata=X.meta.iloc[test_indices, :])
         accuracy, f1 = scorer.visualize_preds(y[test_indices], predictions[test_indices], output_folder=output_dir)
         logger.info(f"Accuracy: {accuracy}")
         logger.info(f"F1: {f1}")
