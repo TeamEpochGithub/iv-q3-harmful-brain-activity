@@ -68,7 +68,7 @@ class KLDiv(Scorer):
 
         # Calculate the KLDivLoss
         criterion = KLDivLoss(reduction="batchmean")
-        return criterion(torch.log(torch.clamp(y_pred, min=10**-15, max=1 - 10**-15)), target)  # type: ignore[call-overload]
+        return criterion(torch.log(torch.clamp(y_pred, min=10 ** -15, max=1 - 10 ** -15)), target)  # type: ignore[call-overload]
 
     def __str__(self) -> str:
         """Return the name of the scorer."""
