@@ -72,7 +72,7 @@ class MainTrainer(TorchTrainer, Logger):
         train_dataset: Dataset[tuple[Tensor, ...]],
         test_dataset: Dataset[tuple[Tensor, ...]],  # noqa: ARG002
         train_indices: list[int],  # noqa: ARG002
-        test_indices: list[int],
+        test_indices: list[int],  # noqa: ARG002
     ) -> Dataset[tuple[Tensor, ...]]:
         """Concatenate the training and test datasets according to original order specified by train_indices and test_indices.
 
@@ -82,8 +82,8 @@ class MainTrainer(TorchTrainer, Logger):
         :param test_indices: The indices for the test data.
         :return: A new dataset containing the concatenated data in the original order.
         """
-        # Create a prediction dataset
-        train_dataset.setup(train_dataset.X, train_dataset.y, test_indices)  # type: ignore[attr-defined]
+        indices = list(range(len(train_dataset.X.meta)))  # type: ignore[attr-defined]
+        train_dataset.indices = indices  # type: ignore[attr-defined]
         return train_dataset
 
     def custom_predict(
