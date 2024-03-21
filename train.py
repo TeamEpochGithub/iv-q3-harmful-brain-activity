@@ -122,9 +122,14 @@ def run_train_cfg(cfg: DictConfig) -> None:
         print_section_separator("Scoring")
         scorer = instantiate(cfg.scorer)
         score = scorer(y[test_indices], predictions[test_indices])
+        accuracy, f1 = scorer.visualize_preds(y[test_indices], predictions[test_indices], output_folder=output_dir)
+        logger.info(f"Accuracy: {accuracy}")
+        logger.info(f"F1: {f1}")
         logger.info(f"Score: {score}")
 
         if wandb.run:
+            wandb.log({"Accuracy": accuracy})
+            wandb.log({"F1": f1})
             wandb.log({"Score": score})
 
     if wandb.run:
