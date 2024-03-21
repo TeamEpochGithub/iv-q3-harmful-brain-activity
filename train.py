@@ -18,9 +18,6 @@ from src.logging_utils.logger import logger
 from src.utils.script.lock import Lock
 from src.utils.seed_torch import set_torch_seed
 from src.utils.setup import load_training_data, setup_config, setup_data, setup_pipeline, setup_wandb
-import torch
-torch.autograd.set_detect_anomaly(True, check_nan=True)
-
 
 warnings.filterwarnings("ignore", category=UserWarning)
 # Makes hydra give full error messages

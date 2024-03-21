@@ -78,8 +78,6 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
         if self.augmentations is not None and self.use_aug:
             for augmentation in self.augmentations:
                 x = augmentation(x).squeeze(0)
-            if torch.any(torch.isnan(x)):
-                print('Nan here')            
 
         return x, y
 

@@ -1,18 +1,14 @@
 """Module for example training block."""
 from copy import deepcopy
 from dataclasses import dataclass, field
-import gc
 from typing import Any
 
 import numpy as np
-import torch
-from tqdm import tqdm
 import wandb
 from epochalyst.pipeline.model.training.torch_trainer import TorchTrainer
 from numpy import typing as npt
 from torch import Tensor
 from torch.utils.data import Dataset
-from torch.utils.data import DataLoader
 
 from src.modules.logging.logger import Logger
 from src.typing.typing import XData
