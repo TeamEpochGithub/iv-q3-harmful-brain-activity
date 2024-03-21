@@ -114,6 +114,7 @@ def run_train_cfg(cfg: DictConfig) -> None:
                 "train_indices": train_indices,
                 "test_indices": test_indices,
             },
+            "cache_args": cache_args,
         },
     }
     predictions, _ = model_pipeline.train(X, y, **train_args)

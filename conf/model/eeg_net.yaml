@@ -45,11 +45,20 @@ train_sys:
         _target_: src.modules.training.losses.kldiv.CustomKLDivLoss
         reduction: "batchmean"
       epochs: 20
-      batch_size: 64
+      batch_size: 16 
       patience: 10
       dataset:
         _target_: src.modules.training.datasets.main_dataset.MainDataset
         data_type: "eeg"
+        augmentations:
+          _target_: torch_audiomentations.Compose
+          transforms:
+            - _target_: torch_audiomentations.AddColoredNoise
+              p: 0.25
+              mode: per_channel
+              p_mode: per_channel
+              max_snr_in_db: 15
+              sample_rate: 200
       scheduler:
         _target_: functools.partial
         _args_:
