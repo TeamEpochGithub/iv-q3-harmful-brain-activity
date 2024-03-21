@@ -118,8 +118,7 @@ class KLDiv(Scorer):
         )
 
         # Create plots for the number of voters
-
-        fig, ax = plt.subplots(2, 1, figsize=(40, 20))
+        _, ax = plt.subplots(2, 1, figsize=(40, 20))
 
         # Define a palette
         palette = dict(zip(label_names, sns.color_palette("tab10"), strict=False))
@@ -134,7 +133,7 @@ class KLDiv(Scorer):
         plt.savefig(os.path.join(output_folder, "num_voters_correct.png"))
 
         # Plot a distribution of the true and predicted labels using seaborn kdeplot
-        fig, ax = plt.subplots(2, 1, figsize=(40, 20))
+        _, ax = plt.subplots(2, 1, figsize=(40, 20))
 
         # Convert the array to a pandas DataFrame
         df_pred = pd.DataFrame(y_pred, columns=label_names)
@@ -153,7 +152,7 @@ class KLDiv(Scorer):
         ax[1].set_title("True label distribution")
         plt.savefig(os.path.join(output_folder, "label_distribution.png"))
 
-        fig, ax = plt.subplots(figsize=(10, 10))
+        _, ax = plt.subplots(figsize=(10, 10))
 
         # Create the confusion matrix
         sns.heatmap(confusion_matrix(y_true_final, y_pred_final), annot=True, fmt="d", ax=ax)
