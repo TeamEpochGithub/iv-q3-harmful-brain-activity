@@ -1,21 +1,47 @@
-import torch.nn as nn
+"""Module containing EEGNet class."""
 import torch
+from torch import Tensor, nn
 
 
-class ResNet_1D_Block(nn.Module):
+class ResNet1DBlock(nn.Module):
+    """ResNet 1D block.
+
+    :param in_channels: Number of in_channels
+    :param out_channels: Number of out_channels
+    :param kernel_size: Size of kernels
+    :param stride: Stride size
+    :param padding: Padding size
+    :param downsampling: Factor to downsample with
+    :param dilation: Dilation factor
+    :param groups: Number of groups
+    :param dropout: Dropout rate
+    """
+
     def __init__(
         self,
-        in_channels,
-        out_channels,
-        kernel_size,
-        stride,
-        padding,
-        downsampling,
-        dilation=1,
-        groups=1,
-        dropout=0.0,
-    ):
-        super(ResNet_1D_Block, self).__init__()
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int,
+        stride: int,
+        padding: int,
+        downsampling: nn.Module,
+        dilation: int = 1,
+        groups: int = 1,
+        dropout: float = 0.0,
+    ) -> None:
+        """Initialize ResNet 1D block.
+
+        :param in_channels: Number of in_channels
+        :param out_channels: Number of out_channels
+        :param kernel_size: Size of kernels
+        :param stride: Stride size
+        :param padding: Padding size
+        :param downsampling: Factor to downsample with
+        :param dilation: Dilation factor
+        :param groups: Number of groups
+        :param dropout: Dropout rate
+        """
+        super(ResNet1DBlock, self).__init__()  # noqa: UP008
 
         self.bn1 = nn.BatchNorm1d(num_features=in_channels)
         # self.relu = nn.ReLU(inplace=False)
@@ -56,7 +82,12 @@ class ResNet_1D_Block(nn.Module):
         )
         self.downsampling = downsampling
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
+        """Forward function for ResNet1DBlock.
+
+        :param x: Input data
+        :return: Transformed data
+        """
         identity = x
 
         out = self.bn1(x)
@@ -76,23 +107,44 @@ class ResNet_1D_Block(nn.Module):
 
 
 class EEGNet(nn.Module):
+    """EEGNet.
+
+    :param kernels: List of kernel sizes
+    :param in_channels: Number of in_channels
+    :param fixed_kernel_size: The fixed_kernel_size
+    :param num_classes: Output classes of the model
+    :param linear_layer_features: Number of features in the linear layer
+    :param dilation: Dilation factor
+    :param groups: Number of groups
+    """
+
     def __init__(
         self,
-        kernels,
-        in_channels,
-        fixed_kernel_size,
-        num_classes,
-        linear_layer_features,
-        dilation=1,
-        groups=1,
-    ):
-        super(EEGNet, self).__init__()
+        kernels: list[int],
+        in_channels: int,
+        fixed_kernel_size: int,
+        num_classes: int,
+        linear_layer_features: int,
+        dilation: int = 1,
+        groups: int = 1,
+    ) -> None:
+        """Initialize EEGNet.
+
+        :param kernels: List of kernel sizes
+        :param in_channels: Number of in_channels
+        :param fixed_kernel_size: The fixed_kernel_size
+        :param num_classes: Output classes of the model
+        :param linear_layer_features: Number of features in the linear layer
+        :param dilation: Dilation factor
+        :param groups: Number of groups
+        """
+        super(EEGNet, self).__init__()  # noqa: UP008
         self.kernels = kernels
         self.planes = 24
         self.parallel_conv = nn.ModuleList()
         self.in_channels = in_channels
 
-        for i, kernel_size in enumerate(list(self.kernels)):
+        for _, kernel_size in enumerate(list(self.kernels)):
             sep_conv = nn.Conv1d(
                 in_channels=in_channels,
                 out_channels=self.planes,
@@ -146,24 +198,32 @@ class EEGNet(nn.Module):
 
     def _make_resnet_layer(
         self,
-        kernel_size,
-        stride,
-        dilation=1,
-        groups=1,
-        blocks=9,
-        padding=0,
-        dropout=0.0,
-    ):
-        layers = []
-        downsample = None
-        base_width = self.planes
+        kernel_size: int,
+        stride: int,
+        dilation: int = 1,
+        groups: int = 1,
+        blocks: int = 9,
+        padding: int = 0,
+        dropout: float = 0.0,
+    ) -> nn.Module:
+        """Make resnet layer for EEGNet model.
 
-        for i in range(blocks):
+        :param kernel_size: Kernel size of resnet layer
+        :param stride: Stride length
+        :param dilation: Dilation factor
+        :param groups: Number of groups
+        :param blocks: Number of blocks
+        :param padding: Amount of padding
+        :param dropout: Dropout rate
+        """
+        layers = []
+
+        for _ in range(blocks):
             downsampling = nn.Sequential(
-                nn.MaxPool1d(kernel_size=2, stride=2, padding=0)
+                nn.MaxPool1d(kernel_size=2, stride=2, padding=0),
             )
             layers.append(
-                ResNet_1D_Block(
+                ResNet1DBlock(
                     in_channels=self.planes,
                     out_channels=self.planes,
                     kernel_size=kernel_size,
@@ -173,12 +233,16 @@ class EEGNet(nn.Module):
                     dilation=dilation,
                     groups=groups,
                     dropout=dropout,
-                )
+                ),
             )
         return nn.Sequential(*layers)
 
-    def extract_features(self, x):
+    def extract_features(self, x: Tensor) -> Tensor:
+        """Extract features from input data function.
 
+        :param x: Input data
+        :return: Extracted data
+        """
         out_sep = []
         for i in range(len(self.kernels)):
             sep = self.parallel_conv[i](x)
@@ -198,10 +262,14 @@ class EEGNet(nn.Module):
         rnn_out, _ = self.rnn(x.permute(0, 2, 1))
         new_rnn_h = rnn_out[:, -1, :]
 
-        new_out = torch.cat([out, new_rnn_h], dim=1)
-        return new_out
+        return torch.cat([out, new_rnn_h], dim=1)
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
+        """Forward function of EEGNet.
+
+        :param x: Input data
+        :return: Output tensor
+        """
         new_out = self.extract_features(x)
         result = self.fc(new_out)
         return self.softmax(result)

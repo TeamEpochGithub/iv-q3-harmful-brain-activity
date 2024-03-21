@@ -4,6 +4,9 @@ defaults:
 
 x_sys:
   steps:
+    - _target_: src.modules.transformation.eeg.bipolar.BipolarEEG
+      use_full_map: false
+      keep_ekg: false
     - _target_: src.modules.transformation.eeg.clip.ClipEEG
       lower: -1024
       upper: 1024
@@ -25,9 +28,12 @@ train_sys:
       model:
         _target_: src.modules.training.models.eeg_net.EEGNet
         num_classes: 6
-        in_channels: 20
+        in_channels: 9
         fixed_kernel_size: 5
         linear_layer_features: 448
+        # linear_layer_features = 352 # Half Signal = 5_000
+        # linear_layer_features = 304 # 1/4 1/5 1/6 Signal = 2_000
+        # linear_layer_features = 280 # 1/10 Signal = 1_000
         kernels: [3, 5,7,9,11]
       optimizer: # Partially instantiate optimizer, so model parameters can be linked at runtime
         _target_: functools.partial
@@ -44,19 +50,6 @@ train_sys:
       dataset:
         _target_: src.modules.training.datasets.main_dataset.MainDataset
         data_type: "eeg"
-        augmentations:
-          _target_: torch_audiomentations.Compose
-          transforms:
-            - _target_: torch_audiomentations.AddColoredNoise
-              p: 0.15
-              mode: "per_channel"
-              p_mode: "per_channel"
-              max_snr_in_db: 15
-              sample_rate: 200
-            - _target_: torch_audiomentations.Shift
-              p: 0.15
-              rollover: true
-              mode: "per_example"
       scheduler:
         _target_: functools.partial
         _args_:
