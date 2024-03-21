@@ -4,7 +4,6 @@ import typing
 from dataclasses import dataclass, field
 from typing import Any
 
-import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import Dataset
@@ -66,18 +65,22 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
         match self.data_type:
             case "eeg":
                 x, y = self._eeg_getitem(idx)
+                x = x.transpose(1, 0)
+                if self.augmentations is not None and self.use_aug:
+                    x_torch = torch.from_numpy(x)
+                    x = self.augmentations(x_torch.unsqueeze(0)).squeeze(0)
             case "kaggle_spec":
                 x, y = self._kaggle_spec_getitem(idx)
+                if self.augmentations is not None and self.use_aug:
+                    x = self.augmentations(x).squeeze(0)
+
             case "eeg_spec":
                 x, y = self._eeg_spec_getitem(idx)
+                if self.augmentations is not None and self.use_aug:
+                    x = self.augmentations(x).squeeze(0)
+
             case _:
                 raise ValueError(f"Data type {self.data_type} not recognized.")
-
-        if isinstance(x, np.ndarray):
-            x = torch.from_numpy(x).to("cuda").float()
-        if self.augmentations is not None and self.use_aug:
-            for augmentation in self.augmentations:
-                x = augmentation(x).squeeze(0)
 
         return x, y
 
