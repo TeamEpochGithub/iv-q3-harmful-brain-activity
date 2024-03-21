@@ -1,1 +1,0 @@
-"""Stupid models for training (or at least very simple models)."""
