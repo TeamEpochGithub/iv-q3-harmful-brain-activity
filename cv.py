@@ -3,8 +3,10 @@ import os
 import warnings
 from contextlib import nullcontext
 from pathlib import Path
+from typing import Any
 
 import hydra
+import numpy as np
 import randomname
 import wandb
 from epochalyst.logging.section_separator import print_section_separator
@@ -14,9 +16,9 @@ from omegaconf import DictConfig
 
 from src.config.cross_validation_config import CVConfig
 from src.logging_utils.logger import logger
+from src.scoring.scorer import Scorer
 from src.typing.typing import XData
 from src.utils.script.lock import Lock
-from src.utils.script.reset_wandb_env import reset_wandb_env
 from src.utils.seed_torch import set_torch_seed
 from src.utils.setup import load_training_data, setup_config, setup_data, setup_pipeline, setup_wandb
 
@@ -98,47 +100,76 @@ def run_cv_cfg(cfg: DictConfig) -> None:
 
     scorer = instantiate(cfg.scorer)
 
+    if cfg.wandb.enabled:
+        setup_wandb(cfg, "cv", output_dir, name=wandb_group_name, group=wandb_group_name)
+
+    scores: list[float] = []
+
     for i, (train_indices, test_indices) in enumerate(instantiate(cfg.splitter).split(splitter_data, y)):
-        # https://github.com/wandb/wandb/issues/5119
-        # This is a workaround for the issue where sweeps override the run id annoyingly
-        reset_wandb_env()
+        score = run_fold(i, X, y, train_indices, test_indices, cfg, scorer, processed_y=processed_y)
+        scores.append(score)
 
-        # Print section separator
-        print_section_separator(f"CV - Fold {i}")
-        logger.info(f"Train/Test size: {len(train_indices)}/{len(test_indices)}")
+    avg_score = np.average(np.array(scores))
+    logger.info(f"Score: {avg_score}")
+    wandb.log({"Score": avg_score})
 
-        if cfg.wandb.enabled:
-            setup_wandb(cfg, "cv", output_dir, name=f"{wandb_group_name}_{i}", group=wandb_group_name)
+    logger.info("Finishing wandb run")
+    wandb.finish()
 
-        logger.info("Creating clean pipeline for this fold")
-        model_pipeline = setup_pipeline(cfg, is_train=True)
 
-        # Fit the pipeline and get predictions
-        predictions = X
+def run_fold(
+    i: int,
+    X: XData,
+    y: np.ndarray[Any, Any],
+    train_indices: np.ndarray[Any, Any],
+    test_indices: np.ndarray[Any, Any],
+    cfg: DictConfig,
+    scorer: Scorer,
+    processed_y: np.ndarray[Any, Any] | None = None,
+) -> float:
+    """Run a single fold of the cross validation.
 
-        train_args = {
-            "MainTrainer": {
-                "train_indices": train_indices,
-                "test_indices": test_indices,
-                "save_model": False,
-            },
-        }
+    :param i: The fold number.
+    :param X: The input data.
+    :param y: The labels.
+    :param train_indices: The indices of the training data.
+    :param test_indices: The indices of the test data.
+    :param cfg: The config file.
+    :param scorer: The scorer to use.
+    :param processed_y: The processed labels.
+    :return: The score for the fold.
+    """
+    # Print section separator
+    print_section_separator(f"CV - Fold {i}")
+    logger.info(f"Train/Test size: {len(train_indices)}/{len(test_indices)}")
 
-        if model_pipeline.train_sys is not None:
-            predictions, _ = model_pipeline.train_sys.train(X, processed_y, **train_args)
+    logger.info("Creating clean pipeline for this fold")
+    model_pipeline = setup_pipeline(cfg, is_train=True)
 
-        if model_pipeline.pred_sys is not None:
-            predictions = model_pipeline.pred_sys.transform(predictions)
+    # Fit the pipeline and get predictions
+    predictions = X
 
-        if predictions is None or isinstance(predictions, XData):
-            raise ValueError("Predictions are not in correct format to get a score")
+    train_args = {
+        "MainTrainer": {
+            "train_indices": train_indices,
+            "test_indices": test_indices,
+            "save_model": False,
+            "fold": i,
+        },
+    }
 
-        score = scorer(y[test_indices], predictions[test_indices])
-        logger.info(f"Score: {score}")
-        wandb.log({"Score": score})
+    if model_pipeline.train_sys is not None:
+        predictions, _ = model_pipeline.train_sys.train(X, processed_y, **train_args)
 
-        logger.info("Finishing wandb run")
-        wandb.finish()
+    if model_pipeline.pred_sys is not None:
+        predictions = model_pipeline.pred_sys.transform(predictions)
+
+    if predictions is None or isinstance(predictions, XData):
+        raise ValueError("Predictions are not in correct format to get a score")
+
+    score = scorer(y[test_indices], predictions[test_indices], metadata=X.meta.iloc[test_indices, :])
+    logger.info(f"Score, fold {i}: {score}")
+    return score
 
 
 if __name__ == "__main__":

@@ -4,11 +4,11 @@ command:
   - ${args_no_hyphens}
 method: bayes
 project: detect-harmful-brain-activity
-program: sweep.py
+program: cv.py
 name: example
 metric:
-  name: sweep_score
-  goal: maximize
+  name: Score
+  goal: minimize
 parameters: # Will use the model file in cv.yaml and override the values there with the values specified in this sweep file
   model.train_sys.steps.0.batch_size:
     values:
