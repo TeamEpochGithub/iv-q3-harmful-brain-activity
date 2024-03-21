@@ -22,7 +22,7 @@ y_sys:
     - _target_: src.modules.transformation.target.sum_to_one.SumToOne
     - _target_: src.modules.transformation.target.gaussian_target.GaussianTarget
       labels_length: 2000
-      sigma: 2
+      sigma: 2 # in seconds
 
 train_sys:
   steps:
@@ -39,7 +39,7 @@ train_sys:
             path: torch.optim.Adam
         lr: 0.001
       criterion:
-        _target_: torch.nn.MSELoss
+        _target_: src.modules.training.losses.gaussian_kldiv.GaussianKLDivLoss
       epochs: 10
       batch_size: 32
       patience: 10
