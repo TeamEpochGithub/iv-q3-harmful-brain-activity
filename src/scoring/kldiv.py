@@ -118,12 +118,18 @@ class KLDiv(Scorer):
         )
 
         # Create plots for the number of voters
+
         fig, ax = plt.subplots(2, 1, figsize=(40, 20))
+
+        # Define a palette
+        palette = dict(zip(label_names, sns.color_palette("tab10"), strict=False))
 
         # Create a barplot of correct based on the hue of num_voters
         sns.barplot(data=all_df, x="num_voters", y="acc", ax=ax[0])
         ax[0].set_title("Accuracy based on the number of voters")
-        sns.countplot(data=all_df, x="num_voters", hue="true_name", ax=ax[1])
+        # Make sure the hue is sorted
+
+        sns.countplot(data=all_df, x="num_voters", hue="true_name", ax=ax[1], palette=palette)
         ax[1].set_title("Number of voters based on the true label")
         plt.savefig(os.path.join(output_folder, "num_voters_correct.png"))
 

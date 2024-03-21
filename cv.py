@@ -116,6 +116,8 @@ def run_cv_cfg(cfg: DictConfig) -> None:
     avg_score = np.average(np.array(scores))
     avg_accuracy = np.average(np.array(accuracies))
     avg_f1 = np.average(np.array(f1s))
+
+    print_section_separator("CV - Results")
     logger.info(f"Average Accuracy: {avg_accuracy}")
     logger.info(f"Average F1: {avg_f1}")
     logger.info(f"Score: {avg_score}")
@@ -176,12 +178,18 @@ def run_fold(
     if predictions is None or isinstance(predictions, XData):
         raise ValueError("Predictions are not in correct format to get a score")
 
-    score = scorer(y[test_indices], predictions[test_indices], metadata=X.meta.iloc[test_indices, :])
+    # Make sure the predictions is the same length as the test indices
+    if len(predictions) != len(test_indices):
+        raise ValueError("Predictions and test indices are not the same length")
+
+    score = scorer(y[test_indices], predictions, metadata=X.meta.iloc[test_indices, :])
 
     # Add i to fold path using os.path.join
     output_dir = os.path.join(output_dir, str(i))
-    accuracy, f1 = scorer.visualize_preds(y[test_indices], predictions[test_indices], output_folder=output_dir)
+    accuracy, f1 = scorer.visualize_preds(y[test_indices], predictions, output_folder=output_dir)
     logger.info(f"Score, fold {i}: {score}")
+    logger.info(f"Accuracy, fold {i}: {accuracy}")
+    logger.info(f"F1, fold {i}: {f1}")
     return score, accuracy, f1
 
 
