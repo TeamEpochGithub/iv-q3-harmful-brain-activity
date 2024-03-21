@@ -16,5 +16,5 @@ scorer:
 cache_size: -1
 splitter:
   _target_: src.utils.stratified_splitter.StratifiedSplitter
-  n_splits: 5
+  n_splits: 2
 allow_multiple_instances: False
