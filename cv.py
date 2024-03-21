@@ -104,15 +104,24 @@ def run_cv_cfg(cfg: DictConfig) -> None:
         setup_wandb(cfg, "cv", output_dir, name=wandb_group_name, group=wandb_group_name)
 
     scores: list[float] = []
+    accuracies: list[float] = []
+    f1s: list[float] = []
 
     for i, (train_indices, test_indices) in enumerate(instantiate(cfg.splitter).split(splitter_data, y)):
-        score = run_fold(i, X, y, train_indices, test_indices, cfg, scorer, processed_y=processed_y)
+        score, accuracy, f1 = run_fold(i, X, y, train_indices, test_indices, cfg, scorer, output_dir, processed_y=processed_y)
         scores.append(score)
+        accuracies.append(accuracy)
+        f1s.append(f1)
 
     avg_score = np.average(np.array(scores))
-    logger.info(f"Score: {avg_score}")
-    wandb.log({"Score": avg_score})
+    avg_accuracy = np.average(np.array(accuracies))
+    avg_f1 = np.average(np.array(f1s))
 
+    print_section_separator("CV - Results")
+    logger.info(f"Average Accuracy: {avg_accuracy}")
+    logger.info(f"Average F1: {avg_f1}")
+    logger.info(f"Score: {avg_score}")
+    wandb.log({"Score": avg_score, "Accuracy": avg_accuracy, "F1": avg_f1})
     logger.info("Finishing wandb run")
     wandb.finish()
 
@@ -125,8 +134,9 @@ def run_fold(
     test_indices: np.ndarray[Any, Any],
     cfg: DictConfig,
     scorer: Scorer,
+    output_dir: Path,
     processed_y: np.ndarray[Any, Any] | None = None,
-) -> float:
+) -> tuple[float, float, float]:
     """Run a single fold of the cross validation.
 
     :param i: The fold number.
@@ -136,8 +146,9 @@ def run_fold(
     :param test_indices: The indices of the test data.
     :param cfg: The config file.
     :param scorer: The scorer to use.
+    :param output_dir: The output directory for the prediction plots.
     :param processed_y: The processed labels.
-    :return: The score for the fold.
+    :return: The score of the fold.
     """
     # Print section separator
     print_section_separator(f"CV - Fold {i}")
@@ -167,9 +178,19 @@ def run_fold(
     if predictions is None or isinstance(predictions, XData):
         raise ValueError("Predictions are not in correct format to get a score")
 
-    score = scorer(y[test_indices], predictions[test_indices], metadata=X.meta.iloc[test_indices, :])
+    # Make sure the predictions is the same length as the test indices
+    if len(predictions) != len(test_indices):
+        raise ValueError("Predictions and test indices are not the same length")
+
+    score = scorer(y[test_indices], predictions, metadata=X.meta.iloc[test_indices, :])
+
+    # Add i to fold path using os.path.join
+    output_dir = os.path.join(output_dir, str(i))
+    accuracy, f1 = scorer.visualize_preds(y[test_indices], predictions, output_folder=output_dir)
     logger.info(f"Score, fold {i}: {score}")
-    return score
+    logger.info(f"Accuracy, fold {i}: {accuracy}")
+    logger.info(f"F1, fold {i}: {f1}")
+    return score, accuracy, f1
 
 
 if __name__ == "__main__":
