@@ -17,4 +17,4 @@ result_path: /kaggle/working/
 # raw_path: data/raw/
 # result_path: data/results/
 
-test_size: 0.2
+test_size: 0
