@@ -43,3 +43,11 @@ train_sys:
       dataset:
         _target_: src.modules.training.datasets.main_dataset.MainDataset
         data_type: "eeg"
+        augmentations:
+          - _target_: src.modules.training.augmentations.random_phase_shift.RandomPhaseShift
+            shift_limit: 0.5
+            p: 0.5
+          - _target_: src.modules.training.augmentations.random_band_filter.RandomBandFilter
+            low_cutoff_range: [0.1, 0.5]
+            high_cutoff_range: [15, 20]
+            p: 0.5
