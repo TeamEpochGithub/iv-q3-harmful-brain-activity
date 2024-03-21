@@ -66,6 +66,7 @@ class MultiResidualBiGRUwSpectrogramCNN(nn.Module):
 
         y, _ = self.GRU(x_encoded_linear, use_activation=use_activation)
         out = y.permute(0, 2, 1) + x_decoded.permute(0, 2, 1)
+        out = torch.sigmoid(out)
         return out.permute(0, 2, 1)[:,:-16,:]
 
 

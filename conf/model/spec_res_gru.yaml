@@ -40,9 +40,9 @@ train_sys:
         lr: 0.001
       criterion:
         _target_: src.modules.training.losses.gaussian_kldiv.GaussianKLDivLoss
-      epochs: 10
+      epochs: 40
       batch_size: 32
-      patience: 10
+      patience: 25
       dataset:
         _target_: src.modules.training.datasets.main_dataset.MainDataset
         data_type: "eeg"
