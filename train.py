@@ -101,6 +101,9 @@ def run_train_cfg(cfg: DictConfig) -> None:
 
     logger.info(f"Train/Test size: {len(train_indices)}/{len(test_indices)}")
 
+    # Generate the parameters for training
+    # fit_params = generate_train_params(cfg, model_pipeline, train_indices=train_indices, test_indices=test_indices)
+
     print_section_separator("Train model pipeline")
     train_args = {
         "x_sys": {
@@ -111,7 +114,6 @@ def run_train_cfg(cfg: DictConfig) -> None:
                 "train_indices": train_indices,
                 "test_indices": test_indices,
             },
-            "cache_args": cache_args,
         },
     }
     predictions, _ = model_pipeline.train(X, y, **train_args)
@@ -119,14 +121,11 @@ def run_train_cfg(cfg: DictConfig) -> None:
     if len(test_indices) > 0:
         print_section_separator("Scoring")
         scorer = instantiate(cfg.scorer)
-        score = scorer(y[test_indices], predictions, metadata=X.meta.iloc[test_indices, :])
-        accuracy, f1 = scorer.visualize_preds(y[test_indices], predictions, output_folder=output_dir)
-        logger.info(f"Accuracy: {accuracy}")
-        logger.info(f"F1: {f1}")
+        score = scorer(y[test_indices], predictions[test_indices], metadata=X.meta.iloc[test_indices, :])
         logger.info(f"Score: {score}")
 
         if wandb.run:
-            wandb.log({"Accuracy": accuracy, "F1": f1, "Score": score})
+            wandb.log({"Score": score})
 
     if wandb.run:
         wandb.finish()
