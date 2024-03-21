@@ -1,11 +1,12 @@
 """Module with plotting functions for EEGS. Can be used to plot raw EEGs and bipolar EEGs. Torch or dataframe.
 
-Can be imported during debugging sessions. Might later be integrated into the dashboard."""
+Can be imported during debugging sessions. Might later be integrated into the dashboard.
+"""
 import numpy as np
-import pandas as pd
-from matplotlib import pyplot as plt
-import torch
 import numpy.typing as npt
+import pandas as pd
+import torch
+from matplotlib import pyplot as plt
 
 CHAIN_ORDER = ["LT", "RT", "LP", "RP", "C"]
 CHAINS = {
@@ -57,45 +58,42 @@ def to_bipolar(df: pd.DataFrame) -> pd.DataFrame:
 
 def plot_torch_eeg(eeg: torch.Tensor, layout: str, title: str = "EEG Signal") -> None:
     """Plot the EEG, given a layout."""
-
     if layout == "raw":
-        columns = ['Fp1', 'F3', 'C3', 'P3', 'F7', 'T3', 'T5', 'O1', 'Fz', 'Cz', 'Pz',
-                   'Fp2', 'F4', 'C4', 'P4', 'F8', 'T4', 'T6', 'O2', 'EKG']
+        columns = ["Fp1", "F3", "C3", "P3", "F7", "T3", "T5", "O1", "Fz", "Cz", "Pz", "Fp2", "F4", "C4", "P4", "F8", "T4", "T6", "O2", "EKG"]
     elif layout == "bipolar":
-        columns = ['LT1', 'LT2', 'LT3', 'LT4', 'RT1', 'RT2', 'RT3', 'RT4', 'LP1', 'LP2', 'LP3',
-                   'LP4', 'RP1', 'RP2', 'RP3', 'RP4', 'C1', 'C2', 'EKG']
+        columns = ["LT1", "LT2", "LT3", "LT4", "RT1", "RT2", "RT3", "RT4", "LP1", "LP2", "LP3", "LP4", "RP1", "RP2", "RP3", "RP4", "C1", "C2", "EKG"]
         if eeg.shape[1] == 19:
             columns = columns[:-1]
     elif layout == "bipolar_half":
-        columns = ['LT1', 'LT2', 'RT1', 'RT2', 'LP1', 'LP2', 'RP1', 'RP2', 'C1']
+        columns = ["LT1", "LT2", "RT1", "RT2", "LP1", "LP2", "RP1", "RP2", "C1"]
     else:
         raise ValueError(f"Layout {layout} not supported")
-    df = pd.DataFrame(eeg.numpy(), columns=columns)
-    plot_eeg(df, title)
+    signal = pd.DataFrame(eeg.numpy(), columns=columns)
+    plot_eeg(signal, title)
 
 
-def plot_eeg(df: pd.DataFrame, title: str = "EEG Signal", ) -> None:
+def plot_eeg(signal: pd.DataFrame, title: str = "EEG Signal") -> None:
     """Plot the EEG signal. Chooses the layout based on the elekrode names.
 
-    :param df: The EEG signal to plot
+    :param signal: The EEG signal to plot
     :param title: The title of the plot
     """
-
     # normalize the elektrode values to 0 mean
-    df_ = df - df.mean()
-    if "Fp1" in df.columns:
+    df_ = signal - signal.mean()
+    if "Fp1" in signal.columns:
         plot_raw_eeg(df_, title)
-    elif "LT1" in df.columns:
+    elif "LT1" in signal.columns:
         plot_bipolar_eeg(df_, title)
 
     # put the time on the x-axis, using sampling rate of 200 Hz, put 10 ticks on the x-axis
     plt.xlabel("Time (s)")
-    xticks = np.linspace(0, df.shape[0], 10)
-    xlabels = np.linspace(0, df.shape[0] / 200, 10)
-    plt.xticks(xticks, xlabels.round(2))
+    xticks = np.linspace(0, signal.shape[0], 10)
+    xlabels = np.linspace(0, signal.shape[0] / 200, 10, dtype=np.float32)
+    xlabels_string = [f"{x:.1f}s" for x in xlabels]
+    plt.xticks(xticks, xlabels_string)
 
     plt.yticks([])
-    plt.box(False)
+    plt.box(on=False)
     plt.show()
 
 
@@ -145,7 +143,7 @@ def plot_raw_eeg(df: pd.DataFrame, title: str = "EEG Signal") -> None:
     total_offset = 0
     for chain_name in CHAIN_ORDER:
         chain = CHAINS[chain_name]
-        for i, elektrode in enumerate(chain):
+        for elektrode in chain:
             df_[f"{chain_name}_{elektrode}"] = df[elektrode] + total_offset
             total_offset -= y_offset
         total_offset -= 2 * y_offset
@@ -163,23 +161,23 @@ def format_y(y: npt.NDArray[np.float32]) -> str:
     :param y: The y value to format, in shape (6,)
     :return: The formatted y value
     """
-    labels = ['Seizure', 'LPD', 'GPD', 'LRDA', 'GRDA', 'Other']
+    labels = ["Seizure", "LPD", "GPD", "LRDA", "GRDA", "Other"]
     label_text = ""
     for i, v in enumerate(y):
         if v > 0:
             if label_text != "":
-                label_text += ','
-            label_text += f'{labels[i]}:{v:.2f}'
+                label_text += ","
+            label_text += f"{labels[i]}:{v:.2f}"
     return label_text
 
 
 if __name__ == "__main__":
     import glob
 
-    eegs = glob.glob('../data/raw/train_eegs/*.parquet')
+    eegs = glob.glob("../data/raw/train_eegs/*.parquet")
     # read the first 3 eegs
     for eeg in eegs[:3]:
-        df = pd.read_parquet(eeg)
-        plot_eeg(df)
-        df_bipolar = to_bipolar(df)
+        signal = pd.read_parquet(eeg)
+        plot_eeg(signal)
+        df_bipolar = to_bipolar(signal)
         plot_eeg(df_bipolar, "Bipolar EEG Signal")
