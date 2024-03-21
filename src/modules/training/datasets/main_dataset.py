@@ -4,7 +4,6 @@ import typing
 from dataclasses import dataclass, field
 from typing import Any
 
-import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import Dataset
