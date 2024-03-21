@@ -39,7 +39,7 @@ class KLDiv(Scorer):
 
         # Calculate the KLDivLoss
         criterion = KLDivLoss(reduction="batchmean")
-        return criterion(torch.log(torch.clamp(y_pred, min=10 ** -15, max=1 - 10 ** -15)), target)  # type: ignore[call-overload]
+        return criterion(torch.log(torch.clamp(y_pred, min=10**-15, max=1 - 10**-15)), target)  # type: ignore[call-overload]
 
     def __str__(self) -> str:
         """Return the name of the scorer."""
@@ -58,7 +58,7 @@ class KLDiv(Scorer):
         warnings.filterwarnings("ignore")
 
         # Get the logger for Matplotlib
-        logger = logging.getLogger('matplotlib')
+        logger = logging.getLogger("matplotlib")
 
         # Set the level to DEBUG, so INFO messages will be suppressed
         logger.setLevel(logging.WARNING)
@@ -85,8 +85,7 @@ class KLDiv(Scorer):
 
         # Create a all_df from the y_true and y_pred, correct and num_voters
         all_df = pd.DataFrame(
-            {"y_true": y_true_final, "y_pred": y_pred_final, "acc": correct, "num_voters": num_voters,
-             "true_name": expert_consensus, "pred_name": predict_consensus}
+            {"y_true": y_true_final, "y_pred": y_pred_final, "acc": correct, "num_voters": num_voters, "true_name": expert_consensus, "pred_name": predict_consensus},
         )
 
         # Create plots for the number of voters

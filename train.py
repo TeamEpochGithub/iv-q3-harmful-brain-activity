@@ -128,9 +128,7 @@ def run_train_cfg(cfg: DictConfig) -> None:
         logger.info(f"Score: {score}")
 
         if wandb.run:
-            wandb.log({"Accuracy": accuracy})
-            wandb.log({"F1": f1})
-            wandb.log({"Score": score})
+            wandb.log({"Accuracy": accuracy, "F1": f1, "Score": score})
 
     if wandb.run:
         wandb.finish()
