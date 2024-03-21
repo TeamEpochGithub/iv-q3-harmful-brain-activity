@@ -1,7 +1,7 @@
 defaults:
   - base_submit
   - hydra/logging
-  - model: cnn2d_timm_eeg
+  - model: eeg_net
 
 # Use this when uploading to Kaggle
 raw_path: /kaggle/input/hms-harmful-brain-activity-classification/
@@ -17,4 +17,4 @@ result_path: /kaggle/working/
 # raw_path: data/raw/
 # result_path: data/results/
 
-test_size: 0.2
+test_size: 0

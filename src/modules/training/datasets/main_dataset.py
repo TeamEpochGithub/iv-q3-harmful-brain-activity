@@ -65,15 +65,22 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
         match self.data_type:
             case "eeg":
                 x, y = self._eeg_getitem(idx)
+                x = x.transpose(1, 0)
+                if self.augmentations is not None and self.use_aug:
+                    x_torch = torch.from_numpy(x)
+                    x = self.augmentations(x_torch.unsqueeze(0)).squeeze(0)
             case "kaggle_spec":
                 x, y = self._kaggle_spec_getitem(idx)
+                if self.augmentations is not None and self.use_aug:
+                    x = self.augmentations(x).squeeze(0)
+
             case "eeg_spec":
                 x, y = self._eeg_spec_getitem(idx)
+                if self.augmentations is not None and self.use_aug:
+                    x = self.augmentations(x).squeeze(0)
+
             case _:
                 raise ValueError(f"Data type {self.data_type} not recognized.")
-
-        if self.augmentations is not None and self.use_aug:
-            x = self.augmentations(x).squeeze(0)
 
         return x, y
 
