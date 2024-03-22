@@ -1,18 +1,17 @@
 """Module for example training block."""
-from tqdm import tqdm
-import torch.nn as nn
-import torch
 from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
+import torch
 import wandb
 from epochalyst.logging.section_separator import print_section_separator
 from epochalyst.pipeline.model.training.torch_trainer import TorchTrainer
 from numpy import typing as npt
-from torch import Tensor
+from torch import Tensor, nn
 from torch.utils.data import DataLoader, Dataset
+from tqdm import tqdm
 
 from src.modules.logging.logger import Logger
 from src.typing.typing import XData
@@ -119,7 +118,8 @@ class MainTrainer(TorchTrainer, Logger):
         return self.predict_on_loader(pred_dataloader)
 
     def predict_on_loader(
-        self, loader: DataLoader[tuple[Tensor, ...]]
+        self,
+        loader: DataLoader[tuple[Tensor, ...]],
     ) -> npt.NDArray[np.float32]:
         """Predict on the loader.
 

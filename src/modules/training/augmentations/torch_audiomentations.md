@@ -1,6 +1,5 @@
 # Torch_audiomentations augmentations
 
-
 - _target_: torch_audiomentations.AddColoredNoise
             p: 0.15
             mode: per_channel

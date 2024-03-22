@@ -13,7 +13,7 @@ parameters: # Will use the model file in cv.yaml and override the values there w
   model.train_sys.steps.0.batch_size:
     values:
       - 8
-      - 16 
+      - 16
       - 32
   model.train_sys.steps.0.optimizer.lr:
     distribution: log_uniform_values
@@ -25,13 +25,13 @@ parameters: # Will use the model file in cv.yaml and override the values there w
       - 15
       - 20
   model.train_sys.steps.0.dataset.augmentations.transforms.0.p:
-    max: 0.99 
+    max: 0.99
     min: 0.0
   model.train_sys.steps.0.dataset.augmentations.transforms.1.p:
-    max: 0.99 
+    max: 0.99
     min: 0.0
   model.train_sys.steps.0.dataset.augmentations.transforms.2.p:
-    max: 0.99 
+    max: 0.99
     min: 0.0
   model.train_sys.steps.0.model.dropout:
     max: 0.5
@@ -40,4 +40,3 @@ parameters: # Will use the model file in cv.yaml and override the values there w
     values:
       - torch.optim.Adam
       - torch.optim.AdamW
-
