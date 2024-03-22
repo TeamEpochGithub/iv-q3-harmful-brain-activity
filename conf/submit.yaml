@@ -1,7 +1,7 @@
 defaults:
   - base_submit
   - hydra/logging
-  - model: eeg_net
+  - model: gru_simple
 
 # Use this when uploading to Kaggle
 raw_path: /kaggle/input/hms-harmful-brain-activity-classification/

@@ -1,7 +1,7 @@
 defaults:
   - base_cv
   - hydra/logging
-  - model: eeg_net
+  - model: gru_simple
   - wandb: train
 
 metadata_path: data/raw/train.csv
@@ -16,5 +16,5 @@ scorer:
 cache_size: -1
 splitter:
   _target_: src.utils.stratified_splitter.StratifiedSplitter
-  n_splits: 5
+  n_splits: 2
 allow_multiple_instances: False
