@@ -18,6 +18,7 @@ x_sys:
     - _target_: src.modules.transformation.eeg.quantize.Quantizer
     - _target_: src.modules.transformation.eeg.downsample.Downsample
       downsample_factor: 5
+
 y_sys:
   steps:
     - _target_: src.modules.transformation.target.sum_to_one.SumToOne
