@@ -275,5 +275,5 @@ class EEGNet(nn.Module):
         :return: Output tensor
         """
         new_out = self.extract_features(x)
-        result = self.fc(new_out)
-        return self.softmax(result)
+        return self.fc(new_out)
+        # return self.softmax(result)

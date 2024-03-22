@@ -1,4 +1,7 @@
 """Module for example training block."""
+from tqdm import tqdm
+import torch.nn as nn
+import torch
 from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any
@@ -114,6 +117,28 @@ class MainTrainer(TorchTrainer, Logger):
 
         # Predict
         return self.predict_on_loader(pred_dataloader)
+
+    def predict_on_loader(
+        self, loader: DataLoader[tuple[Tensor, ...]]
+    ) -> npt.NDArray[np.float32]:
+        """Predict on the loader.
+
+        :param loader: The loader to predict on.
+        :return: The predictions.
+        """
+        self.log_to_terminal("Predicting on the test data")
+        self.model.eval()
+        predictions = []
+        with torch.no_grad(), tqdm(loader, unit="batch", disable=False) as tepoch:
+            for data in tepoch:
+                X_batch = data[0].to(self.device).float()
+                outputs = self.model(X_batch)
+                outputs = nn.Softmax(dim=1)(outputs)
+                y_pred = outputs.cpu().numpy()
+                predictions.extend(y_pred)
+
+        self.log_to_terminal("Done predicting")
+        return np.array(predictions)
 
     def _save_model(self) -> None:
         super()._save_model()

@@ -43,9 +43,8 @@ train_sys:
             path: torch.optim.Adam
         lr: 0.001
       criterion:
-        _target_: src.modules.training.losses.kldiv.CustomKLDivLoss
-        reduction: "batchmean"
-      epochs: 100
+        _target_: src.modules.training.losses.kldiv_with_logits.KLDivLossWithLogits
+      epochs: 20
       batch_size: 64 
       patience: 10
       dataset:
@@ -55,13 +54,13 @@ train_sys:
           _target_: torch_audiomentations.Compose
           transforms:
           - _target_: torch_audiomentations.Shift
-            p: 0.25
+            p: 0.05
             rollover: true
             mode: per_example
           - _target_: torch_audiomentations.ShuffleChannels
-            p: 0.25
+            p: 0.05
           - _target_: torch_audiomentations.AddColoredNoise
-            p: 0.25
+            p: 0.05
             mode: per_channel
             p_mode: per_channel
             max_snr_in_db: 15
