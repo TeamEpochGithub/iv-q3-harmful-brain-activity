@@ -84,9 +84,10 @@ class MainTrainer(TorchTrainer, Logger):
         :param test_indices: The indices for the test data.
         :return: A new dataset containing the concatenated data in the original order.
         """
-        # Create a prediction dataset
-        train_dataset.setup(train_dataset.X, train_dataset.y, test_indices)  # type: ignore[attr-defined]
-        return train_dataset
+        # Create a deep copy of the train dataset
+        pred_dataset = deepcopy(train_dataset)
+        pred_dataset.setup(train_dataset.X, train_dataset.y, test_indices)  # type: ignore[attr-defined]
+        return pred_dataset
 
     def custom_predict(
         self,
