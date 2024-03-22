@@ -4,15 +4,18 @@ defaults:
 
 x_sys:
   steps:
+    - _target_: src.modules.transformation.eeg.bipolar.BipolarEEG
+      use_full_map: false
+      keep_ekg: false
     - _target_: src.modules.transformation.eeg.clip.ClipEEG
       lower: -1024
       upper: 1024
     - _target_: src.modules.transformation.nantozero.NaNToZero
       eeg: true
-      kaggle_spec: false
     - _target_: src.modules.transformation.eeg.divide.Divide
       value: 32
     - _target_: src.modules.transformation.eeg.butter.ButterFilter
+    - _target_: src.modules.transformation.eeg.quantize.Quantizer
 
 y_sys:
   steps:
@@ -25,7 +28,7 @@ train_sys:
       model:
         _target_: src.modules.training.models.gru_simple.GRUTimeSeriesClassifier
         num_classes: 6
-        input_dim: 20
+        input_dim: 9
       optimizer: # Partially instantiate optimizer, so model parameters can be linked at runtime
         _target_: functools.partial
         _args_:
@@ -33,27 +36,27 @@ train_sys:
             path: torch.optim.Adam
         lr: 0.001
       criterion:
-        _target_: src.modules.training.losses.kldiv.CustomKLDivLoss
+        _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
         reduction: "batchmean"
         weighted: false
-      epochs: 1
+      epochs: 50
       batch_size: 128
       patience: 10
       dataset:
         _target_: src.modules.training.datasets.main_dataset.MainDataset
         data_type: "eeg"
         augmentations:
-          - _target_: src.modules.training.augmentations.random_phase_shift.RandomPhaseShift
-            shift_limit: 0.5
-            p: 0.5
+          _target_: src.modules.training.augmentations.random_phase_shift.RandomPhaseShift
+          shift_limit: 0.5
+          p: 0.5
       scheduler:
         _target_: functools.partial
         _args_:
           - _target_: hydra.utils.get_class
             path: timm.scheduler.cosine_lr.CosineLRScheduler
-        t_initial: 40
+        t_initial: 50
         cycle_mul: 1
         cycle_decay: 1
         cycle_limit: 1
-        warmup_t: 1
+        warmup_t: 5
         warmup_lr_init: 1e-5
