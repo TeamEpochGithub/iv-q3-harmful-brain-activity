@@ -11,23 +11,15 @@ x_sys:
       eeg: true
     - _target_: src.modules.transformation.eeg.divide.Divide
       value: 32
-    - _target_: src.modules.transformation.eeg.butter.ButterFilter
-
-    - _target_: src.modules.transformation.eeg.downsample.Downsample
-      downsample_factor: 5
 
 
 y_sys:
   steps:
     - _target_: src.modules.transformation.target.sum_to_one.SumToOne
-    - _target_: src.modules.transformation.target.gaussian_target.GaussianTarget
-      labels_length: 2000
-      sigma: 2 # in seconds
 
 train_sys:
   steps:
     - _target_: src.modules.training.main_trainer.MainTrainer
-      model_name: q1_spec_res_gru
       model:
         _target_: src.modules.training.models.spectrogram_cnn_gru.MultiResidualBiGRUwSpectrogramCNN
         in_channels: 20
@@ -39,10 +31,11 @@ train_sys:
             path: torch.optim.Adam
         lr: 0.001
       criterion:
-        _target_: src.modules.training.losses.gaussian_kldiv.GaussianKLDivLoss
-      epochs: 40
+        _target_: src.modules.training.losses.kldiv.CustomKLDivLoss
+        reduction: "batchmean"
+      epochs: 5
       batch_size: 32
-      patience: 25
+      patience: 10
       dataset:
         _target_: src.modules.training.datasets.main_dataset.MainDataset
         data_type: "eeg"
