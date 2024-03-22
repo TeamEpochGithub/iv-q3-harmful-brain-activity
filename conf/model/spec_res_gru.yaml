@@ -39,7 +39,7 @@ train_sys:
             path: torch.optim.Adam
         lr: 0.001
       criterion:
-        _target_: src.modules.training.losses.gaussian_kldiv.GaussianKLDivLoss
+        _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
       epochs: 40
       batch_size: 32
       patience: 25
