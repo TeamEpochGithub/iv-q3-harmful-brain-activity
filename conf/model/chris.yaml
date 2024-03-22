@@ -44,8 +44,12 @@ x_sys:
     #
 
     - _target_: src.modules.transformation.spectrogram.eeg_to_spectrogram.EEGToSpectrogram
-      size: [128, 256]
+      size: [100, 256]
       fitting_method: 'crop'
+
+    - _target_: src.modules.transformation.spectrogram.pad.Pad
+      eeg_spec: true
+      pad_list: [0, 0, 14, 14]
 
 
 y_sys:
