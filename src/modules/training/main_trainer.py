@@ -4,12 +4,14 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
+import torch
 import wandb
 from epochalyst.logging.section_separator import print_section_separator
 from epochalyst.pipeline.model.training.torch_trainer import TorchTrainer
 from numpy import typing as npt
 from torch import Tensor
 from torch.utils.data import DataLoader, Dataset
+from tqdm import tqdm
 
 from src.modules.logging.logger import Logger
 from src.typing.typing import XData
@@ -26,12 +28,12 @@ class MainTrainer(TorchTrainer, Logger):
     model_name: str = "WHAT_ARE_YOU_TRAINING_PUT_A_NAME_IN_THE_MAIN_TRAINER"  # No spaces allowed
 
     def create_datasets(
-        self,
-        x: XData,
-        y: npt.NDArray[np.float32],
-        train_indices: list[int],
-        test_indices: list[int],
-        cache_size: int = -1,  # noqa: ARG002
+            self,
+            x: XData,
+            y: npt.NDArray[np.float32],
+            train_indices: list[int],
+            test_indices: list[int],
+            cache_size: int = -1,  # noqa: ARG002
     ) -> tuple[Dataset[Any], Dataset[Any]]:
         """Override custom create_datasets to allow for for training and validation.
 
@@ -68,11 +70,11 @@ class MainTrainer(TorchTrainer, Logger):
         return predict_dataset
 
     def _concat_datasets(
-        self,
-        train_dataset: Dataset[tuple[Tensor, ...]],
-        test_dataset: Dataset[tuple[Tensor, ...]],  # noqa: ARG002
-        train_indices: list[int],  # noqa: ARG002
-        test_indices: list[int],
+            self,
+            train_dataset: Dataset[tuple[Tensor, ...]],
+            test_dataset: Dataset[tuple[Tensor, ...]],  # noqa: ARG002
+            train_indices: list[int],  # noqa: ARG002
+            test_indices: list[int],
     ) -> Dataset[tuple[Tensor, ...]]:
         """Concatenate the training and test datasets according to original order specified by train_indices and test_indices.
 
@@ -87,9 +89,9 @@ class MainTrainer(TorchTrainer, Logger):
         return train_dataset
 
     def custom_predict(
-        self,
-        x: npt.NDArray[np.float32],
-        **pred_args: Any,
+            self,
+            x: npt.NDArray[np.float32],
+            **pred_args: Any,
     ) -> npt.NDArray[np.float32]:
         """Predict on the test data.
 
@@ -114,6 +116,24 @@ class MainTrainer(TorchTrainer, Logger):
 
         # Predict
         return self.predict_on_loader(pred_dataloader)
+
+    def predict_on_loader(
+            self, loader: DataLoader[tuple[Tensor, ...]]
+    ) -> npt.NDArray[np.float32]:
+        """Predict on the loader.
+        :param loader: The loader to predict on.
+        :return: The predictions.
+        """
+        self.log_to_terminal("Predicting on the test data")
+        self.model.eval()
+        predictions = []
+        with torch.no_grad(), tqdm(loader, unit="batch", disable=False) as tepoch:
+            for data in tepoch:
+                X_batch = data[0].to(self.device).float()
+                y_pred = torch.softmax(self.model(X_batch), dim=1).cpu().numpy()
+                predictions.extend(y_pred)
+        self.log_to_terminal("Done predicting")
+        return np.array(predictions)
 
     def _save_model(self) -> None:
         super()._save_model()
