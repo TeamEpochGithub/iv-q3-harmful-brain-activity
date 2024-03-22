@@ -4,12 +4,14 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
+import torch
 import wandb
 from epochalyst.logging.section_separator import print_section_separator
 from epochalyst.pipeline.model.training.torch_trainer import TorchTrainer
 from numpy import typing as npt
 from torch import Tensor
 from torch.utils.data import DataLoader, Dataset
+from tqdm import tqdm
 
 from src.modules.logging.logger import Logger
 from src.typing.typing import XData
@@ -82,9 +84,10 @@ class MainTrainer(TorchTrainer, Logger):
         :param test_indices: The indices for the test data.
         :return: A new dataset containing the concatenated data in the original order.
         """
-        # Create a prediction dataset
-        train_dataset.setup(train_dataset.X, train_dataset.y, test_indices)  # type: ignore[attr-defined]
-        return train_dataset
+        # Create a deep copy of the train dataset
+        pred_dataset = deepcopy(train_dataset)
+        pred_dataset.setup(train_dataset.X, train_dataset.y, test_indices)  # type: ignore[attr-defined]
+        return pred_dataset
 
     def custom_predict(
         self,
@@ -114,6 +117,26 @@ class MainTrainer(TorchTrainer, Logger):
 
         # Predict
         return self.predict_on_loader(pred_dataloader)
+
+    def predict_on_loader(
+        self,
+        loader: DataLoader[tuple[Tensor, ...]],
+    ) -> npt.NDArray[np.float32]:
+        """Predict on the loader.
+
+        :param loader: The loader to predict on.
+        :return: The predictions.
+        """
+        self.log_to_terminal("Predicting on the test data")
+        self.model.eval()
+        predictions = []
+        with torch.no_grad(), tqdm(loader, unit="batch", disable=False) as tepoch:
+            for data in tepoch:
+                X_batch = data[0].to(self.device).float()
+                y_pred = torch.softmax(self.model(X_batch), dim=1).cpu().numpy()
+                predictions.extend(y_pred)
+        self.log_to_terminal("Done predicting")
+        return np.array(predictions)
 
     def _save_model(self) -> None:
         super()._save_model()
