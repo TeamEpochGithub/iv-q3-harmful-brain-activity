@@ -30,7 +30,6 @@ class GRUTimeSeriesClassifier(nn.Module):
         self.gru = nn.GRU(input_size=input_dim, hidden_size=hidden_dim, num_layers=gru_layers, batch_first=True, dropout=dropout, bidirectional=bidirectional)
         self.dropout = nn.Dropout(dropout)
         self.fc = nn.Linear(hidden_dim * 2 if bidirectional else hidden_dim, num_classes)
-        self.softmax = nn.Softmax()
 
     def forward(self, x: Tensor) -> Tensor:
         """Forward input through model.
@@ -39,6 +38,7 @@ class GRUTimeSeriesClassifier(nn.Module):
         :return: Output tensor
         """
         # x: (batch_size, seq_length, input_dim)
+        x = x.permute(0,2,1)
         gru_out, _ = self.gru(x)
         if self.bidirectional:
             # Use the concatenated last hidden states of both directions
@@ -48,4 +48,4 @@ class GRUTimeSeriesClassifier(nn.Module):
             gru_out = gru_out[:, -1, :]
         out = self.dropout(gru_out)
         out = self.fc(out)
-        return self.softmax(out)
+        return out
