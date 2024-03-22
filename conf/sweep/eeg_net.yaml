@@ -1,0 +1,43 @@
+command:
+  - python3
+  - ${program}
+  - ${args_no_hyphens}
+method: bayes
+project: detect-harmful-brain-activity
+program: cv.py
+name: EEGNet
+metric:
+  name: Score
+  goal: minimize
+parameters: # Will use the model file in cv.yaml and override the values there with the values specified in this sweep file
+  model.train_sys.steps.0.batch_size:
+    values:
+      - 8
+      - 16 
+      - 32
+  model.train_sys.steps.0.optimizer.lr:
+    distribution: log_uniform_values
+    max: 0.01
+    min: 1e-06
+  model.train_sys.steps.0.patience:
+    values:
+      - 10
+      - 15
+      - 20
+  model.train_sys.steps.0.dataset.augmentations.transforms.0.p:
+    max: 0.99 
+    min: 0.0
+  model.train_sys.steps.0.dataset.augmentations.transforms.1.p:
+    max: 0.99 
+    min: 0.0
+  model.train_sys.steps.0.dataset.augmentations.transforms.2.p:
+    max: 0.99 
+    min: 0.0
+  model.train_sys.steps.0.model.dropout:
+    max: 0.5
+    min: 0.0
+  model.train_sys.steps.0.optimizer._args_.0.path:
+    values:
+      - torch.optim.Adam
+      - torch.optim.AdamW
+

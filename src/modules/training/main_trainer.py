@@ -83,7 +83,7 @@ class MainTrainer(TorchTrainer, Logger):
         :return: A new dataset containing the concatenated data in the original order.
         """
         indices = list(range(len(train_dataset.X.meta)))  # type: ignore[attr-defined]
-        train_dataset.indices = indices[:5]  # type: ignore[attr-defined]
+        train_dataset.indices = indices  # type: ignore[attr-defined]
         return train_dataset
 
     def custom_predict(
