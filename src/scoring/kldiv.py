@@ -64,6 +64,7 @@ class KLDiv(Scorer):
         """
         # Convert both to torch tensors
         y_pred = torch.tensor(y_pred)  # type: ignore[assignment]
+
         target = torch.tensor(y_true)
 
         # Calculate the KLDivLoss

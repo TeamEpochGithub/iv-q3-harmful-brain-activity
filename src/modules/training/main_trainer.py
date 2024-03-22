@@ -84,9 +84,10 @@ class MainTrainer(TorchTrainer, Logger):
         :param test_indices: The indices for the test data.
         :return: A new dataset containing the concatenated data in the original order.
         """
-        # Create a prediction dataset
-        train_dataset.setup(train_dataset.X, train_dataset.y, test_indices)  # type: ignore[attr-defined]
-        return train_dataset
+        # Create a deep copy of the train dataset
+        pred_dataset = deepcopy(train_dataset)
+        pred_dataset.setup(train_dataset.X, train_dataset.y, test_indices)  # type: ignore[attr-defined]
+        return pred_dataset
 
     def custom_predict(
         self,
@@ -132,11 +133,8 @@ class MainTrainer(TorchTrainer, Logger):
         with torch.no_grad(), tqdm(loader, unit="batch", disable=False) as tepoch:
             for data in tepoch:
                 X_batch = data[0].to(self.device).float()
-                outputs = self.model(X_batch)
-                outputs = nn.Softmax(dim=1)(outputs)
-                y_pred = outputs.cpu().numpy()
+                y_pred = torch.softmax(self.model(X_batch), dim=1).cpu().numpy()
                 predictions.extend(y_pred)
-
         self.log_to_terminal("Done predicting")
         return np.array(predictions)
 

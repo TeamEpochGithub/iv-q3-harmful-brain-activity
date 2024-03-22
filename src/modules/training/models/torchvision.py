@@ -73,5 +73,4 @@ class Torchvision(nn.Module):
         :param x: The input data.
         :return: The output data.
         """
-        x = self.model(x)
-        return self.softmax(x)
+        return self.model(x)
