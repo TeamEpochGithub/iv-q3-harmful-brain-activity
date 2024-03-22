@@ -196,9 +196,7 @@ class EEGNet(nn.Module):
             bidirectional=True,
             dropout=self.dropout,
         )
-
         self.fc = nn.Linear(in_features=linear_layer_features, out_features=num_classes)
-        self.softmax = nn.Softmax()
 
     def _make_resnet_layer(
         self,
