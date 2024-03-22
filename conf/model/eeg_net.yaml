@@ -46,7 +46,7 @@ train_sys:
         lr: 0.001
       criterion:
         _target_: src.modules.training.losses.kldiv_with_logits.KLDivLossWithLogits
-      epochs: 20
+      epochs: 50
       batch_size: 64
       patience: 10
       dataset:
