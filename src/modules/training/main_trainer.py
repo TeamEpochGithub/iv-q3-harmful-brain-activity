@@ -28,12 +28,12 @@ class MainTrainer(TorchTrainer, Logger):
     model_name: str = "WHAT_ARE_YOU_TRAINING_PUT_A_NAME_IN_THE_MAIN_TRAINER"  # No spaces allowed
 
     def create_datasets(
-            self,
-            x: XData,
-            y: npt.NDArray[np.float32],
-            train_indices: list[int],
-            test_indices: list[int],
-            cache_size: int = -1,  # noqa: ARG002
+        self,
+        x: XData,
+        y: npt.NDArray[np.float32],
+        train_indices: list[int],
+        test_indices: list[int],
+        cache_size: int = -1,  # noqa: ARG002
     ) -> tuple[Dataset[Any], Dataset[Any]]:
         """Override custom create_datasets to allow for for training and validation.
 
@@ -70,11 +70,11 @@ class MainTrainer(TorchTrainer, Logger):
         return predict_dataset
 
     def _concat_datasets(
-            self,
-            train_dataset: Dataset[tuple[Tensor, ...]],
-            test_dataset: Dataset[tuple[Tensor, ...]],  # noqa: ARG002
-            train_indices: list[int],  # noqa: ARG002
-            test_indices: list[int],
+        self,
+        train_dataset: Dataset[tuple[Tensor, ...]],
+        test_dataset: Dataset[tuple[Tensor, ...]],  # noqa: ARG002
+        train_indices: list[int],  # noqa: ARG002
+        test_indices: list[int],
     ) -> Dataset[tuple[Tensor, ...]]:
         """Concatenate the training and test datasets according to original order specified by train_indices and test_indices.
 
@@ -89,9 +89,9 @@ class MainTrainer(TorchTrainer, Logger):
         return train_dataset
 
     def custom_predict(
-            self,
-            x: npt.NDArray[np.float32],
-            **pred_args: Any,
+        self,
+        x: npt.NDArray[np.float32],
+        **pred_args: Any,
     ) -> npt.NDArray[np.float32]:
         """Predict on the test data.
 
@@ -118,9 +118,11 @@ class MainTrainer(TorchTrainer, Logger):
         return self.predict_on_loader(pred_dataloader)
 
     def predict_on_loader(
-            self, loader: DataLoader[tuple[Tensor, ...]]
+        self,
+        loader: DataLoader[tuple[Tensor, ...]],
     ) -> npt.NDArray[np.float32]:
         """Predict on the loader.
+
         :param loader: The loader to predict on.
         :return: The predictions.
         """
