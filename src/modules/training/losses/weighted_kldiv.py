@@ -28,4 +28,6 @@ class WeightedKLDivLoss(nn.Module):
         criterion = CrossEntropyLoss(weight=torch.tensor(self.class_weights).to(target.device))
 
         # Calculate the KLDivLoss
+        if torch.isnan(criterion(pred, target) + (torch.nan_to_num(torch.log(target), nan=0) * target).sum(axis=1).mean()):
+            print('NaN')
         return criterion(pred, target) + (torch.nan_to_num(torch.log(target), nan=0) * target).sum(axis=1).mean()
