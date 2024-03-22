@@ -39,6 +39,7 @@ class GRUTimeSeriesClassifier(nn.Module):
         :return: Output tensor
         """
         # x: (batch_size, seq_length, input_dim)
+        x = x.permute(0, 2, 1)
         gru_out, _ = self.gru(x)
         if self.bidirectional:
             # Use the concatenated last hidden states of both directions
@@ -47,5 +48,4 @@ class GRUTimeSeriesClassifier(nn.Module):
             # Use the last hidden state
             gru_out = gru_out[:, -1, :]
         out = self.dropout(gru_out)
-        out = self.fc(out)
-        return self.softmax(out)
+        return self.fc(out)
