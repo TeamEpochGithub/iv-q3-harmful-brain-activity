@@ -1,7 +1,7 @@
 defaults:
   - base_train
   - hydra/logging
-  - model: chris
+  - model: nischaydnk
   - wandb: train
 
 metadata_path: data/raw/train.csv
