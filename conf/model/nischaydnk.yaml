@@ -4,12 +4,11 @@ defaults:
 
 x_sys:
   steps:
-    - _target_: src.modules.transformation.eeg.bipolar.BipolarEEG
-      use_full_map: false
-      keep_ekg: false
-    - _target_: src.modules.transformation.eeg.clip.ClipEEG
+    - _target_: src.modules.transformation.eeg.select8.Select8
+    - _target_: src.modules.transformation.clip.Clip
       lower: -1024
       upper: 1024
+      eeg: true
     - _target_: src.modules.transformation.nantozero.NaNToZero
       eeg: true
     - _target_: src.modules.transformation.eeg.divide.Divide
@@ -28,7 +27,7 @@ train_sys:
       model:
         _target_: src.modules.training.models.eeg_net.EEGNet
         num_classes: 6
-        in_channels: 9
+        in_channels: 8
         fixed_kernel_size: 5
         linear_layer_features: 424
         # linear_layer_features = 352 # Half Signal = 5_000
