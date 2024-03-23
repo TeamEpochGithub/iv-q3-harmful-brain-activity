@@ -54,7 +54,7 @@ def run_submit(cfg: DictConfig) -> None:
         "train_sys": {
             "MainTrainer": {
                 "batch_size": 16,
-                "model_folds": cfg.model_folds
+                "model_folds": cfg.model_folds,
             },
         },
     }

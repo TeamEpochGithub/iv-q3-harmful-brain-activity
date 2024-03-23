@@ -100,8 +100,6 @@ class MainTrainer(TorchTrainer, Logger):
         :param x: The input to the system.
         :return: The output of the system.
         """
-
-
         print_section_separator(f"Predicting model: {self.model.__class__.__name__}")
         self.log_to_debug(f"Predicting model: {self.model.__class__.__name__}")
 
@@ -120,7 +118,7 @@ class MainTrainer(TorchTrainer, Logger):
         model_folds = pred_args.get("model_folds", None)
 
         # Predict with a single model
-        if model_folds is None or model_folds != -1:
+        if model_folds is None or model_folds == -1:
             self._load_model()
             return self.predict_on_loader(pred_dataloader)
 
@@ -128,8 +126,8 @@ class MainTrainer(TorchTrainer, Logger):
         predictions = []
         for i in range(model_folds):
             self.log_to_terminal(f"Predicting with model fold {i+1}/{model_folds}")
-            self.fold = i # set the fold, which updates the hash
-            self._load_model() # load the model for this fold
+            self.fold = i  # set the fold, which updates the hash
+            self._load_model()  # load the model for this fold
             predictions.append(self.predict_on_loader(pred_dataloader))
 
         return np.mean(predictions, axis=0)
@@ -155,10 +153,10 @@ class MainTrainer(TorchTrainer, Logger):
         return np.array(predictions)
 
     def custom_train(
-            self,
-            x: npt.NDArray[np.float32],
-            y: npt.NDArray[np.float32],
-            **train_args: Any,
+        self,
+        x: npt.NDArray[np.float32],
+        y: npt.NDArray[np.float32],
+        **train_args: Any,
     ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]:
         """Train the model.
 
@@ -180,7 +178,7 @@ class MainTrainer(TorchTrainer, Logger):
         """
         if self.fold == -1:
             return self._hash
-        return f'{self._hash}-{self.fold}'
+        return f"{self._hash}-{self.fold}"
 
     def _save_model(self) -> None:
         super()._save_model()
