@@ -9,7 +9,7 @@ import wandb
 from epochalyst.logging.section_separator import print_section_separator
 from epochalyst.pipeline.model.training.torch_trainer import TorchTrainer
 from numpy import typing as npt
-from torch import Tensor
+from torch import Tensor, nn
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
@@ -21,12 +21,18 @@ from src.typing.typing import XData
 class MainTrainer(TorchTrainer, Logger):
     """Main training block for training EEG / Spectrogram models.
 
+    :param model_name: The name of the model. No spaces allowed
     :param dataset: The dataset to use for training.
+    :param two_stage: Whether to use two-stage training. See: https://www.kaggle.com/competitions/hms-harmful-brain-activity-classification/discussion/477461
+    :param two_stage_KL_threshold: The threshold for dividing the dataset into two stages.
     """
 
     dataset: Dataset[Any] = field(default_factory=Dataset)
     model_name: str = "WHAT_ARE_YOU_TRAINING_PUT_A_NAME_IN_THE_MAIN_TRAINER"  # No spaces allowed
+    two_stage: bool = False
+    two_stage_KL_threshold: float = 5.5
     fold: int = field(default=-1, init=False, repr=False, compare=False)
+    stage: int = field(default=-1, init=False, repr=False, compare=False)
 
     def create_datasets(
         self,
@@ -114,7 +120,11 @@ class MainTrainer(TorchTrainer, Logger):
             shuffle=False,
         )
 
-        # Check if supposed to predict with a single model, or ensemble the fol models
+        # If using two-stage training, use the second stage
+        if self.two_stage:
+            self.stage = 1
+
+        # Check if supposed to predict with a single model, or ensemble the fold models
         model_folds = pred_args.get("model_folds", None)
 
         # Predict with a single model
@@ -160,14 +170,47 @@ class MainTrainer(TorchTrainer, Logger):
     ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]:
         """Train the model.
 
-        Overwritten to intercept the fold number from train args to the model.
+        Overwritten to intercept the fold number and enable two-stage training.
 
         :param x: The input data.
         :param y: The target variable.
         :return The predictions and the labels.
         """
         self.fold = train_args.get("fold", -1)
+        if not self.two_stage:
+            return super().custom_train(x, y, **train_args)
+
+        # Two-stage training
+        self.log_to_terminal("Two-stage training")
+        train_indices = np.array(train_args.get("train_indices", range(len(y))))
+        peak_kl = self.compute_peak_KL(y[train_indices])
+        train_indices_stage1 = list(train_indices)  # first stage is all data
+        train_indices_stage2 = list(train_indices[peak_kl < self.two_stage_KL_threshold]) # second stage is with low KL
+        self.log_to_terminal(f"Split data into two stages, sizes: {len(train_indices_stage1)} / {len(train_indices_stage2)}")
+
+        self.stage = 0
+        self.log_to_terminal("Training stage 1")
+        train_args["train_indices"] = train_indices_stage1
+        super().custom_train(x, y, **train_args)
+
+        self.stage = 1
+        self.log_to_terminal("Training stage 2")
+        train_args["train_indices"] = train_indices_stage2
         return super().custom_train(x, y, **train_args)
+
+    def compute_peak_KL(self, y: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
+        """Compute the KL-loss against a uniform distribution.
+
+        This is used to determine how peaked a distribution is, for dividing the two stages.
+        See: https://www.kaggle.com/competitions/hms-harmful-brain-activity-classification/discussion/477461
+
+        :param y: The target variable.
+        :return: The KL-divergence between the target and a uniform distribution.
+        """
+        normed = torch.tensor(y / y.sum(axis=1, keepdims=True)) + 1e-5
+        uniform = torch.tensor([1 / 6] * 6)
+        kl = nn.functional.kl_div(torch.log(normed), uniform, reduction="none")
+        return kl.sum(dim=1).numpy()
 
     def get_hash(self) -> str:
         """Get the hash of the block.
@@ -176,9 +219,13 @@ class MainTrainer(TorchTrainer, Logger):
 
         :return: The hash of the block.
         """
-        if self.fold == -1:
-            return self._hash
-        return f"{self._hash}-{self.fold}"
+        result = self._hash
+        if self.fold != -1:
+            result += f"_f{self.fold}"
+        if self.stage != -1:
+            result += f"_s{self.stage}"
+        return result
+
 
     def _save_model(self) -> None:
         super()._save_model()
