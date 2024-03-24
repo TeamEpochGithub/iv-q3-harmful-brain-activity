@@ -24,13 +24,13 @@ class MainTrainer(TorchTrainer, Logger):
     :param model_name: The name of the model. No spaces allowed
     :param dataset: The dataset to use for training.
     :param two_stage: Whether to use two-stage training. See: https://www.kaggle.com/competitions/hms-harmful-brain-activity-classification/discussion/477461
-    :param two_stage_KL_threshold: The threshold for dividing the dataset into two stages.
+    :param two_stage_kl_threshold: The threshold for dividing the dataset into two stages.
     """
 
     dataset: Dataset[Any] = field(default_factory=Dataset)
     model_name: str = "WHAT_ARE_YOU_TRAINING_PUT_A_NAME_IN_THE_MAIN_TRAINER"  # No spaces allowed
     two_stage: bool = False
-    two_stage_KL_threshold: float | None = None
+    two_stage_kl_threshold: float | None = None
     two_stage_evaluator_threshold: int | None = None
     fold: int = field(default=-1, init=False, repr=False, compare=False)
     stage: int = field(default=-1, init=False, repr=False, compare=False)
@@ -184,13 +184,13 @@ class MainTrainer(TorchTrainer, Logger):
         # Two-stage training
         self.log_to_terminal("Two-stage training")
         train_indices = np.array(train_args.get("train_indices", range(len(y))))
-        if self.two_stage_KL_threshold is not None and self.two_stage_evaluator_threshold is not None:
+        if self.two_stage_kl_threshold is not None and self.two_stage_evaluator_threshold is not None:
             raise ValueError("Cannot use both KL and evaluator threshold for two-stage training")
 
-        if self.two_stage_KL_threshold is not None:
-            peak_kl = self.compute_peak_KL(y[train_indices])
+        if self.two_stage_kl_threshold is not None:
+            peak_kl = self.compute_peak_kl(y[train_indices])
             train_indices_stage1 = list(train_indices)  # first stage is all data
-            train_indices_stage2 = list(train_indices[peak_kl < self.two_stage_KL_threshold]) # second stage is with low KL
+            train_indices_stage2 = list(train_indices[peak_kl < self.two_stage_kl_threshold])  # second stage is with low KL
         elif self.two_stage_evaluator_threshold is not None:
             n_evaluators = y[train_indices].sum(axis=1)
             train_indices_stage1 = list(train_indices[n_evaluators <= self.two_stage_evaluator_threshold])
@@ -210,7 +210,7 @@ class MainTrainer(TorchTrainer, Logger):
         train_args["train_indices"] = train_indices_stage2
         return super().custom_train(x, y, **train_args)
 
-    def compute_peak_KL(self, y: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
+    def compute_peak_kl(self, y: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
         """Compute the KL-loss against a uniform distribution.
 
         This is used to determine how peaked a distribution is, for dividing the two stages.
@@ -237,7 +237,6 @@ class MainTrainer(TorchTrainer, Logger):
         if self.stage != -1:
             result += f"_s{self.stage}"
         return result
-
 
     def _save_model(self) -> None:
         super()._save_model()
