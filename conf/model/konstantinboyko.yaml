@@ -4,7 +4,9 @@ defaults:
 
 x_sys:
   steps:
-    - _target_: src.modules.transformation.eeg.select8.Select8
+    - _target_: src.modules.transformation.eeg.bipolar.BipolarEEG
+      use_full_map: false
+      keep_ekg: false
     - _target_: src.modules.transformation.clip.Clip
       lower: -1024
       upper: 1024
@@ -15,9 +17,11 @@ x_sys:
       value: 32
     - _target_: src.modules.transformation.eeg.butter.ButterFilter
       lower: 0.5
-      upper: 25
+      upper: 20
       order: 2
     - _target_: src.modules.transformation.eeg.quantize.Quantizer
+    - _target_: src.modules.transformation.eeg.downsample.Downsample
+      downsample_factor: 5
 
 y_sys:
   steps: []
@@ -26,14 +30,13 @@ train_sys:
   steps:
     - _target_: src.modules.training.main_trainer.MainTrainer
       model_name: EEGNet # Can't have special characters or spaces
-      two_stage: true
-      two_stage_evaluator_threshold: 5
+      two_stage: false
       model:
         _target_: src.modules.training.models.eeg_net.EEGNet
         num_classes: 6
-        in_channels: 8
+        in_channels: 9
         fixed_kernel_size: 5
-        linear_layer_features: 448
+        linear_layer_features: 304
         # linear_layer_features = 352 # Half Signal = 5_000
         # linear_layer_features = 304 # 1/4 1/5 1/6 Signal = 2_000
         # linear_layer_features = 280 # 1/10 Signal = 1_000
@@ -43,13 +46,13 @@ train_sys:
         _args_:
           - _target_: hydra.utils.get_class
             path: torch.optim.AdamW
-        lr: 7e-3
-        weight_decay: 1e-3
+        lr: 8e-3
+        weight_decay: 1e-2
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
         reduction: "batchmean"
       epochs: 20
-      batch_size: 32
+      batch_size: 64
       patience: 10
       dataset:
         _target_: src.modules.training.datasets.main_dataset.MainDataset

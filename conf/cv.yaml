@@ -1,7 +1,7 @@
 defaults:
   - base_cv
   - hydra/logging
-  - model: nischaydnk
+  - model: konstantinboyko
   - wandb: train
 
 metadata_path: data/raw/train.csv
@@ -17,5 +17,5 @@ cache_size: -1
 splitter:
   _target_: src.utils.stratified_splitter.StratifiedSplitter
   n_splits: 5
-allow_multiple_instances: False
+allow_multiple_instances: true
 save_folds: true
