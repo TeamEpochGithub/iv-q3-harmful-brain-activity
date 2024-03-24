@@ -1,0 +1,61 @@
+defaults:
+  - pipeline/default@_here_
+  - _self_
+
+x_sys:
+  steps:
+    - _target_: src.modules.transformation.eeg.select8.Select8
+    - _target_: src.modules.transformation.clip.Clip
+      lower: -1024
+      upper: 1024
+      eeg: true
+    - _target_: src.modules.transformation.nantozero.NaNToZero
+      eeg: true
+    - _target_: src.modules.transformation.eeg.divide.Divide
+      value: 32
+    - _target_: src.modules.transformation.eeg.butter.ButterFilter
+    - _target_: src.modules.transformation.eeg.quantize.Quantizer
+
+y_sys:
+  steps:
+    - _target_: src.modules.transformation.target.sum_to_one.SumToOne
+
+train_sys:
+  steps:
+    - _target_: src.modules.training.main_trainer.MainTrainer
+      model_name: EEGNet # Can't have special characters or spaces
+      model:
+        _target_: src.modules.training.models.eeg_net.EEGNet
+        num_classes: 6
+        in_channels: 8
+        fixed_kernel_size: 5
+        linear_layer_features: 424
+        # linear_layer_features = 352 # Half Signal = 5_000
+        # linear_layer_features = 304 # 1/4 1/5 1/6 Signal = 2_000
+        # linear_layer_features = 280 # 1/10 Signal = 1_000
+        kernels: [3,5,7,9,11]
+      optimizer: # Partially instantiate optimizer, so model parameters can be linked at runtime
+        _target_: functools.partial
+        _args_:
+          - _target_: hydra.utils.get_class
+            path: torch.optim.AdamW
+        lr: 7e-3
+        weight_decay: 1e-3
+      criterion:
+        _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
+        reduction: "batchmean"
+      epochs: 20
+      batch_size: 32
+      patience: 10
+      dataset:
+        _target_: src.modules.training.datasets.main_dataset.MainDataset
+        data_type: "eeg"
+      scheduler:
+        _target_: functools.partial
+        _args_:
+          - _target_: hydra.utils.get_class
+            path: timm.scheduler.cosine_lr.CosineLRScheduler
+        t_initial: 20
+        cycle_mul: 1
+        cycle_decay: 1
+        cycle_limit: 1
