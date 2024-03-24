@@ -27,6 +27,7 @@ train_sys:
     - _target_: src.modules.training.main_trainer.MainTrainer
       model_name: EEGNet # Can't have special characters or spaces
       two_stage: true
+      two_stage_evaluator_threshold: 5
       model:
         _target_: src.modules.training.models.eeg_net.EEGNet
         num_classes: 6

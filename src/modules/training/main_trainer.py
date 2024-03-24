@@ -30,7 +30,8 @@ class MainTrainer(TorchTrainer, Logger):
     dataset: Dataset[Any] = field(default_factory=Dataset)
     model_name: str = "WHAT_ARE_YOU_TRAINING_PUT_A_NAME_IN_THE_MAIN_TRAINER"  # No spaces allowed
     two_stage: bool = False
-    two_stage_KL_threshold: float = 5.5
+    two_stage_KL_threshold: float | None = None
+    two_stage_evaluator_threshold: int | None = None
     fold: int = field(default=-1, init=False, repr=False, compare=False)
     stage: int = field(default=-1, init=False, repr=False, compare=False)
 
@@ -183,9 +184,20 @@ class MainTrainer(TorchTrainer, Logger):
         # Two-stage training
         self.log_to_terminal("Two-stage training")
         train_indices = np.array(train_args.get("train_indices", range(len(y))))
-        peak_kl = self.compute_peak_KL(y[train_indices])
-        train_indices_stage1 = list(train_indices)  # first stage is all data
-        train_indices_stage2 = list(train_indices[peak_kl < self.two_stage_KL_threshold]) # second stage is with low KL
+        if self.two_stage_KL_threshold is not None and self.two_stage_evaluator_threshold is not None:
+            raise ValueError("Cannot use both KL and evaluator threshold for two-stage training")
+
+        if self.two_stage_KL_threshold is not None:
+            peak_kl = self.compute_peak_KL(y[train_indices])
+            train_indices_stage1 = list(train_indices)  # first stage is all data
+            train_indices_stage2 = list(train_indices[peak_kl < self.two_stage_KL_threshold]) # second stage is with low KL
+        elif self.two_stage_evaluator_threshold is not None:
+            n_evaluators = y[train_indices].sum(axis=1)
+            train_indices_stage1 = list(train_indices[n_evaluators <= self.two_stage_evaluator_threshold])
+            train_indices_stage2 = list(train_indices[n_evaluators > self.two_stage_evaluator_threshold])
+        else:
+            raise ValueError("No two-stage threshold provided")
+
         self.log_to_terminal(f"Split data into two stages, sizes: {len(train_indices_stage1)} / {len(train_indices_stage2)}")
 
         self.stage = 0
