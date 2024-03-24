@@ -1,0 +1,57 @@
+defaults:
+  - pipeline/default@_here_
+  - _self_
+
+x_sys:
+  steps:
+    - _target_: src.modules.transformation.clip.Clip
+      lower: -1024
+      upper: 1024
+      eeg: true
+    - _target_: src.modules.transformation.nantozero.NaNToZero
+      eeg: true
+    - _target_: src.modules.transformation.eeg.divide.Divide
+      value: 32
+
+y_sys:
+  steps:
+    - _target_: src.modules.transformation.target.sum_to_one.SumToOne
+
+train_sys:
+  steps:
+    - _target_: src.modules.training.main_trainer.MainTrainer
+      model_name: fft_conv # Can't have special characters or spaces
+      model:
+        _target_: src.modules.training.models.fft_conv.FFTConv
+        
+      optimizer: # Partially instantiate optimizer, so model parameters can be linked at runtime
+        _target_: functools.partial
+        _args_:
+          - _target_: hydra.utils.get_class
+            path: torch.optim.Adam
+        lr: 0.001
+      criterion:
+        _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
+        reduction: "batchmean"
+        weighted: false
+      epochs: 50
+      batch_size: 128
+      patience: 10
+      dataset:
+        _target_: src.modules.training.datasets.main_dataset.MainDataset
+        data_type: "eeg"
+        augmentations:
+          _target_: src.modules.training.augmentations.random_phase_shift.RandomPhaseShift
+          shift_limit: 0.5
+          p: 0.5
+      scheduler:
+        _target_: functools.partial
+        _args_:
+          - _target_: hydra.utils.get_class
+            path: timm.scheduler.cosine_lr.CosineLRScheduler
+        t_initial: 50
+        cycle_mul: 1
+        cycle_decay: 1
+        cycle_limit: 1
+        warmup_t: 5
+        warmup_lr_init: 1e-5
