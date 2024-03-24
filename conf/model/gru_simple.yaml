@@ -37,10 +37,10 @@ train_sys:
             path: torch.optim.Adam
         lr: 0.001
       criterion:
-        _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
-        reduction: "batchmean"
-        weighted: false
-      epochs: 50
+        _target_: src.modules.training.losses.weighted_kldiv.WeightedKLDivLoss
+        class_weights: [0.767737189589508, 0.8769737036801599, 1.133067562494455, 1.8903799535040144, 1.0400019137008414, 0.29183967703102165]
+
+      epochs: 51
       batch_size: 128
       patience: 10
       dataset:

@@ -30,7 +30,6 @@ class GRUTimeSeriesClassifier(nn.Module):
         self.gru = nn.GRU(input_size=input_dim, hidden_size=hidden_dim, num_layers=gru_layers, batch_first=True, dropout=dropout, bidirectional=bidirectional)
         self.dropout = nn.Dropout(dropout)
         self.fc = nn.Linear(hidden_dim * 2 if bidirectional else hidden_dim, num_classes)
-        self.softmax = nn.Softmax()
 
     def forward(self, x: Tensor) -> Tensor:
         """Forward input through model.
