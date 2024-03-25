@@ -34,8 +34,8 @@ class MainTrainer(TorchTrainer, Logger):
     two_stage: bool = False
     two_stage_kl_threshold: float | None = None
     two_stage_evaluator_threshold: int | None = None
-    fold: int = field(default=-1, init=False, repr=False, compare=False)
-    stage: int = field(default=-1, init=False, repr=False, compare=False)
+    _fold: int = field(default=-1, init=False, repr=False, compare=False)
+    _stage: int = field(default=-1, init=False, repr=False, compare=False)
 
     def create_datasets(
         self,
@@ -121,7 +121,7 @@ class MainTrainer(TorchTrainer, Logger):
 
         # If using two-stage training, use the second stage
         if self.two_stage:
-            self.stage = 1
+            self._stage = 1
 
         # Check if supposed to predict with a single model, or ensemble the fold models
         model_folds = pred_args.get("model_folds", None)
@@ -135,7 +135,7 @@ class MainTrainer(TorchTrainer, Logger):
         predictions = []
         for i in range(model_folds):
             self.log_to_terminal(f"Predicting with model fold {i+1}/{model_folds}")
-            self.fold = i  # set the fold, which updates the hash
+            self._fold = i  # set the fold, which updates the hash
             self._load_model()  # load the model for this fold
             predictions.append(self.predict_on_loader(pred_dataloader))
 
@@ -175,7 +175,7 @@ class MainTrainer(TorchTrainer, Logger):
         :param y: The target variable.
         :return The predictions and the labels.
         """
-        self.fold = train_args.get("fold", -1)
+        self._fold = train_args.get("fold", -1)
         if not self.two_stage:
             return super().custom_train(x, y, **train_args)
 
@@ -198,12 +198,12 @@ class MainTrainer(TorchTrainer, Logger):
 
         self.log_to_terminal(f"Split data into two stages, sizes: {len(train_indices_stage1)} / {len(train_indices_stage2)}")
 
-        self.stage = 0
+        self._stage = 0
         self.log_to_terminal("Training stage 1")
         train_args["train_indices"] = train_indices_stage1
         super().custom_train(x, y, **train_args)
 
-        self.stage = 1
+        self._stage = 1
         self.log_to_terminal("Training stage 2")
         train_args["train_indices"] = train_indices_stage2
         return super().custom_train(x, y, **train_args)
@@ -230,10 +230,10 @@ class MainTrainer(TorchTrainer, Logger):
         :return: The hash of the block.
         """
         result = self._hash
-        if self.fold != -1:
-            result += f"_f{self.fold}"
-        if self.stage != -1:
-            result += f"_s{self.stage}"
+        if self._fold != -1:
+            result += f"_f{self._fold}"
+        if self._stage != -1:
+            result += f"_s{self._stage}"
         return result
 
     def _save_model(self) -> None:
