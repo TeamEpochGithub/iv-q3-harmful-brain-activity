@@ -7,7 +7,7 @@ x_sys:
     - _target_: src.modules.transformation.eeg.bipolar.BipolarEEG
       use_full_map: false
       keep_ekg: false
-    - _target_: src.modules.transformation.eeg.clip.ClipEEG
+    - _target_: src.modules.transformation.clip.Clip
       lower: -1024
       upper: 1024
     - _target_: src.modules.transformation.nantozero.NaNToZero
