@@ -7,7 +7,7 @@ x_sys:
     - _target_: src.modules.transformation.eeg.bipolar.BipolarEEG
       use_full_map: false
       keep_ekg: false
-    - _target_: src.modules.transformation.eeg.clip.ClipEEG
+    - _target_: src.modules.transformation.clip.Clip
       lower: -1024
       upper: 1024
     - _target_: src.modules.transformation.nantozero.NaNToZero
@@ -16,6 +16,8 @@ x_sys:
       value: 32
     - _target_: src.modules.transformation.eeg.butter.ButterFilter
     - _target_: src.modules.transformation.eeg.quantize.Quantizer
+    - _target_: src.modules.transformation.eeg.downsample.Downsample
+      downsample_factor: 5
 
 y_sys:
   steps:
@@ -30,11 +32,12 @@ train_sys:
         num_classes: 6
         in_channels: 9
         fixed_kernel_size: 5
-        linear_layer_features: 448
+        # linear_layer_features: 448
         # linear_layer_features = 352 # Half Signal = 5_000
-        # linear_layer_features = 304 # 1/4 1/5 1/6 Signal = 2_000
+        linear_layer_features: 304 # 1/4 1/5 1/6 Signal = 2_000
         # linear_layer_features = 280 # 1/10 Signal = 1_000
-        kernels: [3, 5,7,9,11]
+        kernels: [3,5,7,9,11]
+        dropout: 0.0
       optimizer: # Partially instantiate optimizer, so model parameters can be linked at runtime
         _target_: functools.partial
         _args_:
@@ -43,13 +46,27 @@ train_sys:
         lr: 0.001
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
-        reduction: "batchmean"
-      epochs: 20
+      epochs: 50
       batch_size: 64
       patience: 10
       dataset:
         _target_: src.modules.training.datasets.main_dataset.MainDataset
         data_type: "eeg"
+        augmentations:
+          _target_: torch_audiomentations.Compose
+          transforms:
+          - _target_: torch_audiomentations.Shift
+            p: 0.05
+            rollover: true
+            mode: per_example
+          - _target_: torch_audiomentations.ShuffleChannels
+            p: 0.05
+          - _target_: torch_audiomentations.AddColoredNoise
+            p: 0.05
+            mode: per_channel
+            p_mode: per_channel
+            max_snr_in_db: 15
+            sample_rate: 200
       scheduler:
         _target_: functools.partial
         _args_:
@@ -59,5 +76,5 @@ train_sys:
         cycle_mul: 1
         cycle_decay: 1
         cycle_limit: 1
-        warmup_t: 3
+        warmup_t: 5
         warmup_lr_init: 1e-5

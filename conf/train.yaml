@@ -1,7 +1,7 @@
 defaults:
   - base_train
   - hydra/logging
-  - model: nischaydnk
+  - model: eeg_net
   - wandb: train
 
 metadata_path: data/raw/train.csv

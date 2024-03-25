@@ -127,6 +127,7 @@ class EEGNet(nn.Module):
         linear_layer_features: int,
         dilation: int = 1,
         groups: int = 1,
+        dropout: float = 0.0,
     ) -> None:
         """Initialize EEGNet.
 
@@ -137,12 +138,14 @@ class EEGNet(nn.Module):
         :param linear_layer_features: Number of features in the linear layer
         :param dilation: Dilation factor
         :param groups: Number of groups
+        :param dropout: Dropout rate
         """
         super(EEGNet, self).__init__()  # noqa: UP008
         self.kernels = kernels
         self.planes = 24
         self.parallel_conv = nn.ModuleList()
         self.in_channels = in_channels
+        self.dropout = dropout
 
         for _, kernel_size in enumerate(list(self.kernels)):
             sep_conv = nn.Conv1d(
@@ -181,6 +184,7 @@ class EEGNet(nn.Module):
             dilation=dilation,
             groups=groups,
             padding=fixed_kernel_size // 2,
+            dropout=self.dropout,
         )
         self.bn2 = nn.BatchNorm1d(num_features=self.planes)
         self.avgpool = nn.AvgPool1d(kernel_size=6, stride=6, padding=2)
@@ -190,11 +194,9 @@ class EEGNet(nn.Module):
             hidden_size=128,
             num_layers=1,
             bidirectional=True,
-            # dropout=0.2,
+            dropout=self.dropout,
         )
-
         self.fc = nn.Linear(in_features=linear_layer_features, out_features=num_classes)
-        self.softmax = nn.Softmax()
 
     def _make_resnet_layer(
         self,
@@ -272,3 +274,4 @@ class EEGNet(nn.Module):
         """
         new_out = self.extract_features(x)
         return self.fc(new_out)
+        # return self.softmax(result)
