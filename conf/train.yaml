@@ -1,7 +1,7 @@
 defaults:
   - base_train
   - hydra/logging
-  - model: fft_conv
+  - model: spec_res_gru
   - wandb: train
 
 metadata_path: data/raw/train.csv

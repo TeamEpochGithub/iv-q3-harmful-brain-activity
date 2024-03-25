@@ -17,13 +17,46 @@ x_sys:
     - _target_: src.modules.transformation.eeg.downsample.Downsample
       downsample_factor: 5
 
+    # Kaggle Spectrogram Transformation
+    - _target_: src.modules.transformation.clip.Clip
+      kaggle_spec: true
+      lower: 0.01
+      upper: 3000
+
+    - _target_: src.modules.transformation.spectrogram.log.Log
+      kaggle_spec: true
+
+    - _target_: src.modules.transformation.spectrogram.standardize.Standardize
+      kaggle_spec: true
+
+    - _target_: src.modules.transformation.nantozero.NaNToZero
+      kaggle_spec: true
+
+    - _target_: src.modules.transformation.spectrogram.pad.Pad
+      kaggle_spec: true
+      pad_list: [0, 0, 14, 14]
+
+    # EEG Transformation
+    - _target_: src.modules.transformation.clip.Clip
+      eeg: true
+      lower: -1024
+      upper: 1024
+
+    - _target_: src.modules.transformation.nantozero.NaNToZero
+      eeg: true
+
+    # EEG Spectrogram Transformation
+    - _target_: src.modules.transformation.spectrogram.eeg_to_spectrogram.EEGToSpectrogram
+      size: [100, 256]
+      fitting_method: 'crop'
+
+    - _target_: src.modules.transformation.spectrogram.pad.Pad
+      eeg_spec: true
+      pad_list: [0, 0, 14, 14]
 
 y_sys:
   steps:
     - _target_: src.modules.transformation.target.sum_to_one.SumToOne
-    - _target_: src.modules.transformation.target.gaussian_target.GaussianTarget
-      labels_length: 2000
-      sigma: 2 # in seconds
 
 train_sys:
   steps:
@@ -41,13 +74,14 @@ train_sys:
         lr: 0.0001
       criterion:
         _target_: src.modules.training.losses.weighted_kldiv.WeightedKLDivLoss
-        # class_weights: [0.767737189589508, 0.8769737036801599, 1.133067562494455, 1.8903799535040144, 1.0400019137008414, 0.29183967703102165]
-      epochs: 101
-      batch_size: 64
-      patience: 90
+      epochs: 10
+      batch_size: 32
+      patience: 10
       dataset:
         _target_: src.modules.training.datasets.main_dataset.MainDataset
-        data_type: "eeg"
+        data_type: "custom"
+        get_item_custom: 
+          _target_: src.modules.training.datasets.get_item.chris_and_eeg.ChrisandEEGGetItem
       # scheduler:
       #   _target_: functools.partial
       #   _args_:
