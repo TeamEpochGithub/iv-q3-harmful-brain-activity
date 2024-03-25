@@ -59,3 +59,4 @@ train_sys:
       #   cycle_limit: 1
       #   warmup_t: 1
       #   warmup_lr_init: 0.000001
+    - _target_: src.modules.postprocessing.softmax.Softmax

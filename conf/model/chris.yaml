@@ -104,3 +104,4 @@ train_sys:
         decay_rate: 0.1
         warmup_lr_init: 0.001
         warmup_t: 2
+    - _target_: src.modules.training.postprocessing.softmax.Softmax
