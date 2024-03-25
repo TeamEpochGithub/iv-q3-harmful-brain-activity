@@ -9,7 +9,7 @@ import wandb
 from epochalyst.logging.section_separator import print_section_separator
 from epochalyst.pipeline.model.training.torch_trainer import TorchTrainer
 from numpy import typing as npt
-from torch import Tensor, nn
+from torch import Tensor
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
