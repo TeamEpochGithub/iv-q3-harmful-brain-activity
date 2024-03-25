@@ -190,6 +190,8 @@ def run_fold(
     logger.info(f"Score, fold {i}: {score}")
     logger.info(f"Accuracy, fold {i}: {accuracy}")
     logger.info(f"F1, fold {i}: {f1}")
+
+    wandb.log({f"Score_{i}": score, f"Accuracy_{i}": accuracy, f"F1_{i}": f1})
     return score, accuracy, f1
 
 
