@@ -1,0 +1,106 @@
+defaults:
+  - pipeline/default@_here_
+  - _self_
+
+x_sys:
+  steps:
+
+    #
+    # Kaggle Spectrogram Transformation
+    #
+
+    - _target_: src.modules.transformation.clip.Clip
+      kaggle_spec: true
+      lower: 0.01
+      upper: 3000
+
+    - _target_: src.modules.transformation.spectrogram.log.Log
+      kaggle_spec: true
+
+    - _target_: src.modules.transformation.spectrogram.standardize.Standardize
+      kaggle_spec: true
+
+    - _target_: src.modules.transformation.nantozero.NaNToZero
+      kaggle_spec: true
+
+    - _target_: src.modules.transformation.spectrogram.pad.Pad
+      kaggle_spec: true
+      pad_list: [0, 0, 14, 14]
+
+    #
+    # EEG Transformation
+    #
+
+    - _target_: src.modules.transformation.clip.Clip
+      eeg: true
+      lower: -1024
+      upper: 1024
+
+    - _target_: src.modules.transformation.nantozero.NaNToZero
+      eeg: true
+
+    #
+    # EEG Spectrogram Transformation
+    #
+
+    - _target_: src.modules.transformation.spectrogram.eeg_to_spectrogram.EEGToSpectrogram
+      size: [100, 256]
+      fitting_method: 'crop'
+
+    - _target_: src.modules.transformation.spectrogram.pad.Pad
+      eeg_spec: true
+      pad_list: [0, 0, 14, 14]
+
+
+y_sys:
+  steps:
+    - _target_: src.modules.transformation.target.sum_to_one.SumToOne
+
+train_sys:
+  steps:
+    - _target_: src.modules.training.main_trainer.MainTrainer
+      model_name: "Chris-Notebook-EfficientNet"
+      epochs: 5
+      batch_size: 64
+      patience: 10
+
+      model:
+        _target_: src.modules.training.models.timm.Timm
+        in_channels: 3
+        out_channels: 6
+        model_name: "efficientnet_b0"
+
+      optimizer:
+        _target_: functools.partial
+        _args_:
+          - _target_: hydra.utils.get_class
+            path: torch.optim.Adam
+        lr: 1e-4
+
+      criterion:
+        _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
+        reduction: "batchmean"
+        weighted: false
+
+      dataset:
+        _target_: src.modules.training.datasets.main_dataset.MainDataset
+        data_type: "custom"
+        get_item_custom:
+          _target_: src.modules.training.datasets.get_item.chris.ChrisGetItem
+          use_kaggle_spec: true
+          use_eeg_spec: true
+        # augmentations:
+        #   _target_: kornia.augmentation.AugmentationSequential
+        #   _args_:
+        #     - _target_: kornia.augmentation.RandomHorizontalFlip
+        #       p: 0.5
+
+      scheduler:
+        _target_: functools.partial
+        _args_:
+          - _target_: hydra.utils.get_class
+            path: timm.scheduler.multistep_lr.MultiStepLRScheduler
+        decay_t: [1, 2]
+        decay_rate: 0.1
+        warmup_lr_init: 0.001
+        warmup_t: 2
