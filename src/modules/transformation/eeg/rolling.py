@@ -21,7 +21,6 @@ class Rolling(VerboseTransformationBlock):
     :param operations: The operations to apply to the rolling window
     """
 
-    transform_or_add: int = 0
     channels: list[int] = field(default_factory=list)
     window_sizes: list[int] = field(default_factory=list)
     operations: list[str] = field(default_factory=list)
@@ -49,7 +48,7 @@ class Rolling(VerboseTransformationBlock):
             raise ValueError("No EEG data to transform")
         for key in tqdm(eeg, desc="Apply rolling window to EEG"):
             for i, channel in enumerate(self.channels):
-                eeg[key] = self._apply_rolling_window(eeg[key], channel, self.window_sizes[i], self.ops[i])
+                eeg[key] = self._apply_rolling_window(eeg[key], channel, self.window_sizes[i], self.operations[i])
         return data
 
     def _apply_rolling_window(self, eeg: pd.DataFrame, channel: int, window_size: int, operation: str) -> pd.DataFrame:
