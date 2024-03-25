@@ -61,5 +61,5 @@ class Rolling(VerboseTransformationBlock):
 
         :return: The EEG data with the rolling window applied
         """
-        eeg[f"channel_{channel}_{operation}_{window_size}"] = eeg[channel].rolling(window=window_size).agg(operation).ffill().bfill().astype(np.float32)
+        eeg[f"channel_{channel}_{operation}_{window_size}"] = eeg.iloc[:, 0].rolling(window=window_size).agg(operation).ffill().bfill().astype(np.float32)
         return eeg
