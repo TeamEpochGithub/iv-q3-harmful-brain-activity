@@ -112,6 +112,8 @@ def run_cv_cfg(cfg: DictConfig) -> None:
         scores.append(score)
         accuracies.append(accuracy)
         f1s.append(f1)
+        if score > 0.85:
+            break
 
     avg_score = np.average(np.array(scores))
     avg_accuracy = np.average(np.array(accuracies))
@@ -164,7 +166,7 @@ def run_fold(
         "MainTrainer": {
             "train_indices": train_indices,
             "test_indices": test_indices,
-            "save_model": False,
+            "save_model": cfg.save_folds,
             "fold": i,
         },
     }
