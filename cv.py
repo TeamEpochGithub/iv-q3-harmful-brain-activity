@@ -112,6 +112,8 @@ def run_cv_cfg(cfg: DictConfig) -> None:
         scores.append(score)
         accuracies.append(accuracy)
         f1s.append(f1)
+        if score > 0.85:
+            break
 
     avg_score = np.average(np.array(scores))
     avg_accuracy = np.average(np.array(accuracies))
@@ -190,6 +192,8 @@ def run_fold(
     logger.info(f"Score, fold {i}: {score}")
     logger.info(f"Accuracy, fold {i}: {accuracy}")
     logger.info(f"F1, fold {i}: {f1}")
+
+    wandb.log({f"Score_{i}": score, f"Accuracy_{i}": accuracy, f"F1_{i}": f1})
     return score, accuracy, f1
 
 
