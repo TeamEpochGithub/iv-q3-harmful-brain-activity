@@ -89,11 +89,7 @@ class MainTrainer(TorchTrainer, Logger):
         pred_dataset.setup(train_dataset.X, train_dataset.y, test_indices)  # type: ignore[attr-defined]
         return pred_dataset
 
-    def custom_predict(
-        self,
-        x: npt.NDArray[np.float32],
-        **pred_args: Any,
-    ) -> npt.NDArray[np.float32]:
+    def custom_predict(self, x: npt.NDArray[np.float32], **pred_args: Any) -> torch.Tensor:
         """Predict on the test data.
 
         :param x: The input to the system.
@@ -121,7 +117,7 @@ class MainTrainer(TorchTrainer, Logger):
     def predict_on_loader(
         self,
         loader: DataLoader[tuple[Tensor, ...]],
-    ) -> npt.NDArray[np.float32]:
+    ) -> torch.Tensor:
         """Predict on the loader.
 
         :param loader: The loader to predict on.
@@ -133,10 +129,10 @@ class MainTrainer(TorchTrainer, Logger):
         with torch.no_grad(), tqdm(loader, unit="batch", disable=False) as tepoch:
             for data in tepoch:
                 X_batch = data[0].to(self.device).float()
-                y_pred = torch.softmax(self.model(X_batch), dim=1).cpu().numpy()
+                y_pred = self.model(X_batch).cpu()
                 predictions.extend(y_pred)
         self.log_to_terminal("Done predicting")
-        return np.array(predictions)
+        return torch.stack(predictions)
 
     def _save_model(self) -> None:
         super()._save_model()

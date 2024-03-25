@@ -39,3 +39,4 @@ train_sys:
       dataset:
         _target_: src.modules.training.datasets.main_dataset.MainDataset
         data_type: "eeg"
+    - _target_: src.modules.postprocessing.softmax.Softmax

@@ -7,9 +7,10 @@ x_sys:
     - _target_: src.modules.transformation.eeg.bipolar.BipolarEEG
       use_full_map: false
       keep_ekg: false
-    - _target_: src.modules.transformation.eeg.clip.ClipEEG
+    - _target_: src.modules.transformation.clip.Clip
       lower: -1024
       upper: 1024
+      eeg: true
     - _target_: src.modules.transformation.nantozero.NaNToZero
       eeg: true
     - _target_: src.modules.transformation.eeg.divide.Divide
@@ -44,7 +45,7 @@ train_sys:
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
         reduction: "batchmean"
-      epochs: 20
+      epochs: 1
       batch_size: 64
       patience: 10
       dataset:
@@ -61,3 +62,4 @@ train_sys:
         cycle_limit: 1
         warmup_t: 3
         warmup_lr_init: 1e-5
+    - _target_: src.modules.training.postprocessing.softmax.Softmax
