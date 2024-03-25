@@ -34,15 +34,15 @@ train_sys:
         _target_: src.modules.training.losses.weighted_kldiv.WeightedKLDivLoss
       epochs: 50
       batch_size: 128
-      patience: 10
+      patience: 50
       dataset:
         _target_: src.modules.training.datasets.main_dataset.MainDataset
         data_type: "eeg"
         augmentations:
-          _target_: src.modules.training.augmentations.random_band_filter.RandomBandFilter
-          low_cutoff_range: [0.1, 0.5]
-          high_cutoff_range: [50, 100]
-          p: 0.5
+          # _target_: src.modules.training.augmentations.random_band_filter.RandomBandFilter
+          # low_cutoff_range: [0.1, 0.5]
+          # high_cutoff_range: [50, 100]
+          # p: 0.5
       scheduler:
         _target_: functools.partial
         _args_:
