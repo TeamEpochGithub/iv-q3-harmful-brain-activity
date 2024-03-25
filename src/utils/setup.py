@@ -156,13 +156,11 @@ def setup_data(
     if eeg_path is not None:
         X_eeg = load_all_eegs(eeg_path, cache_path, ids)
     else:
-        logger.info("No EEG data to read, skipping...")
         X_eeg = None
 
     if spectrogram_path is not None:
         X_kaggle_spec = load_all_spectrograms(spectrogram_path, cache_path, ids)
     else:
-        logger.info("No EEG data to read, skipping...")
         X_kaggle_spec = None
 
     X_meta = pd.concat([ids, offsets], axis=1)

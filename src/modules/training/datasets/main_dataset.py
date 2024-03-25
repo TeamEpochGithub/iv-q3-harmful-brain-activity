@@ -19,6 +19,7 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
     X: XData | None = None
     y: pd.DataFrame | None = None
     indices: list[int] | None = None
+    get_item_custom: Any | None = None
     augmentations: Any | None = None
     use_aug: bool = field(hash=False, repr=False, init=False, default=False)
 
@@ -73,12 +74,12 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
                 x, y = self._kaggle_spec_getitem(idx)
                 if self.augmentations is not None and self.use_aug:
                     x = self.augmentations(x).squeeze(0)
-
             case "eeg_spec":
                 x, y = self._eeg_spec_getitem(idx)
                 if self.augmentations is not None and self.use_aug:
                     x = self.augmentations(x).squeeze(0)
-
+            case "custom":
+                x, y = self._custom_getitem(idx)
             case _:
                 raise ValueError(f"Data type {self.data_type} not recognized.")
 
@@ -150,7 +151,7 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
         return spectrogram, labels
 
     @typing.no_type_check
-    def _eeg_spec_getitem(self, idx: int) -> tuple[Any, Any]:
+    def _eeg_spec_getitem(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
         """Get an item from the EEG spectrogram dataset.
 
         :param idx: The index to get.
@@ -198,3 +199,29 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
             return spectrogram, []
         labels = self.y[idx, :]
         return spectrogram, labels
+
+    @typing.no_type_check
+    def _custom_getitem(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
+        """Get an item from the EEG spectrogram dataset.
+
+        :param idx: The index to get.
+        :return: The EEG spectrogram data and the labels.
+        """
+        if self.get_item_custom is None:
+            raise ValueError("Custom get item is not set.")
+
+        X_eeg, X_kaggle_spec, X_eeg_spec = None, None, None
+
+        if self.X.eeg is not None:
+            X_eeg, _ = self._eeg_getitem(idx)
+
+        if self.X.kaggle_spec is not None:
+            X_kaggle_spec, _ = self._kaggle_spec_getitem(idx)
+
+        if self.X.eeg_spec is not None:
+            X_eeg_spec, _ = self._eeg_spec_getitem(idx)
+
+        idx = self.indices[idx]
+        labels = [] if self.y is None else self.y[idx, :]
+
+        return self.get_item_custom(X_eeg, X_kaggle_spec, X_eeg_spec, labels)
