@@ -26,6 +26,7 @@ class MainTrainer(TorchTrainer, Logger):
 
     dataset: Dataset[Any] = field(default_factory=Dataset)
     model_name: str = "WHAT_ARE_YOU_TRAINING_PUT_A_NAME_IN_THE_MAIN_TRAINER"  # No spaces allowed
+    fold: int = field(default=-1, init=False, repr=False, compare=False)
 
     def create_datasets(
         self,
@@ -99,8 +100,6 @@ class MainTrainer(TorchTrainer, Logger):
         :param x: The input to the system.
         :return: The output of the system.
         """
-        self._load_model()
-
         print_section_separator(f"Predicting model: {self.model.__class__.__name__}")
         self.log_to_debug(f"Predicting model: {self.model.__class__.__name__}")
 
@@ -115,8 +114,23 @@ class MainTrainer(TorchTrainer, Logger):
             shuffle=False,
         )
 
-        # Predict
-        return self.predict_on_loader(pred_dataloader)
+        # Check if supposed to predict with a single model, or ensemble the fol models
+        model_folds = pred_args.get("model_folds", None)
+
+        # Predict with a single model
+        if model_folds is None or model_folds == -1:
+            self._load_model()
+            return self.predict_on_loader(pred_dataloader)
+
+        # Ensemble the fold models:
+        predictions = []
+        for i in range(model_folds):
+            self.log_to_terminal(f"Predicting with model fold {i+1}/{model_folds}")
+            self.fold = i  # set the fold, which updates the hash
+            self._load_model()  # load the model for this fold
+            predictions.append(self.predict_on_loader(pred_dataloader))
+
+        return np.mean(predictions, axis=0)
 
     def predict_on_loader(
         self,
@@ -137,6 +151,34 @@ class MainTrainer(TorchTrainer, Logger):
                 predictions.extend(y_pred)
         self.log_to_terminal("Done predicting")
         return np.array(predictions)
+
+    def custom_train(
+        self,
+        x: npt.NDArray[np.float32],
+        y: npt.NDArray[np.float32],
+        **train_args: Any,
+    ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]:
+        """Train the model.
+
+        Overwritten to intercept the fold number from train args to the model.
+
+        :param x: The input data.
+        :param y: The target variable.
+        :return The predictions and the labels.
+        """
+        self.fold = train_args.get("fold", -1)
+        return super().custom_train(x, y, **train_args)
+
+    def get_hash(self) -> str:
+        """Get the hash of the block.
+
+        Override the get_hash method to include the fold number in the hash.
+
+        :return: The hash of the block.
+        """
+        if self.fold == -1:
+            return self._hash
+        return f"{self._hash}-{self.fold}"
 
     def _save_model(self) -> None:
         super()._save_model()
