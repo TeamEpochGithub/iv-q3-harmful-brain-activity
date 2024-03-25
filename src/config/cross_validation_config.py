@@ -18,6 +18,7 @@ class CVConfig:
     :param wandb: Whether to log to Weights & Biases and other settings.
     :param splitter: Cross validation splitter.
     :param allow_multiple_instances: Whether to allow multiple instances of training at the same time.
+    :param save_folds: Whether to save the fold models
     """
 
     model: Any
@@ -33,3 +34,4 @@ class CVConfig:
     wandb: WandBConfig
     splitter: Any
     allow_multiple_instances: bool = False
+    save_folds: bool = False
