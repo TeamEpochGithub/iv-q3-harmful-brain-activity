@@ -43,7 +43,6 @@ train_sys:
         weight_decay: 1e-3
       criterion:
         _target_: src.modules.training.losses.weighted_kldiv.WeightedKLDivLoss
-        class_weights: [1, 1, 1, 1.5, 1, 0.5]
       epochs: 18
       batch_size: 32
       patience: 10

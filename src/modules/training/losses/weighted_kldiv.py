@@ -14,6 +14,8 @@ class WeightedKLDivLoss(nn.Module):
     class_weights: Iterable[float] = (1,1,1,1,1,1)
 
     def __post_init__(self) -> None:
+        # make sure the sum of the weigths is equal tothe number of classes. In this case 6
+        self.class_weights = [6*weight / sum(self.class_weights) for weight in self.class_weights]
         super().__init__()
 
     def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
