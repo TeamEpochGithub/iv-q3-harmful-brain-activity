@@ -182,24 +182,3 @@ class MainTrainer(TorchTrainer, Logger):
             model_artifact = wandb.Artifact(self.model_name, type="model")
             model_artifact.add_file(f"{self.model_directory}/{self.get_hash()}.pt")
             wandb.log_artifact(model_artifact)
-
-    def predict_on_loader(
-        self, loader: DataLoader[tuple[Tensor, ...]]
-    ) -> npt.NDArray[np.float32]:
-        """Predict on the loader.
-
-        :param loader: The loader to predict on.
-        :return: The predictions.
-        """
-        self.log_to_terminal("Predicting on the test data")
-        self.model.eval()
-        predictions = []
-        with torch.no_grad(), tqdm(loader, unit="batch", disable=False) as tepoch:
-            for data in tepoch:
-                X_batch = data[0].to(self.device).float()
-
-                y_pred = torch.softmax(self.model(X_batch),dim=1).cpu().numpy()
-                predictions.extend(y_pred)
-
-        self.log_to_terminal("Done predicting")
-        return np.array(predictions)
