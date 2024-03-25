@@ -21,9 +21,9 @@ x_sys:
     - _target_: src.modules.transformation.eeg.rolling.Rolling
       channels: [0, 1, 2, 3, 4, 5, 6, 7, 8]
       window_sizes: [10, 10, 10, 10, 10, 10, 10, 10, 10]
-      operations: ["std", "std", "std", "std", "std", "std", "std", "std", "std"]
+      operations: ["std", "std", "std", "std", "std", "std", "std", "std", "std"]  
     - _target_: src.modules.transformation.eeg.select_channels.SelectChannels
-      channels: [8, 9, 10, 11, 12, 13, 14, 15, 16, 17] #Select the last 8 channels
+      channels: [8, 9, 10, 11, 12, 13, 14, 15] #Select the last 18 channels
 
 
 y_sys:
@@ -37,7 +37,7 @@ train_sys:
       model:
         _target_: src.modules.training.models.eeg_net.EEGNet
         num_classes: 6
-        in_channels: 18
+        in_channels: 8
         fixed_kernel_size: 5
         # linear_layer_features: 448
         # linear_layer_features = 352 # Half Signal = 5_000
