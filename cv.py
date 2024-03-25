@@ -166,7 +166,7 @@ def run_fold(
         "MainTrainer": {
             "train_indices": train_indices,
             "test_indices": test_indices,
-            "save_model": False,
+            "save_model": cfg.save_folds,
             "fold": i,
         },
     }
