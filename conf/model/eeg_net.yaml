@@ -45,7 +45,7 @@ train_sys:
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
         reduction: "batchmean"
-      epochs: 1
+      epochs: 10
       batch_size: 64
       patience: 10
       dataset:
@@ -63,3 +63,5 @@ train_sys:
         warmup_t: 3
         warmup_lr_init: 1e-5
     - _target_: src.modules.training.postprocessing.softmax.Softmax
+    - _target_: src.modules.training.postprocessing.threshold.Threshold
+      threshold: 0.001

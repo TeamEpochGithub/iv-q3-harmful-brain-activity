@@ -1,4 +1,4 @@
-"""Module for applying softmax."""
+"""Module for applying Normalize."""
 from typing import Any
 
 import numpy as np
@@ -8,7 +8,7 @@ import torch
 from src.modules.training.verbose_training_block import VerboseTrainingBlock
 
 
-class Softmax(VerboseTrainingBlock):
+class Normalize(VerboseTrainingBlock):
     """An example training block."""
 
     def custom_train(self, x: torch.Tensor, y: npt.NDArray[np.float32], **train_args: Any) -> tuple[Any, Any]:
@@ -21,12 +21,17 @@ class Softmax(VerboseTrainingBlock):
         return self.custom_predict(x), y
 
     def custom_predict(self, x: torch.Tensor, **pred_args: Any) -> npt.NDArray[np.float32]:
-        """Apply the softmax function.
+        """Apply the Normalize function.
 
         :param x: The predictions.
-        :return: The softmaxed predictions.
+        :return: The Normalizeed predictions.
         """
-        self.log_to_terminal("Applying softmax to the predictions...")
-        new_x = torch.softmax(x, dim=1).numpy()
-        self.log_to_terminal("Softmax applied to the predictions!")
-        return new_x
+        self.log_to_terminal("Applying Normalize to the predictions...")
+        # First min max scale the data
+        x_minmax = (x - torch.min(x, dim=1).values[:, None]) / (torch.max(x, dim=1).values - torch.min(x, dim=1).values)[:, None]  # noqa: PD011
+
+        # Then normalize the data
+        x_sum = torch.sum(x_minmax, dim=1)
+        new_x = x_minmax / x_sum[:, None]
+        self.log_to_terminal("Normalize applied to the predictions!")
+        return new_x.numpy()
