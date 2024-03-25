@@ -25,6 +25,8 @@ class MainTrainer(TorchTrainer, Logger):
     :param dataset: The dataset to use for training.
     :param two_stage: Whether to use two-stage training. See: https://www.kaggle.com/competitions/hms-harmful-brain-activity-classification/discussion/477461
     :param two_stage_kl_threshold: The threshold for dividing the dataset into two stages.
+    :param two_stage_evaluator_threshold: The threshold for dividing the dataset into two stages, based on total number of votes.
+     Note: remove the sum to one block from the target pipeline for this to work
     """
 
     dataset: Dataset[Any] = field(default_factory=Dataset)
