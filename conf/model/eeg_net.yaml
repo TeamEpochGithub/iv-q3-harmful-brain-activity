@@ -35,7 +35,7 @@ train_sys:
         # linear_layer_features = 352 # Half Signal = 5_000
         # linear_layer_features = 304 # 1/4 1/5 1/6 Signal = 2_000
         # linear_layer_features = 280 # 1/10 Signal = 1_000
-        kernels: [3, 5,7,9,11]
+        kernels: [3,5,7,9,11]
       optimizer: # Partially instantiate optimizer, so model parameters can be linked at runtime
         _target_: functools.partial
         _args_:
@@ -45,12 +45,28 @@ train_sys:
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
         reduction: "batchmean"
-      epochs: 10
+      epochs: 5
       batch_size: 64
       patience: 10
       dataset:
         _target_: src.modules.training.datasets.main_dataset.MainDataset
         data_type: "eeg"
+        augmentations:
+          _target_: torch_audiomentations.Compose
+          transforms:
+          - _target_: torch_audiomentations.Shift
+            p: 1
+            rollover: true
+            mode: per_example
+          - _target_: torch_audiomentations.ShuffleChannels
+            p: 1
+          - _target_: torch_audiomentations.AddColoredNoise
+            p: 1
+            mode: per_channel
+            p_mode: per_channel
+            max_snr_in_db: 15
+            sample_rate: 200
+
       scheduler:
         _target_: functools.partial
         _args_:
@@ -63,5 +79,4 @@ train_sys:
         warmup_t: 3
         warmup_lr_init: 1e-5
     - _target_: src.modules.training.postprocessing.softmax.Softmax
-    - _target_: src.modules.training.postprocessing.threshold.Threshold
-      threshold: 0.001
+

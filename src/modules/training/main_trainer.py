@@ -108,6 +108,7 @@ class MainTrainer(TorchTrainer, Logger):
             pred_dataset,
             batch_size=curr_batch_size,
             shuffle=False,
+            collate_fn=self.test_collate_fn,
         )
 
         # Check if supposed to predict with a single model, or ensemble the fol models
@@ -182,3 +183,31 @@ class MainTrainer(TorchTrainer, Logger):
             model_artifact = wandb.Artifact(self.model_name, type="model")
             model_artifact.add_file(f"{self.model_directory}/{self.get_hash()}.pt")
             wandb.log_artifact(model_artifact)
+
+    def create_dataloaders(
+        self,
+        train_dataset: Dataset[tuple[Tensor, ...]],
+        test_dataset: Dataset[tuple[Tensor, ...]],
+    ) -> tuple[DataLoader[tuple[Tensor, ...]], DataLoader[tuple[Tensor, ...]]]:
+        """Create the dataloaders for training and validation.
+
+        :param train_dataset: The training dataset.
+        :param test_dataset: The validation dataset.
+        :return: The training and validation dataloaders.
+        """
+        train_loader = DataLoader(
+            train_dataset, batch_size=self.batch_size, shuffle=True, collate_fn=self.test_collate_fn)
+        test_loader = DataLoader(
+            test_dataset, batch_size=self.batch_size, shuffle=False, collate_fn=self.test_collate_fn)
+        return train_loader, test_loader
+    
+
+    def test_collate_fn(self, batch: tuple[Tensor, ...]) -> tuple[Tensor, ...]:
+        """Collate function for the test loader.
+
+        :param batch: The batch to collate.
+        :return: The collated batch.
+        """
+        # Unpack the batch
+        X, y = batch
+        return X, y
