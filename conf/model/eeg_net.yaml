@@ -48,9 +48,11 @@ train_sys:
       epochs: 10
       batch_size: 64
       patience: 10
-      dataset:
-        _target_: src.modules.training.datasets.main_dataset.MainDataset
+      dataset_args:
         data_type: "eeg"
+        get_item_custom:
+        augmentations: 
+
       scheduler:
         _target_: functools.partial
         _args_:

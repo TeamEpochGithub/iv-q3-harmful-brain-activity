@@ -18,28 +18,14 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
     data_type: str
     X: XData | None = None
     y: pd.DataFrame | None = None
-    indices: list[int] | None = None
     get_item_custom: Any | None = None
     augmentations: Any | None = None
-    use_aug: bool = field(hash=False, repr=False, init=False, default=False)
+    use_aug: bool = field(hash=False, repr=False, init=True, default=False)
+    subsample_method: str | None = "first"
 
-    def setup(self, X: XData, y: pd.DataFrame, indices: list[int], *, use_aug: bool = False, subsample_data: bool = False) -> None:
-        """Set up the dataset."""
-        self.X = X
-        self.y = y
-        self.indices = indices
-        if subsample_data:
-            X_meta = copy.deepcopy(self.X.meta.iloc[indices])
-            # append an index column to the meta data
-            X_meta["index"] = copy.deepcopy(X_meta.index)
-
-            # Get a random occurance of each eeg_id
-            # Set sample seed for consistent results
-            seed = 42
-            unique_indices = X_meta.groupby("eeg_id").sample(1, random_state=seed)["index"]
-            # Use the unique indices to index the meta data
-            self.indices = unique_indices.to_list()
-        self.use_aug = use_aug
+    def __post_init__(self) -> None:
+        if self.subsample_method == 'first':
+            self.X.meta = self.X.meta.groupby("eeg_id").first().reset_index()
 
     def setup_prediction(self, X: XData) -> None:
         """Set up the dataset for prediction."""
@@ -48,7 +34,10 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
 
     def __len__(self) -> int:
         """Get the length of the dataset."""
-        return len(self.indices)  # type: ignore[arg-type]
+        if self.subsample_method == 'running_random':
+            return len(self.X.meta['eeg_id'].unique())
+        else:
+            return len(self.X)  # type: ignore[arg-type]
 
     def __getitem__(self, idx: int) -> tuple[Any, Any]:
         """Get an item from the dataset.

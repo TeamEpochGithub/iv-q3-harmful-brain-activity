@@ -15,7 +15,7 @@ from tqdm import tqdm
 
 from src.modules.logging.logger import Logger
 from src.typing.typing import XData
-
+from src.modules.training.datasets.main_dataset import MainDataset
 
 @dataclass
 class MainTrainer(TorchTrainer, Logger):
@@ -24,7 +24,7 @@ class MainTrainer(TorchTrainer, Logger):
     :param dataset: The dataset to use for training.
     """
 
-    dataset: Dataset[Any] = field(default_factory=Dataset)
+    dataset_args: dict[str, Any] = field(default_factory=dict)
     model_name: str = "WHAT_ARE_YOU_TRAINING_PUT_A_NAME_IN_THE_MAIN_TRAINER"  # No spaces allowed
     fold: int = field(default=-1, init=False, repr=False, compare=False)
 
@@ -46,15 +46,17 @@ class MainTrainer(TorchTrainer, Logger):
         """
         # Set up the train dataset
 
-        # from src.utils.visualize_vote_distribution import visualize_vote_distribution
-        # visualize_vote_distribution(y, train_indices, test_indices)
-        train_dataset = deepcopy(self.dataset)
-        train_dataset.setup(x, y, train_indices, use_aug=True, subsample_data=True)  # type: ignore[attr-defined]
+        train_data = x[train_indices]
+        train_labels = y[train_indices]
+
+        test_data = x[test_indices]
+        test_labels = y[test_indices]
+
+        train_dataset = MainDataset(X=train_data, y=train_labels, use_aug = True, **self.dataset_args)
 
         # Set up the test dataset
         if test_indices is not None:
-            test_dataset = deepcopy(self.dataset)
-            test_dataset.setup(x, y, test_indices, use_aug=False, subsample_data=True)  # type: ignore[attr-defined]
+            test_dataset = MainDataset(X=test_data, y=test_labels, use_aug = False, **self.dataset_args)
         else:
             test_dataset = None
 
