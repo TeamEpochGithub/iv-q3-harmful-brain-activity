@@ -139,7 +139,8 @@ class MainTrainer(TorchTrainer, Logger):
             self._load_model()  # load the model for this fold
             predictions.append(self.predict_on_loader(pred_dataloader))
 
-        return torch.from_numpy(np.mean(predictions, axis=0))
+        predictions = torch.stack(predictions)
+        return torch.mean(predictions, dim=0)
 
     def predict_on_loader(
         self,
