@@ -177,7 +177,7 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
         start = int((start * self.X.eeg_spec[eeg_id].shape[2]) / self.X.eeg[eeg_id].shape[0])
         end = int((end * self.X.eeg_spec[eeg_id].shape[2]) / self.X.eeg[eeg_id].shape[0])
 
-        ## Make sure the spectrogram is always the same length (same as the spectrograms created by 50s eeg data)
+        # Make sure the spectrogram is always the same length (same as the spectrograms created by 50s eeg data)
         current_length = end - start
         length_diff = current_length - self.X.shared["eeg_spec_test_spectrogram_size"][1]
         end -= length_diff

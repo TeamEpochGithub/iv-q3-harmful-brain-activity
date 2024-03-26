@@ -72,6 +72,7 @@ mv data/raw .
 
 ```shell
 docker run --gpus <all | '"device=0,1"'> -v <project-path>/data:/app/data detect_harmful_brain_activity
+docker run -it --rm --gpus all -v ~/competitions/q3-harmful-brain-activity/data:/app/data detect_harmful_brain_activity:latest
 ```
 
 ### Windows

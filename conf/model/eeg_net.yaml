@@ -16,41 +16,64 @@ x_sys:
     - _target_: src.modules.transformation.eeg.divide.Divide
       value: 32
     - _target_: src.modules.transformation.eeg.butter.ButterFilter
+      lower: 0.5
+      upper: 20
+      order: 2
     - _target_: src.modules.transformation.eeg.quantize.Quantizer
+    - _target_: src.modules.transformation.eeg.downsample.Downsample
+      downsample_factor: 5
 
 y_sys:
-  steps:
-    - _target_: src.modules.transformation.target.sum_to_one.SumToOne
+  steps: []
 
 train_sys:
   steps:
     - _target_: src.modules.training.main_trainer.MainTrainer
       model_name: EEGNet # Can't have special characters or spaces
+      two_stage: true
+      # two_stage_kl_threshold: 5.5
+      two_stage_evaluator_threshold: 6 
       model:
         _target_: src.modules.training.models.eeg_net.EEGNet
         num_classes: 6
         in_channels: 9
         fixed_kernel_size: 5
-        linear_layer_features: 448
-        # linear_layer_features = 352 # Half Signal = 5_000
-        # linear_layer_features = 304 # 1/4 1/5 1/6 Signal = 2_000
-        # linear_layer_features = 280 # 1/10 Signal = 1_000
+        # linear_layer_features: 448 # Full Signal = 10_000
+        # linear_layer_features: 352 # Half Signal = 5_000
+        linear_layer_features: 304 # 1/4 1/5 1/6 Signal = 2_000
+        # linear_layer_features: 280 # 1/10 Signal = 1_000
         kernels: [3, 5,7,9,11]
+        dropout: 0.0
       optimizer: # Partially instantiate optimizer, so model parameters can be linked at runtime
         _target_: functools.partial
         _args_:
           - _target_: hydra.utils.get_class
-            path: torch.optim.Adam
+            path: torch.optim.AdamW
         lr: 0.001
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
         reduction: "batchmean"
-      epochs: 10
-      batch_size: 64
-      patience: 10
+      epochs: 50
+      batch_size: 32
+      patience: 15
       dataset:
         _target_: src.modules.training.datasets.main_dataset.MainDataset
         data_type: "eeg"
+        augmentations:
+          _target_: torch_audiomentations.Compose
+          transforms:
+          - _target_: torch_audiomentations.Shift
+            p: 0.05
+            rollover: true
+            mode: per_example
+          - _target_: torch_audiomentations.ShuffleChannels
+            p: 0.05
+          - _target_: torch_audiomentations.AddColoredNoise
+            p: 0.05
+            mode: per_channel
+            p_mode: per_channel
+            max_snr_in_db: 15
+            sample_rate: 200
       scheduler:
         _target_: functools.partial
         _args_:
@@ -60,8 +83,6 @@ train_sys:
         cycle_mul: 1
         cycle_decay: 1
         cycle_limit: 1
-        warmup_t: 3
+        warmup_t: 5
         warmup_lr_init: 1e-5
     - _target_: src.modules.training.postprocessing.softmax.Softmax
-    - _target_: src.modules.training.postprocessing.threshold.Threshold
-      threshold: 0.001
