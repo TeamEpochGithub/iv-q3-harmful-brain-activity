@@ -1,5 +1,4 @@
 """Main dataset for EEG / Spectrogram data."""
-import copy
 import typing
 from dataclasses import dataclass, field
 from typing import Any
@@ -21,16 +20,16 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
     get_item_custom: Any | None = None
     augmentations: Any | None = None
     use_aug: bool = field(hash=False, repr=False, init=True, default=False)
-    subsample_method: str | None = "first"
+    subsample_method: str | None = None
 
     def __post_init__(self) -> None:
         """Set up the dataset."""
         self.X.meta.reset_index(drop=True, inplace=True)
-        if self.subsample_method == 'first':
+        if self.subsample_method == "first":
             self.X.meta = self.X.meta.groupby("eeg_id").first().reset_index()
-        elif self.subsample_method == 'running_random':
+        elif self.subsample_method == "running_random":
             # Create a mapping of idx to unique eeg_id
-            self.id_mapping = {idx: eeg_id for idx, eeg_id in enumerate(self.X.meta['eeg_id'].unique())}
+            self.id_mapping = {idx: eeg_id for idx, eeg_id in enumerate(self.X.meta["eeg_id"].unique())}
             # Group the metadata by eeg_id
             self.grouped = self.X.meta.groupby("eeg_id")
 
@@ -42,8 +41,8 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
     def __len__(self) -> int:
         """Get the length of the dataset."""
         # Trick the dataloader into thinking the dataset is smaller than it is
-        if self.subsample_method == 'running_random':
-            return len(self.X.meta['eeg_id'].unique())
+        if self.subsample_method == "running_random":
+            return len(self.X.meta["eeg_id"].unique())
         else:
             return len(self.X)  # type: ignore[arg-type]
 
@@ -57,7 +56,7 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
         if self.X is None:
             raise ValueError("X Data not set up.")
 
-        if self.subsample_method == 'running_random':  
+        if self.subsample_method == "running_random":
             # Using the mapping get the eeg_id for this idx
             eeg_id = self.id_mapping[idx]
             # Get the indices for this eeg_id
@@ -133,7 +132,7 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
         offset = self.X.shared["kaggle_spec_len_s"]
 
         # Get the eeg and spectrogram id from the idx in the metadata
-        spec_id = metadata.at[idx,"spectrogram_id"]
+        spec_id = metadata.at[idx, "spectrogram_id"]
         spec_label_offset_seconds = metadata.at[idx, "spectrogram_label_offset_seconds"]
         spectrogram = all_specs[spec_id]
 

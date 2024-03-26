@@ -45,14 +45,14 @@ train_sys:
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
         reduction: "batchmean"
-      epochs: 10
+      epochs: 20
       batch_size: 64
       patience: 10
       dataset_args:
         data_type: "eeg"
         get_item_custom:
-        augmentations: 
-        subsample_method: running_random
+        augmentations:
+        subsample_method: "first"
 
       scheduler:
         _target_: functools.partial

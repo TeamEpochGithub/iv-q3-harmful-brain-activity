@@ -1,5 +1,6 @@
 """Module for example training block."""
 from copy import deepcopy
+import copy
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -14,8 +15,9 @@ from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
 from src.modules.logging.logger import Logger
-from src.typing.typing import XData
 from src.modules.training.datasets.main_dataset import MainDataset
+from src.typing.typing import XData
+
 
 @dataclass
 class MainTrainer(TorchTrainer, Logger):
@@ -51,12 +53,12 @@ class MainTrainer(TorchTrainer, Logger):
         test_data = x[test_indices]
         test_labels = y[test_indices]
 
-        train_dataset = MainDataset(X=train_data, y=train_labels, use_aug = True, **self.dataset_args)
+        train_dataset = MainDataset(X=train_data, y=train_labels, use_aug=True, **self.dataset_args)
 
         # Set up the test dataset
         if test_indices is not None:
-            self.dataset_args['subsample_method'] = 'first'
-            test_dataset = MainDataset(X=test_data, y=test_labels, use_aug = False, **self.dataset_args)
+            self.dataset_args["subsample_method"] = "first"
+            test_dataset = MainDataset(X=test_data, y=test_labels, use_aug=False, **self.dataset_args)
         else:
             test_dataset = None
 
@@ -71,14 +73,15 @@ class MainTrainer(TorchTrainer, Logger):
         :param x: The input data.
         :return: The prediction dataset.
         """
-        predict_dataset = deepcopy(self.dataset)
+        return None
+        predict_dataset = MainDataset(X=x, use_aug=False, **self.dataset_args)
         predict_dataset.setup_prediction(x)  # type: ignore[attr-defined]
         return predict_dataset
 
     def _concat_datasets(
         self,
         train_dataset: Dataset[tuple[Tensor, ...]],
-        test_dataset: Dataset[tuple[Tensor, ...]],  # noqa: ARG002
+        test_dataset: Dataset[tuple[Tensor, ...]],
         train_indices: list[int],  # noqa: ARG002
         test_indices: list[int],
     ) -> Dataset[tuple[Tensor, ...]]:
@@ -90,9 +93,9 @@ class MainTrainer(TorchTrainer, Logger):
         :param test_indices: The indices for the test data.
         :return: A new dataset containing the concatenated data in the original order.
         """
-
-        pred_dataset = test_dataset
-        # modify the pred_dataset metadata
+        # Since concat dataset is called before training starts we deepcopy to not corrupt the original dataset
+        pred_dataset = copy.deepcopy(test_dataset)
+        # Modify the pred_dataset metadata
         pred_dataset.X.meta = self.meta_backup.iloc[test_indices, :].reset_index(drop=True)
         return pred_dataset
 
