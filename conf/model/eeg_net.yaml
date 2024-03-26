@@ -32,7 +32,7 @@ train_sys:
       model_name: EEGNet # Can't have special characters or spaces
       two_stage: true
       # two_stage_kl_threshold: 5.5
-      two_stage_evaluator_threshold: 6 
+      two_stage_evaluator_threshold: 6
       model:
         _target_: src.modules.training.models.eeg_net.EEGNet
         num_classes: 6
