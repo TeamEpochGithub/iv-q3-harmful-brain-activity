@@ -52,7 +52,7 @@ train_sys:
         data_type: "eeg"
         get_item_custom:
         augmentations:
-        subsample_method: "first"
+        subsample_method: "random"
 
       scheduler:
         _target_: functools.partial

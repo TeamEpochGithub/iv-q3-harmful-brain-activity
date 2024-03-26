@@ -46,6 +46,7 @@ class MainTrainer(TorchTrainer, Logger):
         :param test_indices: The indices to test on.
         :return: The training and validation datasets.
         """
+        
         # Set up the train dataset
         train_data = x[train_indices]
         train_labels = y[train_indices]
@@ -57,7 +58,7 @@ class MainTrainer(TorchTrainer, Logger):
 
         # Set up the test dataset
         if test_indices is not None:
-            self.dataset_args["subsample_method"] = "first"
+            self.dataset_args["subsample_method"] = "random"
             test_dataset = MainDataset(X=test_data, y=test_labels, use_aug=False, **self.dataset_args)
         else:
             test_dataset = None
@@ -73,7 +74,7 @@ class MainTrainer(TorchTrainer, Logger):
         :param x: The input data.
         :return: The prediction dataset.
         """
-        return None
+
         predict_dataset = MainDataset(X=x, use_aug=False, **self.dataset_args)
         predict_dataset.setup_prediction(x)  # type: ignore[attr-defined]
         return predict_dataset
