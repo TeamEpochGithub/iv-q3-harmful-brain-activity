@@ -85,46 +85,6 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
 
         return x, y
 
-    def __getitems__(self, indices: list[int]) -> tuple[Any, Any]:
-        """Get multiple items from the dataset.
-        
-        :param indices: The indices to get.
-        :return: The data and the labels.
-        """
-
-        # Check if the data is set up, we need X.
-        if self.X is None:
-            raise ValueError("X Data not set up.")
-        if self.indices is None:
-            raise ValueError("Indices not set up.")
-        
-        all_x = []
-        all_y = []
-        for idx in indices:
-            match self.data_type:
-                case "eeg":
-                    x, y = self._eeg_getitem(idx)
-                    x = x.transpose(1, 0)
-                    x = torch.from_numpy(x)
-                    y = torch.from_numpy(y)
-                case "kaggle_spec":
-                    x, y = self._kaggle_spec_getitem(idx)
-                case "eeg_spec":
-                    x, y = self._eeg_spec_getitem(idx)
-                case "custom":
-                    x, y = self._custom_getitem(idx)
-                case _:
-                    raise ValueError(f"Data type {self.data_type} not recognized.")
-            all_x.append(x)
-            all_y.append(y)
-    
-        all_x_tensor = torch.stack(all_x)
-        all_y_tensor = torch.stack(all_y)
-        # apply augmentations
-        if self.augmentations is not None and self.use_aug:
-            all_x_tensor = self.augmentations(all_x_tensor)
-        return all_x_tensor, all_y_tensor
-
     @typing.no_type_check
     def _eeg_getitem(self, idx: int) -> tuple[Any, Any]:  # type: ignore[no-untyped-def]
         """Get an item from the EEG dataset.
