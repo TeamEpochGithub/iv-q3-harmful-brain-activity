@@ -48,6 +48,8 @@ class MultiResidualBiGRUwSpectrogramCNN(nn.Module):
         )
         self.batch_norm = nn.BatchNorm1d(in_channels)
 
+        self.out_layer = nn.Linear(2000, 1)
+
     def forward(self, x, use_activation=True):
         x = F.pad(x, (0, 16, 0, 0))
         x = self.batch_norm(x)
@@ -61,12 +63,13 @@ class MultiResidualBiGRUwSpectrogramCNN(nn.Module):
         x_encoded = x_encoded.permute(0, 2, 1)
         x_encoded_linear = self.liner(x_encoded)
 
-        x_encoded_linear += x.permute(0, 2, 1)
+        x_encoded_linear = x.permute(0, 2, 1) + x_encoded_linear
 
         y, _ = self.GRU(x_encoded_linear, use_activation=use_activation)
         out = y.permute(0, 2, 1) + x_decoded.permute(0, 2, 1)
-        out = torch.sigmoid(out)
-        return out.permute(0, 2, 1)[:,:-16,:]
+        # out = torch.sigmoid(out)
+        out = self.out_layer(out[:,:,:-16]).squeeze(-1)
+        return out
 
 
 class SpecNormalize(nn.Module):

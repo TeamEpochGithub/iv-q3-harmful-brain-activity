@@ -21,9 +21,7 @@ x_sys:
 y_sys:
   steps:
     - _target_: src.modules.transformation.target.sum_to_one.SumToOne
-    - _target_: src.modules.transformation.target.gaussian_target.GaussianTarget
-      labels_length: 2000
-      sigma: 2 # in seconds
+
 
 train_sys:
   steps:
@@ -48,6 +46,7 @@ train_sys:
       dataset:
         _target_: src.modules.training.datasets.main_dataset.MainDataset
         data_type: "eeg"
+
       # scheduler:
       #   _target_: functools.partial
       #   _args_:
