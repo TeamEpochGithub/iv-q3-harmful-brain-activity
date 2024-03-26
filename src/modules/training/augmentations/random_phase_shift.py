@@ -6,7 +6,7 @@ import torch
 
 
 @dataclass
-class RandomPhaseShift:
+class RandomPhaseShift(torch.nn.Module):
     """Randomly shift the phase of all the frequencies frequencies."""
 
     shift_limit: float = 0.25
