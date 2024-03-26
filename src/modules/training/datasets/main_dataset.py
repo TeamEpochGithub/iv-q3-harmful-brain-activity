@@ -24,8 +24,15 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
     subsample_method: str | None = "first"
 
     def __post_init__(self) -> None:
+        """Set up the dataset."""
+        self.X.meta.reset_index(drop=True, inplace=True)
         if self.subsample_method == 'first':
             self.X.meta = self.X.meta.groupby("eeg_id").first().reset_index()
+        elif self.subsample_method == 'running_random':
+            # Create a mapping of idx to unique eeg_id
+            self.id_mapping = {idx: eeg_id for idx, eeg_id in enumerate(self.X.meta['eeg_id'].unique())}
+            # Group the metadata by eeg_id
+            self.grouped = self.X.meta.groupby("eeg_id")
 
     def setup_prediction(self, X: XData) -> None:
         """Set up the dataset for prediction."""
@@ -34,6 +41,7 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
 
     def __len__(self) -> int:
         """Get the length of the dataset."""
+        # Trick the dataloader into thinking the dataset is smaller than it is
         if self.subsample_method == 'running_random':
             return len(self.X.meta['eeg_id'].unique())
         else:
@@ -48,8 +56,15 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
         # Check if the data is set up, we need X.
         if self.X is None:
             raise ValueError("X Data not set up.")
-        if self.indices is None:
-            raise ValueError("Indices not set up.")
+
+        if self.subsample_method == 'running_random':  
+            # Using the mapping get the eeg_id for this idx
+            eeg_id = self.id_mapping[idx]
+            # Get the indices for this eeg_id
+            indices = self.grouped.get_group(eeg_id)
+            # Get a random index from the indices
+            idx = indices.sample(1, random_state=42).index[0]
+            # Now idx is the dataframe index and not the idx of the dataset
 
         # Create a switch statement to handle the different data types
         match self.data_type:
@@ -81,15 +96,14 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
         :param idx: The index to get.
         :return: The EEG data and the labels.
         """
-        idx = self.indices[idx]
         metadata = self.X.meta
         all_eegs = self.X.eeg
         eeg_frequency = self.X.shared["eeg_freq"]
         offset = self.X.shared["eeg_len_s"]
 
         # Get the eeg id from the idx in the metadata
-        eeg_id = metadata.iloc[idx]["eeg_id"]
-        eeg_label_offset_seconds = int(metadata.iloc[idx]["eeg_label_offset_seconds"])
+        eeg_id = metadata.at[idx, "eeg_id"]
+        eeg_label_offset_seconds = int(metadata.at[idx, "eeg_label_offset_seconds"])
         eeg = all_eegs[eeg_id]
 
         # Get the start and end of the eeg data
@@ -113,15 +127,14 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
         :param idx: The index to get.
         :return: The Kaggle spectrogram data and the labels.
         """
-        idx = self.indices[idx]
         metadata = self.X.meta
         all_specs = self.X.kaggle_spec
         frequency = self.X.shared["kaggle_spec_freq"]
         offset = self.X.shared["kaggle_spec_len_s"]
 
         # Get the eeg and spectrogram id from the idx in the metadata
-        spec_id = metadata.iloc[idx]["spectrogram_id"]
-        spec_label_offset_seconds = metadata.iloc[idx]["spectrogram_label_offset_seconds"]
+        spec_id = metadata.at[idx,"spectrogram_id"]
+        spec_label_offset_seconds = metadata.at[idx, "spectrogram_label_offset_seconds"]
         spectrogram = all_specs[spec_id]
 
         # Get the start and end of the spectrogram data
@@ -146,13 +159,12 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
         :param idx: The index to get.
         :return: The EEG spectrogram data and the labels.
         """
-        idx = self.indices[idx]
         metadata = self.X.meta
         eeg_frequency = self.X.shared["eeg_freq"]
         eeg_length = self.X.shared["eeg_len_s"]
 
         # Get the eeg id from the idx in the metadata
-        eeg_id = metadata.iloc[idx]["eeg_id"]
+        eeg_id = metadata.loc[idx]["eeg_id"]
         eeg_label_offset_seconds = int(metadata.iloc[idx]["eeg_label_offset_seconds"])
 
         # Get the spectrogram

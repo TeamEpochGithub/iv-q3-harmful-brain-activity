@@ -5,7 +5,6 @@ from typing import Any
 import pandas as pd
 import torch
 
-
 @dataclass
 class XData:
     """The X data to be used in the pipeline.

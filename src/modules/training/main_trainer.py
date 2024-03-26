@@ -45,7 +45,6 @@ class MainTrainer(TorchTrainer, Logger):
         :return: The training and validation datasets.
         """
         # Set up the train dataset
-
         train_data = x[train_indices]
         train_labels = y[train_indices]
 
@@ -56,9 +55,13 @@ class MainTrainer(TorchTrainer, Logger):
 
         # Set up the test dataset
         if test_indices is not None:
+            self.dataset_args['subsample_method'] = 'first'
             test_dataset = MainDataset(X=test_data, y=test_labels, use_aug = False, **self.dataset_args)
         else:
             test_dataset = None
+
+        # Make a backup of the original metadata for the scorer preds to work
+        self.meta_backup = deepcopy(x.meta)
 
         return train_dataset, test_dataset
 
@@ -87,9 +90,10 @@ class MainTrainer(TorchTrainer, Logger):
         :param test_indices: The indices for the test data.
         :return: A new dataset containing the concatenated data in the original order.
         """
-        # Create a deep copy of the train dataset
-        pred_dataset = deepcopy(train_dataset)
-        pred_dataset.setup(train_dataset.X, train_dataset.y, test_indices)  # type: ignore[attr-defined]
+
+        pred_dataset = test_dataset
+        # modify the pred_dataset metadata
+        pred_dataset.X.meta = self.meta_backup.iloc[test_indices, :].reset_index(drop=True)
         return pred_dataset
 
     def custom_predict(self, x: npt.NDArray[np.float32], **pred_args: Any) -> torch.Tensor:
