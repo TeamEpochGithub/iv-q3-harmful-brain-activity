@@ -1,0 +1,72 @@
+defaults:
+  - pipeline/default@_here_
+  - _self_
+
+x_sys:
+  steps:
+    - _target_: src.modules.transformation.eeg.bipolar.BipolarEEG
+      use_full_map: false
+      keep_ekg: false
+    - _target_: src.modules.transformation.clip.Clip
+      lower: -1024
+      upper: 1024
+      eeg: true
+    - _target_: src.modules.transformation.nantozero.NaNToZero
+      eeg: true
+    - _target_: src.modules.transformation.eeg.divide.Divide
+      value: 32
+    - _target_: src.modules.transformation.eeg.butter.ButterFilter
+    - _target_: src.modules.transformation.eeg.quantize.Quantizer
+    - _target_: src.modules.transformation.eeg.downsample.Downsample
+      downsample_factor: 5
+
+y_sys:
+  steps:
+    - _target_: src.modules.transformation.target.sum_to_one.SumToOne
+
+train_sys:
+  steps:
+    - _target_: src.modules.training.main_trainer.MainTrainer
+      model_name: EEGNet # Can't have special characters or spaces
+      model:
+        _target_: src.modules.training.models.wave_net.DilatedInceptionWaveNet
+      optimizer: # Partially instantiate optimizer, so model parameters can be linked at runtime
+        _target_: functools.partial
+        _args_:
+          - _target_: hydra.utils.get_class
+            path: torch.optim.Adam
+        lr: 0.001
+      criterion:
+        _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
+      epochs: 50
+      batch_size: 64
+      patience: 10
+      dataset:
+        _target_: src.modules.training.datasets.main_dataset.MainDataset
+        data_type: "eeg"
+        augmentations:
+          _target_: torch_audiomentations.Compose
+          transforms:
+          - _target_: torch_audiomentations.Shift
+            p: 0.05
+            rollover: true
+            mode: per_example
+          - _target_: torch_audiomentations.ShuffleChannels
+            p: 0.05
+          - _target_: torch_audiomentations.AddColoredNoise
+            p: 0.05
+            mode: per_channel
+            p_mode: per_channel
+            max_snr_in_db: 15
+            sample_rate: 200
+      scheduler:
+        _target_: functools.partial
+        _args_:
+          - _target_: hydra.utils.get_class
+            path: timm.scheduler.cosine_lr.CosineLRScheduler
+        t_initial: 40
+        cycle_mul: 1
+        cycle_decay: 1
+        cycle_limit: 1
+        warmup_t: 5
+        warmup_lr_init: 1e-5
