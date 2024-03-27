@@ -41,12 +41,12 @@ train_sys:
         reduction: "batchmean"
         weighted: false
       epochs: 1
-      batch_size: 32
+      batch_size: 128
       patience: 30
       dataset_args:
-        data_type: "eeg"
+        data_type: "eeg_spec"
         get_item_custom:
-        subsample_method: "random"
+        subsample_method: "running_random"
         augmentations:
           _target_: kornia.augmentation.AugmentationSequential
           _args_:
