@@ -25,12 +25,12 @@ parameters: # Will use the model file in cv.yaml and override the values there w
       - 10
       - 15
       - 20
-  model.train_sys.steps.0.dataset_args.augmentations.0.p:
+  model.train_sys.steps.0.dataset_args.augmentations.p:
     max: 0.99
     min: 0.0
-  model.train_sys.steps.0.dataset_args.augmentations.0.low:
+  model.train_sys.steps.0.dataset_args.augmentations.low:
     max: 0.5
     min: 0.0
-  model.train_sys.steps.0.dataset_args.augmentations.0.high:
+  model.train_sys.steps.0.dataset_args.augmentations.high:
     max: 1.0
     min: 0.499
