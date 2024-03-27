@@ -65,14 +65,6 @@ train_sys:
             p: 0.5
             rollover: true
             mode: per_example
-#          - _target_: torch_audiomentations.ShuffleChannels
-#            p: 0.4
-#          - _target_: torch_audiomentations.AddColoredNoise
-#            p: 0.05
-#            mode: per_channel
-#            p_mode: per_channel
-#            max_snr_in_db: 15
-#            sample_rate: 200
           - _target_: src.modules.training.augmentations.random_phase_shift.RandomPhaseShift
             p: 0.4
             shift_limit: 0.5

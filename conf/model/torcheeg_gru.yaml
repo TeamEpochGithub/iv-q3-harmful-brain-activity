@@ -31,29 +31,21 @@ train_sys:
     - _target_: src.modules.training.main_trainer.MainTrainer
       model_name: EEGNet # Can't have special characters or spaces
       model:
-        _target_: src.modules.training.models.eeg_net.EEGNet
+        _target_: torcheeg.models.GRU
+        num_electrodes: 9
         num_classes: 6
-        in_channels: 9
-        fixed_kernel_size: 5
-        #linear_layer_features: 448
-        #linear_layer_features: 352 # Half Signal = 5_000
-        linear_layer_features: 304 # 1/4 1/5 1/6 Signal = 2_000
-        #linear_layer_features: 280 # 1/10 Signal = 1_000
-        kernels: [3,5,7,9,11]
-        dropout: 0.1
+        hid_channels: 64
       optimizer: # Partially instantiate optimizer, so model parameters can be linked at runtime
         _target_: functools.partial
         _args_:
           - _target_: hydra.utils.get_class
             path: torch.optim.AdamW
-        lr: 0.003
+        lr: 0.0025
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
       epochs: 50
       batch_size: 64
-      patience: 10
-      two_stage: true
-      two_stage_evaluator_threshold: 4
+      patience: 25
       dataset_args:
         data_type: "eeg"
         get_item_custom:
