@@ -219,3 +219,6 @@ notebooks/feature_engineering/*pkl
 # Ignore Submission related files
 submission/dependencies
 submission/source-code
+
+
+saved_configs
