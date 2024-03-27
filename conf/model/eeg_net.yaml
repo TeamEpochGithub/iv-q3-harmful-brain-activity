@@ -10,17 +10,21 @@ x_sys:
     - _target_: src.modules.transformation.clip.Clip
       lower: -1024
       upper: 1024
-      eeg: true
     - _target_: src.modules.transformation.nantozero.NaNToZero
       eeg: true
     - _target_: src.modules.transformation.eeg.divide.Divide
       value: 32
     - _target_: src.modules.transformation.eeg.butter.ButterFilter
     - _target_: src.modules.transformation.eeg.quantize.Quantizer
+    - _target_: src.modules.transformation.eeg.downsample.Downsample
+      downsample_factor: 10
+#    - _target_: src.modules.transformation.eeg.rolling.Rolling
+#      channels: [0, 2, 4, 6]
+#      window_sizes: [20, 20, 20, 20]
+#      operations: ["std", "std", "std", "std"]
+#    - _target_: src.modules.transformation.eeg.select_channels.SelectChannels
+#      channels: [8, 9, 10, 11, 12, 13, 14, 15] #Select the last 18 channels
 
-y_sys:
-  steps:
-    - _target_: src.modules.transformation.target.sum_to_one.SumToOne
 
 train_sys:
   steps:
@@ -31,26 +35,47 @@ train_sys:
         num_classes: 6
         in_channels: 9
         fixed_kernel_size: 5
-        linear_layer_features: 448
-        # linear_layer_features = 352 # Half Signal = 5_000
-        # linear_layer_features = 304 # 1/4 1/5 1/6 Signal = 2_000
-        # linear_layer_features = 280 # 1/10 Signal = 1_000
-        kernels: [3, 5,7,9,11]
+        #linear_layer_features: 448
+        #linear_layer_features: 352 # Half Signal = 5_000
+        #linear_layer_features: 304 # 1/4 1/5 1/6 Signal = 2_000
+        linear_layer_features: 280 # 1/10 Signal = 1_000
+        kernels: [3,5,7,9,11]
+        dropout: 0.1
       optimizer: # Partially instantiate optimizer, so model parameters can be linked at runtime
         _target_: functools.partial
         _args_:
           - _target_: hydra.utils.get_class
             path: torch.optim.Adam
-        lr: 0.001
+        lr: 0.004
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
-        reduction: "batchmean"
-      epochs: 10
+      epochs: 3
       batch_size: 64
       patience: 10
-      dataset:
-        _target_: src.modules.training.datasets.main_dataset.MainDataset
+      two_stage: true
+      two_stage_evaluator_threshold: 4
+      dataset_args:
         data_type: "eeg"
+        get_item_custom:
+        subsample_method: "random"
+        augmentations:
+          _target_: torch_audiomentations.Compose
+          transforms:
+          - _target_: torch_audiomentations.Shift
+            p: 0.5
+            rollover: false
+            mode: per_example
+#          - _target_: torch_audiomentations.ShuffleChannels
+#            p: 0.4
+#          - _target_: torch_audiomentations.AddColoredNoise
+#            p: 0.05
+#            mode: per_channel
+#            p_mode: per_channel
+#            max_snr_in_db: 15
+#            sample_rate: 200
+          - _target_: src.modules.training.augmentations.random_phase_shift.RandomPhaseShift
+            p: 0.4
+            shift_limit: 0.5
       scheduler:
         _target_: functools.partial
         _args_:
@@ -60,8 +85,6 @@ train_sys:
         cycle_mul: 1
         cycle_decay: 1
         cycle_limit: 1
-        warmup_t: 3
+        warmup_t: 1
         warmup_lr_init: 1e-5
     - _target_: src.modules.training.postprocessing.softmax.Softmax
-    - _target_: src.modules.training.postprocessing.threshold.Threshold
-      threshold: 0.001
