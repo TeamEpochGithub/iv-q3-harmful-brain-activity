@@ -52,7 +52,6 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
     def setup_prediction(self, X: XData) -> None:
         """Set up the dataset for prediction."""
         self.X = X
-        self.indices = list(range(len(X.meta)))
 
     def __len__(self) -> int:
         """Get the length of the dataset."""
