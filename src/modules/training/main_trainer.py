@@ -10,7 +10,7 @@ import wandb
 from epochalyst.logging.section_separator import print_section_separator
 from epochalyst.pipeline.model.training.torch_trainer import TorchTrainer
 from numpy import typing as npt
-from torch import Tensor
+from torch import Tensor, nn
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
@@ -23,12 +23,21 @@ from src.typing.typing import XData
 class MainTrainer(TorchTrainer, Logger):
     """Main training block for training EEG / Spectrogram models.
 
+    :param model_name: The name of the model. No spaces allowed
     :param dataset: The dataset to use for training.
+    :param two_stage: Whether to use two-stage training. See: https://www.kaggle.com/competitions/hms-harmful-brain-activity-classification/discussion/477461
+    :param two_stage_kl_threshold: The threshold for dividing the dataset into two stages.
+    :param two_stage_evaluator_threshold: The threshold for dividing the dataset into two stages, based on total number of votes.
+     Note: remove the sum to one block from the target pipeline for this to work
     """
 
     dataset_args: dict[str, Any] = field(default_factory=dict)
     model_name: str = "WHAT_ARE_YOU_TRAINING_PUT_A_NAME_IN_THE_MAIN_TRAINER"  # No spaces allowed
-    fold: int = field(default=-1, init=False, repr=False, compare=False)
+    two_stage: bool = False
+    two_stage_kl_threshold: float | None = None
+    two_stage_evaluator_threshold: int | None = None
+    _fold: int = field(default=-1, init=False, repr=False, compare=False)
+    _stage: int = field(default=-1, init=False, repr=False, compare=False)
 
     def create_datasets(
         self,
@@ -122,7 +131,11 @@ class MainTrainer(TorchTrainer, Logger):
             shuffle=False,
         )
 
-        # Check if supposed to predict with a single model, or ensemble the fol models
+        # If using two-stage training, use the second stage
+        if self.two_stage:
+            self._stage = 1
+
+        # Check if supposed to predict with a single model, or ensemble the fold models
         model_folds = pred_args.get("model_folds", None)
 
         # Predict with a single model
@@ -134,11 +147,12 @@ class MainTrainer(TorchTrainer, Logger):
         predictions = []
         for i in range(model_folds):
             self.log_to_terminal(f"Predicting with model fold {i+1}/{model_folds}")
-            self.fold = i  # set the fold, which updates the hash
+            self._fold = i  # set the fold, which updates the hash
             self._load_model()  # load the model for this fold
             predictions.append(self.predict_on_loader(pred_dataloader))
 
-        return np.mean(predictions, axis=0)
+        predictions = torch.stack(predictions)
+        return torch.mean(predictions, dim=0)
 
     def predict_on_loader(
         self,
@@ -168,14 +182,58 @@ class MainTrainer(TorchTrainer, Logger):
     ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]:
         """Train the model.
 
-        Overwritten to intercept the fold number from train args to the model.
+        Overwritten to intercept the fold number and enable two-stage training.
 
         :param x: The input data.
         :param y: The target variable.
         :return The predictions and the labels.
         """
-        self.fold = train_args.get("fold", -1)
+        self._fold = train_args.get("fold", -1)
+        if not self.two_stage:
+            return super().custom_train(x, y, **train_args)
+
+        # Two-stage training
+        self.log_to_terminal("Two-stage training")
+        train_indices = np.array(train_args.get("train_indices", range(len(y))))
+        if self.two_stage_kl_threshold is not None and self.two_stage_evaluator_threshold is not None:
+            raise ValueError("Cannot use both KL and evaluator threshold for two-stage training")
+
+        if self.two_stage_kl_threshold is not None:
+            peak_kl = self.compute_peak_kl(y[train_indices])
+            train_indices_stage1 = list(train_indices)  # first stage is all data
+            train_indices_stage2 = list(train_indices[peak_kl < self.two_stage_kl_threshold])  # second stage is with low KL
+        elif self.two_stage_evaluator_threshold is not None:
+            n_evaluators = y[train_indices].sum(axis=1)
+            train_indices_stage1 = list(train_indices[n_evaluators <= self.two_stage_evaluator_threshold])
+            train_indices_stage2 = list(train_indices[n_evaluators > self.two_stage_evaluator_threshold])
+        else:
+            raise ValueError("No two-stage threshold provided")
+
+        self.log_to_terminal(f"Split data into two stages, sizes: {len(train_indices_stage1)} / {len(train_indices_stage2)}")
+
+        self._stage = 0
+        self.log_to_terminal("Training stage 1")
+        train_args["train_indices"] = train_indices_stage1
+        super().custom_train(x, y, **train_args)
+
+        self._stage = 1
+        self.log_to_terminal("Training stage 2")
+        train_args["train_indices"] = train_indices_stage2
         return super().custom_train(x, y, **train_args)
+
+    def compute_peak_kl(self, y: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
+        """Compute the KL-loss against a uniform distribution.
+
+        This is used to determine how peaked a distribution is, for dividing the two stages.
+        See: https://www.kaggle.com/competitions/hms-harmful-brain-activity-classification/discussion/477461
+
+        :param y: The target variable.
+        :return: The KL-divergence between the target and a uniform distribution.
+        """
+        normed = torch.tensor(y / y.sum(axis=1, keepdims=True)) + 1e-5
+        uniform = torch.tensor([1 / 6] * 6)
+        kl = nn.functional.kl_div(torch.log(normed), uniform, reduction="none")
+        return kl.sum(dim=1).numpy()
 
     def get_hash(self) -> str:
         """Get the hash of the block.
@@ -184,9 +242,12 @@ class MainTrainer(TorchTrainer, Logger):
 
         :return: The hash of the block.
         """
-        if self.fold == -1:
-            return self._hash
-        return f"{self._hash}-{self.fold}"
+        result = self._hash
+        if self._fold != -1:
+            result += f"_f{self._fold}"
+        if self._stage != -1:
+            result += f"_s{self._stage}"
+        return result
 
     def _save_model(self) -> None:
         super()._save_model()
