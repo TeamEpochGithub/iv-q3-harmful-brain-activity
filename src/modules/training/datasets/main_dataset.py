@@ -4,7 +4,8 @@ import typing
 from dataclasses import dataclass, field
 from typing import Any
 
-import pandas as pd
+import numpy as np
+import numpy.typing as npt
 import torch
 from torch.utils.data import Dataset
 
@@ -17,7 +18,7 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
 
     data_type: str
     X: XData | None = None
-    y: pd.DataFrame | None = None
+    y: npt.NDArray[np.float32] | None = None
     get_item_custom: Any | None = None
     augmentations: Any | None = None
     use_aug: bool = field(hash=False, repr=False, init=True, default=False)
@@ -25,7 +26,9 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
 
     def __post_init__(self) -> None:
         """Set up the dataset."""
-        self.X.meta.reset_index(drop=True, inplace=True)
+        if self.X is None:
+            raise ValueError("XData not set up.")
+        self.X.meta = self.X.meta.reset_index(drop=True)
         if self.subsample_method == "random":
             X_meta = copy.deepcopy(self.X.meta)
             # append an index column to the meta data
@@ -37,7 +40,7 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
             unique_indices = X_meta.groupby("eeg_id").sample(1, random_state=seed)["index"]
             # Use the unique indices to index the meta data
             self.X.meta = X_meta.loc[unique_indices].reset_index(drop=True)
-            
+
             self.indices = unique_indices.to_list()
             # use self indices to index the y data
             if self.y is not None:
@@ -45,7 +48,7 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
 
         elif self.subsample_method == "running_random":
             # Create a mapping of idx to unique eeg_id
-            self.id_mapping = {idx: eeg_id for idx, eeg_id in enumerate(self.X.meta["eeg_id"].unique())}
+            self.id_mapping = dict(enumerate(self.X.meta["eeg_id"].unique()))
             # Group the metadata by eeg_id
             self.grouped = self.X.meta.groupby("eeg_id")
 
@@ -57,9 +60,10 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
         """Get the length of the dataset."""
         # Trick the dataloader into thinking the dataset is smaller than it is
         if self.subsample_method == "running_random":
+            if self.X is None:
+                raise ValueError("X Data not set up.")
             return len(self.X.meta["eeg_id"].unique())
-        else:
-            return len(self.X)  # type: ignore[arg-type]
+        return len(self.X)  # type: ignore[arg-type]
 
     def __getitem__(self, idx: int) -> tuple[Any, Any]:
         """Get an item from the dataset.

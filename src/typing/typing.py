@@ -24,19 +24,12 @@ class XData:
     shared: dict[str, Any] | None
 
     def __getitem__(self, key: slice | int | list[int]) -> "XData":
-        """Enables slice indexing on the meta attribute using iloc and filters other attributes based on eeg_id."""
-        if isinstance(key, int | list | slice):
-            sliced_meta = self.meta.iloc[key]
-            eeg_ids = set(sliced_meta["eeg_id"])
+        """Enable slice indexing on the meta attribute using iloc and filters other attributes based on eeg_id."""
+        sliced_meta = self.meta.iloc[key]
+        if isinstance(sliced_meta, pd.Series):
+            sliced_meta = sliced_meta.to_frame()
 
-            # # Filtering the dictionaries to keep only entries with keys in eeg_ids
-            # filtered_eeg = {k: v for k, v in self.eeg.items() if k in eeg_ids} if self.eeg else None
-            # filtered_kaggle_spec = {k: v for k, v in self.kaggle_spec.items() if k in eeg_ids} if self.kaggle_spec else None
-            # filtered_eeg_spec = {k: v for k, v in self.eeg_spec.items() if k in eeg_ids} if self.eeg_spec else None
-
-            return XData(eeg=self.eeg, kaggle_spec=self.kaggle_spec, eeg_spec=self.eeg_spec, meta=sliced_meta, shared=self.shared)
-        else:
-            raise TypeError("Invalid argument type.")
+        return XData(eeg=self.eeg, kaggle_spec=self.kaggle_spec, eeg_spec=self.eeg_spec, meta=sliced_meta, shared=self.shared)  # type: ignore[arg-type]
 
     def __len__(self) -> int:
         """Return the length of the meta attribute."""
