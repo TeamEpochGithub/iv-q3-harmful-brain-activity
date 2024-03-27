@@ -1,7 +1,7 @@
 defaults:
   - base_cv
   - hydra/logging
-  - model: konstantinboyko
+  - model: eeg_net_0.7108
   - wandb: train
 
 metadata_path: data/raw/train.csv
@@ -16,6 +16,6 @@ scorer:
 cache_size: -1
 splitter:
   _target_: src.utils.stratified_splitter.StratifiedSplitter
-  n_splits: 5
-allow_multiple_instances: true
+  n_splits: 4
+allow_multiple_instances: False
 save_folds: true
