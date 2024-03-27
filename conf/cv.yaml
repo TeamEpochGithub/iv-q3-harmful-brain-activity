@@ -1,7 +1,7 @@
 defaults:
   - base_cv
   - hydra/logging
-  - model: eeg_net_0.7108
+  - model: eeg_net
   - wandb: train
 
 metadata_path: data/raw/train.csv

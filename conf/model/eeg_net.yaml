@@ -63,7 +63,8 @@ train_sys:
           # transforms:
           _target_: src.modules.training.augmentations.cutmix_1d.CutMix1D
           p: 0.2
-          cut_size: [0, 0.5]
+          low: 0.0
+          high: 0.5
 
 #           - _target_: torch_audiomentations.Shift
 #             p: 0.5
