@@ -65,6 +65,8 @@ train_sys:
             p: 0.5
             rollover: true
             mode: per_example
+          - _target_: torch_audiomentations.Gain
+            p: 0.5
           - _target_: src.modules.training.augmentations.random_phase_shift.RandomPhaseShift
             p: 0.4
             shift_limit: 0.5
