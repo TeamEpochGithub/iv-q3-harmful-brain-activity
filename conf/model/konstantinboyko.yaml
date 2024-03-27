@@ -4,57 +4,65 @@ defaults:
 
 x_sys:
   steps:
-    - _target_: src.modules.transformation.eeg.clip.ClipEEG
+    - _target_: src.modules.transformation.eeg.bipolar.BipolarEEG
+      use_full_map: false
+      keep_ekg: false
+    - _target_: src.modules.transformation.clip.Clip
       lower: -1024
       upper: 1024
+      eeg: true
     - _target_: src.modules.transformation.nantozero.NaNToZero
       eeg: true
-      kaggle_spec: false
     - _target_: src.modules.transformation.eeg.divide.Divide
       value: 32
     - _target_: src.modules.transformation.eeg.butter.ButterFilter
+      lower: 0.5
+      upper: 20
+      order: 2
+    - _target_: src.modules.transformation.eeg.quantize.Quantizer
+    - _target_: src.modules.transformation.eeg.downsample.Downsample
+      downsample_factor: 5
 
 y_sys:
-  steps:
-    - _target_: src.modules.transformation.target.sum_to_one.SumToOne
+  steps: []
 
 train_sys:
   steps:
     - _target_: src.modules.training.main_trainer.MainTrainer
-      model_name: GRU_Simple # Can't have special characters or spaces
+      model_name: EEGNet # Can't have special characters or spaces
+      two_stage: false
       model:
-        _target_: src.modules.training.models.MultiResidualBiGRU
+        _target_: src.modules.training.models.eeg_net.EEGNet
         num_classes: 6
-        input_dim: 20
+        in_channels: 9
+        fixed_kernel_size: 5
+        linear_layer_features: 304
+        # linear_layer_features = 352 # Half Signal = 5_000
+        # linear_layer_features = 304 # 1/4 1/5 1/6 Signal = 2_000
+        # linear_layer_features = 280 # 1/10 Signal = 1_000
+        kernels: [3,5,7,9,11]
       optimizer: # Partially instantiate optimizer, so model parameters can be linked at runtime
         _target_: functools.partial
         _args_:
           - _target_: hydra.utils.get_class
-            path: torch.optim.Adam
-        lr: 0.001
+            path: torch.optim.AdamW
+        lr: 8e-3
+        weight_decay: 1e-2
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
         reduction: "batchmean"
-        weighted: false
-      epochs: 1
-      batch_size: 128
+      epochs: 20
+      batch_size: 64
       patience: 10
       dataset:
         _target_: src.modules.training.datasets.main_dataset.MainDataset
         data_type: "eeg"
-        augmentations:
-          - _target_: src.modules.training.augmentations.random_phase_shift.RandomPhaseShift
-            shift_limit: 0.5
-            p: 0.5
       scheduler:
         _target_: functools.partial
         _args_:
           - _target_: hydra.utils.get_class
             path: timm.scheduler.cosine_lr.CosineLRScheduler
-        t_initial: 40
+        t_initial: 20
         cycle_mul: 1
         cycle_decay: 1
         cycle_limit: 1
-        warmup_t: 1
-        warmup_lr_init: 1e-5
-    - _target_: src.modules.training.postprocessing.softmax.Softmax
