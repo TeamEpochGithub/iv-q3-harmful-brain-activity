@@ -65,6 +65,7 @@ class MainTrainer(TorchTrainer, Logger):
 
         # Make a backup of the original metadata for the scorer preds to work
         self.meta_backup = deepcopy(x.meta)
+        self.y_backup = deepcopy(y)
 
         return train_dataset, test_dataset
 
@@ -98,6 +99,7 @@ class MainTrainer(TorchTrainer, Logger):
         pred_dataset = copy.deepcopy(test_dataset)
         # Modify the pred_dataset metadata
         pred_dataset.X.meta = self.meta_backup.iloc[test_indices, :].reset_index(drop=True)
+        pred_dataset.y = self.y_backup[test_indices, :]
         return pred_dataset
 
     def custom_predict(self, x: npt.NDArray[np.float32], **pred_args: Any) -> torch.Tensor:
