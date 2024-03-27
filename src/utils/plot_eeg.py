@@ -103,6 +103,17 @@ def plot_bipolar_eeg(df: pd.DataFrame, title: str = "EEG Signal") -> None:
     :param df: The EEG signal to plot
     :param title: The title of the plot
     """
+    df_ = process_bipolar_eeg(df)
+    df_.plot(title=title, figsize=(20, 10), legend=False, color="black")
+
+    for chain_name in CHAIN_ORDER:
+        i = 0
+        while chain_name + str(i + 1) in df.columns:
+            plt.annotate(chain_name + str(i + 1), (-400, df_[f"{chain_name}_{i}"].mean()), color="black", fontsize=15)
+            i += 1
+
+
+def process_bipolar_eeg(df: pd.DataFrame) -> pd.DataFrame:
     y_offset = 0.5 * df.max().max()
 
     # create a new dataframe with the offset
@@ -118,22 +129,16 @@ def plot_bipolar_eeg(df: pd.DataFrame, title: str = "EEG Signal") -> None:
             total_offset -= y_offset
             i += 1
         total_offset -= 2 * y_offset
-    df_.plot(title=title, figsize=(20, 10), legend=False, color="black")
-
-    for chain_name in CHAIN_ORDER:
-        i = 0
-        while chain_name + str(i + 1) in df.columns:
-            plt.annotate(chain_name + str(i + 1), (-400, df_[f"{chain_name}_{i}"].mean()), color="black", fontsize=15)
-            i += 1
+    return df_
 
 
-def plot_raw_eeg(df: pd.DataFrame, title: str = "EEG Signal") -> None:
-    """Plot an EEG with all elektrodes. Plots each graph above the other with an offset of y_offset.
+def process_raw_df(eeg_df: pd.DataFrame) -> pd.DataFrame:
+    """Process the raw dataframe to be plotted.
 
-    :param df: The EEG signal to plot
-    :param title: The title of the plot
+    :param eeg_df: The raw dataframe
+    :return: The processed dataframe
     """
-    y_offset = 0.5 * df.max().max()
+    y_offset = 0.5 * eeg_df.max().max()
 
     # create a new dataframe with the offset
     df_ = pd.DataFrame()
@@ -144,9 +149,19 @@ def plot_raw_eeg(df: pd.DataFrame, title: str = "EEG Signal") -> None:
     for chain_name in CHAIN_ORDER:
         chain = CHAINS[chain_name]
         for elektrode in chain:
-            df_[f"{chain_name}_{elektrode}"] = df[elektrode] + total_offset
+            df_[f"{chain_name}_{elektrode}"] = eeg_df[elektrode] + total_offset
             total_offset -= y_offset
         total_offset -= 2 * y_offset
+    return df_
+
+
+def plot_raw_eeg(df: pd.DataFrame, title: str = "EEG Signal") -> None:
+    """Plot an EEG with all elektrodes. Plots each graph above the other with an offset of y_offset.
+
+    :param df: The EEG signal to plot
+    :param title: The title of the plot
+    """
+    df_ = process_raw_df(df)
     df_.plot(title=title, figsize=(20, 10), legend=False, color="black")
     for chain_name in CHAIN_ORDER:
         chain = CHAINS[chain_name]
