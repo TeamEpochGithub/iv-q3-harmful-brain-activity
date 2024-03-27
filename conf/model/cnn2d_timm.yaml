@@ -32,6 +32,8 @@ train_sys:
       epochs: 1
       batch_size: 256
       patience: 10
+      two_stage: true
+      two_stage_evaluator_threshold: 4
       dataset_args:
         data_type: "kaggle_spec"
         get_item_custom:
