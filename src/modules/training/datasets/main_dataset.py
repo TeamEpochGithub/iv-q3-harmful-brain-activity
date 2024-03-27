@@ -65,6 +65,20 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
             return len(self.X.meta["eeg_id"].unique())
         return len(self.X)  # type: ignore[arg-type]
 
+    def __getitems__(self, indices: list[int]) -> tuple[Any, Any]:
+        
+        all_x = []
+        all_y = []
+        for idx in indices:
+            x, y = self.__getitem__(idx)
+            all_x.append(x)
+            all_y.append(y)
+        all_x_tensor = torch.stack(all_x)
+        all_y_tensor = torch.stack(all_y)
+        if self.augmentations is not None and self.use_aug:
+            all_x_tensor, all_y_tensor = self.augmentations(all_x_tensor, all_y_tensor)
+        return all_x_tensor, all_y_tensor
+
     def __getitem__(self, idx: int) -> tuple[Any, Any]:
         """Get an item from the dataset.
 
@@ -89,22 +103,26 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
             case "eeg":
                 x, y = self._eeg_getitem(idx)
                 x = x.transpose(1, 0)
-                if self.augmentations is not None and self.use_aug:
-                    x_torch = torch.from_numpy(x)
-                    x = self.augmentations(x_torch.unsqueeze(0)).squeeze(0)
+                # y = torch.from_numpy(y)
+                # if self.augmentations is not None and self.use_aug:
+                #     x_torch = torch.from_numpy(x)
+                #     x = self.augmentations(x_torch.unsqueeze(0)).squeeze(0)
             case "kaggle_spec":
                 x, y = self._kaggle_spec_getitem(idx)
-                if self.augmentations is not None and self.use_aug:
-                    x = self.augmentations(x).squeeze(0)
+                # if self.augmentations is not None and self.use_aug:
+                #     x = self.augmentations(x).squeeze(0)
             case "eeg_spec":
                 x, y = self._eeg_spec_getitem(idx)
-                if self.augmentations is not None and self.use_aug:
-                    x = self.augmentations(x).squeeze(0)
+                # if self.augmentations is not None and self.use_aug:
+                #     x = self.augmentations(x).squeeze(0)
             case "custom":
                 x, y = self._custom_getitem(idx)
             case _:
                 raise ValueError(f"Data type {self.data_type} not recognized.")
-
+        if isinstance(x, np.ndarray):
+            x = torch.from_numpy(x)
+        if isinstance(y, np.ndarray):
+            y = torch.from_numpy(y)
         return x, y
 
     @typing.no_type_check

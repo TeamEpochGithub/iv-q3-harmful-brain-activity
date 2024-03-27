@@ -49,35 +49,38 @@ train_sys:
         lr: 0.004
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
-      epochs: 3
+      epochs: 20
       batch_size: 64
       patience: 10
-      two_stage: true
-      two_stage_evaluator_threshold: 4
+      # two_stage: true
+      # two_stage_evaluator_threshold: 4
       dataset_args:
         data_type: "eeg"
         get_item_custom:
         subsample_method: "running_random"
         augmentations:
-          _target_: torch_audiomentations.Compose
-          transforms:
-          - _target_: torch_audiomentations.Shift
-            p: 0.5
-            rollover: true
-            mode: per_example
-#          - _target_: torch_audiomentations.ShuffleChannels
-#            p: 0.4
-#          - _target_: torch_audiomentations.AddColoredNoise
-#            p: 0.05
-#            mode: per_channel
-#            p_mode: per_channel
-#            max_snr_in_db: 15
-#            sample_rate: 200
-          - _target_: src.modules.training.augmentations.random_phase_shift.RandomPhaseShift
-            p: 0.4
-            shift_limit: 0.5
-          - _target_: src.modules.training.augmentations.substract_channels.SubstractChannels
-            p: 0.5
+          # _target_: torch_audiomentations.Compose
+          # transforms:
+          _target_: src.modules.training.augmentations.cutmix_1d.CutMix1D
+          p: 0.5
+
+#           - _target_: torch_audiomentations.Shift
+#             p: 0.5
+#             rollover: true
+#             mode: per_example
+# #          - _target_: torch_audiomentations.ShuffleChannels
+# #            p: 0.4
+# #          - _target_: torch_audiomentations.AddColoredNoise
+# #            p: 0.05
+# #            mode: per_channel
+# #            p_mode: per_channel
+# #            max_snr_in_db: 15
+# #            sample_rate: 200
+#           - _target_: src.modules.training.augmentations.random_phase_shift.RandomPhaseShift
+#             p: 0.4
+#             shift_limit: 0.5
+#           - _target_: src.modules.training.augmentations.substract_channels.SubstractChannels
+#             p: 0.5
       scheduler:
         _target_: functools.partial
         _args_:

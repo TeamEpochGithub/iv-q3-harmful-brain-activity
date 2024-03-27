@@ -166,6 +166,8 @@ class MainTrainer(TorchTrainer, Logger):
         self.log_to_terminal("Predicting on the test data")
         self.model.eval()
         predictions = []
+        # Create a new dataloader from the dataset of the input dataloader
+        loader = DataLoader(loader.dataset, batch_size=loader.batch_size, shuffle=False, collate_fn=collate_fn)
         with torch.no_grad(), tqdm(loader, unit="batch", disable=False) as tepoch:
             for data in tepoch:
                 X_batch = data[0].to(self.device).float()
@@ -255,3 +257,54 @@ class MainTrainer(TorchTrainer, Logger):
             model_artifact = wandb.Artifact(self.model_name, type="model")
             model_artifact.add_file(f"{self.model_directory}/{self.get_hash()}.pt")
             wandb.log_artifact(model_artifact)
+
+
+    def create_dataloaders(
+        self,
+        train_dataset: Dataset[tuple[Tensor, ...]],
+        test_dataset: Dataset[tuple[Tensor, ...]],
+    ) -> tuple[DataLoader[tuple[Tensor, ...]], DataLoader[tuple[Tensor, ...]]]:
+        """Create the dataloaders for training and validation.
+
+        :param train_dataset: The training dataset.
+        :param test_dataset: The validation dataset.
+        :return: The training and validation dataloaders.
+        """
+        train_loader = DataLoader(
+            train_dataset, batch_size=self.batch_size, shuffle=True, collate_fn=collate_fn
+        )
+        test_loader = DataLoader(
+            test_dataset, batch_size=self.batch_size, shuffle=False, collate_fn=collate_fn
+        )
+        return train_loader, test_loader
+
+    def custom_predict(
+        self, x: npt.NDArray[np.float32], **pred_args: Any
+    ) -> npt.NDArray[np.float32]:
+        """Predict on the test data
+
+        :param x: The input to the system.
+        :return: The output of the system.
+        """
+        self._load_model()
+
+        print_section_separator(f"Predicting model: {self.model.__class__.__name__}")
+        self.log_to_debug(f"Predicting model: {self.model.__class__.__name__}")
+
+        # Create dataset
+        pred_dataset = self.create_prediction_dataset(x)
+        pred_dataloader = DataLoader(
+            pred_dataset, batch_size=self.batch_size, shuffle=False, collate_fn=collate_fn
+        )
+
+        # Predict
+        return self.predict_on_loader(pred_dataloader)
+
+def collate_fn(batch: tuple[Tensor, ...]) -> tuple[Tensor, ...]:
+    """Collate function for the dataloader.
+
+    :param batch: The batch to collate.
+    :return: The collated batch.
+    """
+    X, y = batch
+    return X, y
