@@ -7,6 +7,38 @@ import plotly.graph_objects as go
 from dash import Dash, dcc, html
 from dash.dependencies import Input, Output
 
+CHAIN_ORDER = ["LT", "RT", "LP", "RP", "C"]
+CHAINS = {
+    "LT": ("Fp1", "F7", "T3", "T5", "O1"),
+    "RT": ("Fp2", "F8", "T4", "T6", "O2"),
+    "LP": ("Fp1", "F3", "C3", "P3", "O1"),
+    "RP": ("Fp2", "F4", "C4", "P4", "O2"),
+    "C": ("Fz", "Cz", "Pz"),
+}
+
+
+def process_raw_df(eeg_df: pd.DataFrame) -> pd.DataFrame:
+    """Process the raw dataframe to be plotted.
+
+    :param eeg_df: The raw dataframe
+    :return: The processed dataframe
+    """
+    y_offset = 0.5 * eeg_df.max().max()
+
+    # create a new dataframe with the offset
+    df_ = pd.DataFrame()
+
+    # for each chain, plot the elektrodes in that chain in order, add some offset padding between chains
+    # annotate the chain name and the elektro names next to the graphs
+    total_offset = 0
+    for chain_name in CHAIN_ORDER:
+        chain = CHAINS[chain_name]
+        for elektrode in chain:
+            df_[f"{chain_name}_{elektrode}"] = eeg_df[elektrode] + total_offset
+            total_offset -= y_offset
+        total_offset -= 2 * y_offset
+    return df_
+
 
 # Define function to visualize Parquet files
 def create_parquet_visualizer(app: Dash, file_path: str) -> tuple[Any, Any]:  # noqa: C901
@@ -29,7 +61,7 @@ def create_parquet_visualizer(app: Dash, file_path: str) -> tuple[Any, Any]:  # 
             html.P("Feature"),
             dcc.Dropdown(
                 id="parquet-column-selector",
-                options=["Fp1", "F3", "C3", "P3", "F7", "T3", "T5", "O1", "Fz", "Cz", "Pz", "Fp2", "F4", "C4", "P4", "F8", "T4", "T6", "O2", "EKG"],
+                options=["Fp1", "F3", "C3", "P3", "F7", "T3", "T5", "O1", "Fz", "Cz", "Pz", "Fp2", "F4", "C4", "P4", "F8", "T4", "T6", "O2", "EKG", "all"],
                 value="Fp1",
             ),
             dcc.Graph(id="parquet-graph"),
@@ -77,14 +109,15 @@ def create_parquet_visualizer(app: Dash, file_path: str) -> tuple[Any, Any]:  # 
         fig = go.Figure()
 
         # Assuming 'column' is defined somewhere in your function to specify which column to plot
-        scatter = go.Scatter(
-            x=eeg_df.index,
-            y=eeg_df[column],
-            mode="lines",
-            marker={"color": "blue"},
-            name="Data",
-        )
-        fig.add_trace(scatter)
+        if column == "all":
+            eeg_df = process_raw_df(eeg_df)
+            for col in eeg_df.columns:
+                scatter = go.Scatter(x=eeg_df.index, y=eeg_df[col], mode="lines", name=col)
+                fig.add_trace(scatter)
+            fig.update_layout(height=2000)
+        else:
+            scatter = go.Scatter(x=eeg_df.index, y=eeg_df[column], mode="lines", name=column)
+            fig.add_trace(scatter)
 
         # Add vertical lines for each eeg_label_offset_seconds
         for offset in matching["eeg_label_offset_seconds"]:
