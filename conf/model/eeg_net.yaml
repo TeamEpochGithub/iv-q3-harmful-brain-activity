@@ -26,10 +26,6 @@ x_sys:
 #      channels: [8, 9, 10, 11, 12, 13, 14, 15] #Select the last 18 channels
 
 
-y_sys:
-  steps:
-    - _target_: src.modules.transformation.target.sum_to_one.SumToOne
-
 train_sys:
   steps:
     - _target_: src.modules.training.main_trainer.MainTrainer
@@ -53,9 +49,11 @@ train_sys:
         lr: 0.004
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
-      epochs: 50
+      epochs: 3
       batch_size: 64
       patience: 10
+      two_stage: true
+      two_stage_evaluator_threshold: 4
       dataset_args:
         data_type: "eeg"
         get_item_custom:
@@ -89,6 +87,6 @@ train_sys:
         cycle_mul: 1
         cycle_decay: 1
         cycle_limit: 1
-        warmup_t: 5
+        warmup_t: 1
         warmup_lr_init: 1e-5
     - _target_: src.modules.training.postprocessing.softmax.Softmax
