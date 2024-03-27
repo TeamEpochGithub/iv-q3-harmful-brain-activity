@@ -37,7 +37,7 @@ parameters: # Will use the model file in cv.yaml and override the values there w
   model.train_sys.steps.0.dataset_args.augmentations.transforms.3.p:
     max: 0.99
     min: 0.0
-  model.train_sys.steps.0.model.dropout:
+  model.train_sys.steps.0.dataset_args.dropout:
     max: 0.5
     min: 0.0
 
