@@ -4,10 +4,10 @@ import torch
 class CutMix1D(torch.nn.Module):
     """CutMix augmentation for 1D signals."""
     
-    def __init__(self, p):
+    def __init__(self, p=0.5, cut_size=(0, 1)):
         """Initialize the augmentation."""
         super().__init__()
-        self.cutmix = RandomCutMixV2(p = p, data_keys=["input", "class"])
+        self.cutmix = RandomCutMixV2(p = p, data_keys=["input", "class"], cut_size=cut_size)
 
     def __call__(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """Apply the augmentation to the input signal."""
