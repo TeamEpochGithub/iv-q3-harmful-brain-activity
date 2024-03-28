@@ -1,14 +1,13 @@
 """Custom sequential class for augmentations."""
 
+from dataclasses import dataclass, field
 import torch
 
-class CustomSequential():
+@dataclass
+class CustomSequential:
 
-    def __init__(self, x_transforms=[], xy_transforms=[]):
-        """Initialize the custom sequential class."""
-        super().__init__()
-        self.x_transforms = x_transforms
-        self.xy_transforms = xy_transforms
+    x_transforms: list = field(default_factory=list)
+    xy_transforms: list = field(default_factory=list)
 
     def __call__(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """Apply the augmentations sequentially."""
