@@ -1,4 +1,4 @@
-from kornia.augmentation import RandomCutMixV2
+"""CutMix augmentation for 1D signals."""
 import torch
 
 class CutMix1D(torch.nn.Module):
@@ -7,20 +7,26 @@ class CutMix1D(torch.nn.Module):
     def __init__(self, p=0.5, low=0, high=1):
         """Initialize the augmentation."""
         super().__init__()
-        self.cutmix = RandomCutMixV2(p = p, data_keys=["input", "class"], cut_size=[low,high])
+        self.p = p
+        self.low = low
+        self.high = high
 
     def __call__(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """Apply the augmentation to the input signal."""
-        x = x.unsqueeze(-2)
-        x = torch.cat((x, x), dim=-2)
-        dummy_labels = torch.arange(x.size(0))
-        augmented_x, augmentation_info = self.cutmix(x, dummy_labels)
-        # Take only the first height dimension, ie. the original  sequence
-        augmented_x = augmented_x[:,:,0,:]
-        augmentation_info = augmentation_info[0]
-        # multiply the last column of augment info by 2
-        augmentation_info[:, -1] *= 2
-        y = y.float()
-        for i in range(augmentation_info.shape[0]):
-            y[i] = y[i] * (1 - augmentation_info[i, -1]) + y[int(augmentation_info[i, 1])] * augmentation_info[i, -1]
-        return augmented_x, y
+        indices = torch.arange(x.shape[0], device=x.device, dtype= torch.int)
+        shuffled_indices = torch.randperm(indices.shape[0])
+
+        low_len = int(self.low * x.shape[-1])
+        high_len = int(self.high * x.shape[-1])
+        cutoff_indices = torch.randint(low_len, high_len, (x.shape[-1],), device=x.device, dtype = torch.int)
+        cutoff_rates = cutoff_indices.float() / x.shape[-1]
+
+        augmented_x = x.clone()
+        augmented_y = y.clone().float()
+        for i in range(x.shape[0]):
+            if torch.rand(1) < self.p:
+                augmented_x[i, :, cutoff_indices[i]:] = x[shuffled_indices[i], :, cutoff_indices[i]:]
+                augmented_y[i] = y[i] * cutoff_rates[i] + y[shuffled_indices[i]] * (1 - cutoff_rates[i])
+        return augmented_x, augmented_y
+
+        
