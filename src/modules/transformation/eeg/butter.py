@@ -66,4 +66,4 @@ class ButterFilter(VerboseTransformationBlock):
         :return: The filtered data
         """
         b, a = butter(self.order, [self.lower, self.upper], fs=self.sampling_rate, btype="band")
-        return lfilter(b, a, eeg)
+        return lfilter(b, a, eeg).astype(np.float32)

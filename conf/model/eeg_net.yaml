@@ -50,7 +50,7 @@ train_sys:
         lr: 0.004
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
-      epochs: 1
+      epochs: 2
       batch_size: 64
       patience: 10
       # two_stage: true
@@ -62,21 +62,25 @@ train_sys:
         augmentations:
           _target_: src.modules.training.augmentations.custom_sequential.CustomSequential
           x_transforms:
-            - _target_: torch_audiomentations.Shift
-              p: 0.5
-              rollover: true
-              mode: per_example
-            - _target_: src.modules.training.augmentations.random_phase_shift.RandomPhaseShift
-              p: 0.4
-              shift_limit: 0.5
-            - _target_: src.modules.training.augmentations.substract_channels.SubstractChannels
-              p: 0.5
+            - _target_: src.modules.training.augmentations.reverse_1d.Reverse1D
+              p: 1
+            # - _target_: torch_audiomentations.Shift
+            #   p: 0.5
+            #   rollover: true
+            #   mode: per_example
+            # - _target_: src.modules.training.augmentations.random_phase_shift.RandomPhaseShift
+            #   p: 0.4
+            #   shift_limit: 0.5
+            # - _target_: src.modules.training.augmentations.substract_channels.SubstractChannels
+            #   p: 0.5
           xy_transforms:
-            - _target_: src.modules.training.augmentations.cutmix_1d.CutMix1D
+            - _target_: src.modules.training.augmentations.mixup_1d.MixUp1D
               p: 0.2
-              # Randomly select a percentage between 'low' and 'high' to preserve on the left side of the signal.
-              low: 0.0
-              high: 0.5
+            # - _target_: src.modules.training.augmentations.cutmix_1d.CutMix1D
+            #   p: 0.2
+            #   # Randomly select a percentage between 'low' and 'high' to preserve on the left side of the signal.
+            #   low: 0.0
+            #   high: 0.5
       scheduler:
         _target_: functools.partial
         _args_:

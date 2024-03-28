@@ -15,8 +15,10 @@ class CustomSequential:
 
     def __call__(self, x: torch.Tensor, y: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """Apply the augmentations sequentially."""
-        for transform in self.x_transforms:
-            x = transform(x)
-        for transform in self.xy_transforms:
-            x, y = transform(x, y)
+        if self.x_transforms is not None:
+            for transform in self.x_transforms:
+                x = transform(x)
+        if self.xy_transforms is not None:
+            for transform in self.xy_transforms:
+                x, y = transform(x, y)
         return x, y
