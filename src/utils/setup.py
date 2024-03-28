@@ -74,6 +74,12 @@ def setup_pipeline(pipeline_cfg: DictConfig, is_train: bool | None) -> ModelPipe
 
         ensemble_cfg_dict = OmegaConf.to_container(ensemble_cfg, resolve=True)
         if isinstance(ensemble_cfg_dict, dict):
+            # Turn models into list
+            steps = []
+            for step, model in ensemble_cfg_dict.get("steps", []).items():
+                steps.append(model) 
+            ensemble_cfg_dict["steps"] = steps
+
             for model in ensemble_cfg_dict.get("models", []):
                 ensemble_cfg_dict["models"][model] = update_model_cfg_test_size(ensemble_cfg_dict["models"][model], test_size, is_train=is_train)
 

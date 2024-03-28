@@ -15,15 +15,12 @@ x_sys:
     - _target_: src.modules.transformation.eeg.divide.Divide
       value: 32
     - _target_: src.modules.transformation.eeg.butter.ButterFilter
+      lower: 0.5
+      upper: 20
+      order: 2
     - _target_: src.modules.transformation.eeg.quantize.Quantizer
     - _target_: src.modules.transformation.eeg.downsample.Downsample
       downsample_factor: 5
-#    - _target_: src.modules.transformation.eeg.rolling.Rolling
-#      channels: [0, 2, 4, 6]
-#      window_sizes: [20, 20, 20, 20]
-#      operations: ["std", "std", "std", "std"]
-#    - _target_: src.modules.transformation.eeg.select_channels.SelectChannels
-#      channels: [8, 9, 10, 11, 12, 13, 14, 15] #Select the last 18 channels
 
 
 train_sys:

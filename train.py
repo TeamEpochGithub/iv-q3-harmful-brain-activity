@@ -18,6 +18,7 @@ from src.logging_utils.logger import logger
 from src.utils.script.lock import Lock
 from src.utils.seed_torch import set_torch_seed
 from src.utils.setup import load_training_data, setup_config, setup_data, setup_pipeline, setup_wandb
+from epochalyst.pipeline.ensemble import EnsemblePipeline
 
 warnings.filterwarnings("ignore", category=UserWarning)
 # Makes hydra give full error messages
@@ -67,8 +68,8 @@ def run_train_cfg(cfg: DictConfig) -> None:
 
     # Read the data if required and split it in X, y
 
-    x_cache_exists = model_pipeline.x_sys._cache_exists(model_pipeline.x_sys.get_hash(), cache_args)  # noqa: SLF001
-    y_cache_exists = model_pipeline.y_sys._cache_exists(model_pipeline.y_sys.get_hash(), cache_args)  # noqa: SLF001
+    x_cache_exists = model_pipeline.get_x_cache_exists(cache_args)
+    y_cache_exists = model_pipeline.get_y_cache_exists(cache_args)
 
     X, y = load_training_data(
         metadata_path=cfg.metadata_path,
@@ -114,6 +115,10 @@ def run_train_cfg(cfg: DictConfig) -> None:
             "cache_args": cache_args,
         },
     }
+    if isinstance(model_pipeline, EnsemblePipeline):
+        train_args = {
+            "ModelPipeline": train_args
+        }
     predictions, _ = model_pipeline.train(X, y, **train_args)
 
     if len(test_indices) > 0:
