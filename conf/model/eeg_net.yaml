@@ -32,7 +32,7 @@ train_sys:
       model_name: EEGNet # Can't have special characters or spaces
       two_stage: true
       # two_stage_kl_threshold: 5.5
-      two_stage_evaluator_threshold: 6
+      two_stage_evaluator_threshold: 3
       model:
         _target_: src.modules.training.models.eeg_net.EEGNet
         num_classes: 6
@@ -43,18 +43,18 @@ train_sys:
         linear_layer_features: 304 # 1/4 1/5 1/6 Signal = 2_000
         # linear_layer_features: 280 # 1/10 Signal = 1_000
         kernels: [3, 5,7,9,11]
-        dropout: 0.0
+        dropout: 0.01756
       optimizer: # Partially instantiate optimizer, so model parameters can be linked at runtime
         _target_: functools.partial
         _args_:
           - _target_: hydra.utils.get_class
             path: torch.optim.AdamW
-        lr: 0.001
+        lr: 0.009654
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
         reduction: "batchmean"
       epochs: 50
-      batch_size: 32
+      batch_size: 64
       patience: 15
       dataset:
         _target_: src.modules.training.datasets.main_dataset.MainDataset
@@ -63,13 +63,13 @@ train_sys:
           _target_: torch_audiomentations.Compose
           transforms:
           - _target_: torch_audiomentations.Shift
-            p: 0.05
+            p: 0.368
             rollover: true
             mode: per_example
           - _target_: torch_audiomentations.ShuffleChannels
-            p: 0.05
+            p: 0.2996
           - _target_: torch_audiomentations.AddColoredNoise
-            p: 0.05
+            p: 0.279
             mode: per_channel
             p_mode: per_channel
             max_snr_in_db: 15
