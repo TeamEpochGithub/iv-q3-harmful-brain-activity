@@ -14,12 +14,6 @@ class WeightedKLDivLoss(nn.Module):
 
     class_weights: Iterable[float] = (1, 1, 1, 1, 1, 1)
 
-    def __post_init__(self) -> None:
-        """Post initialization function for the WeightedKLDivLoss class."""
-        # make sure the sum of the weigths is equal tothe number of classes. In this case 6
-        self.class_weights = [6 * weight / sum(self.class_weights) for weight in self.class_weights]
-        super().__init__()
-
     def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """Forward pass of the WeightedKLDivLoss class.
 
@@ -27,6 +21,7 @@ class WeightedKLDivLoss(nn.Module):
         :param target: The target values.
         :return: The loss value.
         """
+        target = target / target.sum(dim=1, keepdim=True)
         criterion = CrossEntropyLoss(weight=torch.tensor(self.class_weights).to(target.device))
 
         # Calculate the KLDivLoss
