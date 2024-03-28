@@ -74,6 +74,7 @@ train_sys:
           xy_transforms:
             - _target_: src.modules.training.augmentations.cutmix_1d.CutMix1D
               p: 0.2
+              # Randomly select a percentage between 'low' and 'high' to preserve on the left side of the signal.
               low: 0.0
               high: 0.5
       scheduler:
