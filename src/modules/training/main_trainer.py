@@ -1,4 +1,5 @@
 """Module for example training block."""
+import copy
 from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any
@@ -14,6 +15,7 @@ from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
 from src.modules.logging.logger import Logger
+from src.modules.training.datasets.main_dataset import MainDataset
 from src.typing.typing import XData
 
 
@@ -29,7 +31,7 @@ class MainTrainer(TorchTrainer, Logger):
      Note: remove the sum to one block from the target pipeline for this to work
     """
 
-    dataset: Dataset[Any] = field(default_factory=Dataset)
+    dataset_args: dict[str, Any] = field(default_factory=dict)
     model_name: str = "WHAT_ARE_YOU_TRAINING_PUT_A_NAME_IN_THE_MAIN_TRAINER"  # No spaces allowed
     two_stage: bool = False
     two_stage_kl_threshold: float | None = None
@@ -54,35 +56,41 @@ class MainTrainer(TorchTrainer, Logger):
         :return: The training and validation datasets.
         """
         # Set up the train dataset
+        train_data = x[train_indices]
+        train_labels = y[train_indices]
 
-        # from src.utils.visualize_vote_distribution import visualize_vote_distribution
-        # visualize_vote_distribution(y, train_indices, test_indices)
-        train_dataset = deepcopy(self.dataset)
-        train_dataset.setup(x, y, train_indices, use_aug=True, subsample_data=True)  # type: ignore[attr-defined]
+        test_data = x[test_indices]
+        test_labels = y[test_indices]
+
+        train_dataset = MainDataset(X=train_data, y=train_labels, use_aug=True, **self.dataset_args)
 
         # Set up the test dataset
         if test_indices is not None:
-            test_dataset = deepcopy(self.dataset)
-            test_dataset.setup(x, y, test_indices, use_aug=False, subsample_data=True)  # type: ignore[attr-defined]
+            self.dataset_args["subsample_method"] = "random"
+            test_dataset = MainDataset(X=test_data, y=test_labels, use_aug=False, **self.dataset_args)
         else:
             test_dataset = None
 
+        # Make a backup of the original metadata for the scorer preds to work
+        self.meta_backup = deepcopy(x.meta)
+        self.y_backup = deepcopy(y)
+
         return train_dataset, test_dataset
 
-    def create_prediction_dataset(self, x: npt.NDArray[np.float32]) -> Dataset[Any]:
+    def create_prediction_dataset(self, x: XData) -> Dataset[Any]:
         """Create the prediction dataset.
 
         :param x: The input data.
         :return: The prediction dataset.
         """
-        predict_dataset = deepcopy(self.dataset)
-        predict_dataset.setup_prediction(x)  # type: ignore[attr-defined]
+        predict_dataset = MainDataset(X=x, use_aug=False, **self.dataset_args)
+        predict_dataset.setup_prediction(x)
         return predict_dataset
 
     def _concat_datasets(
         self,
-        train_dataset: Dataset[tuple[Tensor, ...]],
-        test_dataset: Dataset[tuple[Tensor, ...]],  # noqa: ARG002
+        train_dataset: MainDataset,  # noqa: ARG002
+        test_dataset: MainDataset,
         train_indices: list[int],  # noqa: ARG002
         test_indices: list[int],
     ) -> Dataset[tuple[Tensor, ...]]:
@@ -94,12 +102,16 @@ class MainTrainer(TorchTrainer, Logger):
         :param test_indices: The indices for the test data.
         :return: A new dataset containing the concatenated data in the original order.
         """
-        # Create a deep copy of the train dataset
-        pred_dataset = deepcopy(train_dataset)
-        pred_dataset.setup(train_dataset.X, train_dataset.y, test_indices)  # type: ignore[attr-defined]
+        # Since concat dataset is called before training starts we deepcopy to not corrupt the original dataset
+        pred_dataset = copy.deepcopy(test_dataset)
+        # Modify the pred_dataset metadata
+        if pred_dataset.X is None:
+            raise ValueError("XData should not be None in the prediction dataset.")
+        pred_dataset.X.meta = self.meta_backup.iloc[test_indices, :].reset_index(drop=True)
+        pred_dataset.y = self.y_backup[test_indices, :]
         return pred_dataset
 
-    def custom_predict(self, x: npt.NDArray[np.float32], **pred_args: Any) -> torch.Tensor:
+    def custom_predict(self, x: XData, **pred_args: Any) -> torch.Tensor:
         """Predict on the test data.
 
         :param x: The input to the system.
@@ -139,8 +151,8 @@ class MainTrainer(TorchTrainer, Logger):
             self._load_model()  # load the model for this fold
             predictions.append(self.predict_on_loader(pred_dataloader))
 
-        predictions = torch.stack(predictions)
-        return torch.mean(predictions, dim=0)
+        test_predictions = torch.stack(predictions)
+        return torch.mean(test_predictions, dim=0)
 
     def predict_on_loader(
         self,

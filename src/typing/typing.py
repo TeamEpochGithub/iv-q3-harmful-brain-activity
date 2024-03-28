@@ -23,6 +23,18 @@ class XData:
     meta: pd.DataFrame
     shared: dict[str, Any] | None
 
+    def __getitem__(self, key: slice | int | list[int]) -> "XData":
+        """Enable slice indexing on the meta attribute using iloc and filters other attributes based on eeg_id."""
+        sliced_meta = self.meta.iloc[key]
+        if isinstance(sliced_meta, pd.Series):
+            sliced_meta = sliced_meta.to_frame()
+
+        return XData(eeg=self.eeg, kaggle_spec=self.kaggle_spec, eeg_spec=self.eeg_spec, meta=sliced_meta, shared=self.shared)  # type: ignore[arg-type]
+
+    def __len__(self) -> int:
+        """Return the length of the meta attribute."""
+        return len(self.meta)
+
     def __repr__(self) -> str:
         """Return a string representation of the object."""
         return "XData"
