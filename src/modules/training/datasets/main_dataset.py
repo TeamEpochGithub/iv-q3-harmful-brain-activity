@@ -66,20 +66,25 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
         return len(self.X)  # type: ignore[arg-type]
 
     def __getitems__(self, indices: list[int]) -> tuple[Any, Any]:
-        
+        """Get multiple items from the dataset and apply augmentations if necessary."""
         all_x = []
         all_y = []
+
+        # Read the data in a loop
         for idx in indices:
             x, y = self.__getitem__(idx)
             all_x.append(x)
             all_y.append(y)
+        # Create a tensor from the list of tensors
         all_x_tensor = torch.stack(all_x)
+        # If labels exist, create a tensor from the list of tensors
         if isinstance(all_y[0], torch.Tensor):
             all_y_tensor = torch.stack(all_y)
         else:
-            all_y_tensor = []
+            all_y_tensor = torch.empty(1)
+        # Apply augmentations if necessary
         if self.augmentations is not None and self.use_aug:
-            all_x_tensor, all_y_tensor = self.augmentations(all_x_tensor.to('cuda'), all_y_tensor.to('cuda'))
+            all_x_tensor, all_y_tensor = self.augmentations(all_x_tensor.to("cuda"), all_y_tensor.to("cuda"))
         return all_x_tensor, all_y_tensor
 
     def __getitem__(self, idx: int) -> tuple[Any, Any]:

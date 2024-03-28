@@ -1,15 +1,19 @@
 """Custom sequential class for augmentations."""
 
 from dataclasses import dataclass, field
+from typing import Any
+
 import torch
+
 
 @dataclass
 class CustomSequential:
+    """Custom sequential class for augmentations."""
 
-    x_transforms: list = field(default_factory=list)
-    xy_transforms: list = field(default_factory=list)
+    x_transforms: list[Any] = field(default_factory=list)
+    xy_transforms: list[Any] = field(default_factory=list)
 
-    def __call__(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+    def __call__(self, x: torch.Tensor, y: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """Apply the augmentations sequentially."""
         for transform in self.x_transforms:
             x = transform(x)
