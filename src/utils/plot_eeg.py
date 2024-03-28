@@ -114,6 +114,13 @@ def plot_bipolar_eeg(df: pd.DataFrame, title: str = "EEG Signal") -> None:
 
 
 def process_bipolar_eeg(df: pd.DataFrame) -> pd.DataFrame:
+    """Process the bipolar dataframe to be plotted.
+
+    Adds an offset to the elektrodes in the same chain, and a larger offset between chains.
+
+    :param df: The bipolar dataframe
+    :return: The processed dataframe
+    """
     y_offset = 0.5 * df.max().max()
 
     # create a new dataframe with the offset
@@ -125,7 +132,7 @@ def process_bipolar_eeg(df: pd.DataFrame) -> pd.DataFrame:
     for chain_name in CHAIN_ORDER:
         i = 0
         while chain_name + str(i + 1) in df.columns:
-            df_[f"{chain_name}_{i}"] = df[chain_name + str(i + 1)] + total_offset
+            df_[f"{chain_name}{i+1}"] = df[chain_name + str(i + 1)] + total_offset
             total_offset -= y_offset
             i += 1
         total_offset -= 2 * y_offset
