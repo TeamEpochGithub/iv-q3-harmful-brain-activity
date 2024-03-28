@@ -74,7 +74,10 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
             all_x.append(x)
             all_y.append(y)
         all_x_tensor = torch.stack(all_x)
-        all_y_tensor = torch.stack(all_y)
+        if isinstance(all_y[0], torch.Tensor):
+            all_y_tensor = torch.stack(all_y)
+        else:
+            all_y_tensor = []
         if self.augmentations is not None and self.use_aug:
             all_x_tensor, all_y_tensor = self.augmentations(all_x_tensor.to('cuda'), all_y_tensor.to('cuda'))
         return all_x_tensor, all_y_tensor
