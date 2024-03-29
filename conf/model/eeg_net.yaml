@@ -50,9 +50,9 @@ train_sys:
         lr: 0.004
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
-      epochs: 2
+      epochs: 30
       batch_size: 64
-      patience: 10
+      patience: 15
       # two_stage: true
       # two_stage_evaluator_threshold: 4
       dataset_args:
