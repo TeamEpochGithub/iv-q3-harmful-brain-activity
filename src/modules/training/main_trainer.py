@@ -70,8 +70,9 @@ class MainTrainer(TorchTrainer, Logger):
 
         # Set up the test dataset
         if test_indices is not None:
-            self.dataset_args["subsample_method"] = "random"
-            test_dataset = MainDataset(X=test_data, y=test_labels, use_aug=False, **self.dataset_args)
+            test_dataset_args = self.dataset_args.copy()
+            test_dataset_args["subsample_method"] = "random"
+            test_dataset = MainDataset(X=test_data, y=test_labels, use_aug=False, **test_dataset_args)
         else:
             test_dataset = None
 
@@ -87,7 +88,9 @@ class MainTrainer(TorchTrainer, Logger):
         :param x: The input data.
         :return: The prediction dataset.
         """
-        predict_dataset = MainDataset(X=x, use_aug=False, **self.dataset_args)
+        pred_args = self.dataset_args.copy()
+        pred_args["subsample_method"] = None
+        predict_dataset = MainDataset(X=x, use_aug=False, **pred_args)
         predict_dataset.setup_prediction(x)
         return predict_dataset
 
@@ -180,7 +183,7 @@ class MainTrainer(TorchTrainer, Logger):
 
     def custom_train(
         self,
-        x: npt.NDArray[np.float32],
+        x: XData,
         y: npt.NDArray[np.float32],
         **train_args: Any,
     ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]:
@@ -222,6 +225,13 @@ class MainTrainer(TorchTrainer, Logger):
         self.log_to_terminal("Training stage 2")
         train_args["train_indices"] = train_indices_stage2
         train_args["test_indices"] = test_indices_stage2
+        if self.two_stage_split_test:
+            super().custom_train(x, y, **train_args)
+
+            # predict again on the entire test data for scoring later on to work
+            test_meta = x.meta.iloc[test_indices, :]
+            x_test = XData(x.eeg, x.kaggle_spec, x.eeg_spec, test_meta, x.shared)
+            return self.custom_predict(x_test), y  # type: ignore[return-value]
         return super().custom_train(x, y, **train_args)
 
     def _split_criterion(self, indices: npt.NDArray[np.float32], y: npt.NDArray[np.float32]) -> tuple[list[int], list[int]]:

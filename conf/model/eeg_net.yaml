@@ -34,7 +34,7 @@ train_sys:
       # two_stage_kl_threshold: 5.5
       two_stage_evaluator_threshold: 3
       two_stage_split_test: true
-      two_stage_pretrain_full: true
+      two_stage_pretrain_full: false
       model:
         _target_: src.modules.training.models.eeg_net.EEGNet
         num_classes: 6
