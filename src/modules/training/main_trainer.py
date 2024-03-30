@@ -240,32 +240,49 @@ class MainTrainer(TorchTrainer, Logger):
         )
         return train_loader, test_loader
 
-    def custom_predict(
-        self,
-        x: XData,
-        **pred_args: Any,
-    ) -> torch.Tensor:
+    def custom_predict(self, x: XData, **pred_args: Any) -> torch.Tensor:
         """Predict on the test data.
 
         :param x: The input to the system.
         :return: The output of the system.
         """
-        self._load_model()
-
         print_section_separator(f"Predicting model: {self.model.__class__.__name__}")
         self.log_to_debug(f"Predicting model: {self.model.__class__.__name__}")
+
+        # Check if pred_args contains batch_size
+        curr_batch_size = pred_args.get("batch_size", self.batch_size)
 
         # Create dataset
         pred_dataset = self.create_prediction_dataset(x)
         pred_dataloader = DataLoader(
             pred_dataset,
-            batch_size=self.batch_size,
+            batch_size=curr_batch_size,
             shuffle=False,
             collate_fn=collate_fn,  # type: ignore[arg-type]
         )
 
-        # Predict
-        return self.predict_on_loader(pred_dataloader)
+        # If using two-stage training, use the second stage
+        if self.two_stage:
+            self._stage = 1
+
+        # Check if supposed to predict with a single model, or ensemble the fold models
+        model_folds = pred_args.get("model_folds", None)
+
+        # Predict with a single model
+        if model_folds is None or model_folds == -1:
+            self._load_model()
+            return self.predict_on_loader(pred_dataloader)
+
+        # Ensemble the fold models:
+        predictions = []
+        for i in range(model_folds):
+            self.log_to_terminal(f"Predicting with model fold {i+1}/{model_folds}")
+            self._fold = i  # set the fold, which updates the hash
+            self._load_model()  # load the model for this fold
+            predictions.append(self.predict_on_loader(pred_dataloader))
+
+        test_predictions = torch.stack(predictions)
+        return torch.mean(test_predictions, dim=0)
 
 
 def collate_fn(batch: tuple[Tensor, ...]) -> tuple[Tensor, ...]:
