@@ -199,15 +199,18 @@ class MainTrainer(TorchTrainer, Logger):
         # Two-stage training
         self.log_to_terminal("Two-stage training")
         train_indices = np.array(train_args.get("train_indices", range(len(y))))
-        test_indices = np.array(train_args.get("test_indices"), [])
+        test_indices = np.array(train_args.get("test_indices", []))
 
         # Split data according to the chosen criterion
         train_indices_stage1, train_indices_stage2 = self._split_criterion(train_indices, y)
         if self.two_stage_split_test:
             test_indices_stage1, test_indices_stage2 = self._split_criterion(test_indices, y)
         else:
-            test_indices_stage1, test_indices_stage2 = test_indices, test_indices
-        self.log_to_terminal(f"Split data into two stages, train sizes: {len(train_indices_stage1)} / {len(train_indices_stage2)}, test sizes: {len(test_indices_stage1)} / {len(test_indices_stage2)}")
+            test_indices_stage1, test_indices_stage2 = list(test_indices), list(test_indices)
+        self.log_to_terminal(
+            f"Split data into two stages, train sizes: {len(train_indices_stage1)} / {len(train_indices_stage2)},"
+            f" test sizes: {len(test_indices_stage1)} / {len(test_indices_stage2)}",
+        )
 
         self._stage = 0
         self.log_to_terminal("Training stage 1")
@@ -219,7 +222,7 @@ class MainTrainer(TorchTrainer, Logger):
         self.log_to_terminal("Training stage 2")
         train_args["train_indices"] = train_indices_stage2
         train_args["test_indices"] = test_indices_stage2
-        super().custom_train(x, y, **train_args)
+        return super().custom_train(x, y, **train_args)
 
     def _split_criterion(self, indices: npt.NDArray[np.float32], y: npt.NDArray[np.float32]) -> tuple[list[int], list[int]]:
         """Split the indices based on the criterion from the two stage parameters.
@@ -230,7 +233,8 @@ class MainTrainer(TorchTrainer, Logger):
         """
         if self.two_stage_kl_threshold is not None and self.two_stage_evaluator_threshold is not None:
             raise ValueError("Cannot use both KL and evaluator threshold for two-stage training")
-        elif self.two_stage_kl_threshold is not None:
+
+        if self.two_stage_kl_threshold is not None:
             peak_kl = self.compute_peak_kl(y[indices])
             indices_1 = indices[peak_kl < self.two_stage_kl_threshold]
             indices_2 = indices[peak_kl >= self.two_stage_kl_threshold]

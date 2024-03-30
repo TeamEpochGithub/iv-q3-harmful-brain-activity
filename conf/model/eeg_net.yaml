@@ -34,6 +34,7 @@ train_sys:
       # two_stage_kl_threshold: 5.5
       two_stage_evaluator_threshold: 3
       two_stage_split_test: true
+      two_stage_pretrain_full: true
       model:
         _target_: src.modules.training.models.eeg_net.EEGNet
         num_classes: 6
@@ -54,11 +55,11 @@ train_sys:
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
         reduction: "batchmean"
-      epochs: 50
+      epochs: 40
       batch_size: 64
       patience: 15
-      dataset:
-        _target_: src.modules.training.datasets.main_dataset.MainDataset
+      dataset_args:
+        subsample_method: running_random
         data_type: "eeg"
         augmentations:
           _target_: torch_audiomentations.Compose
