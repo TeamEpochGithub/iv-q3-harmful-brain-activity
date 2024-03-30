@@ -12,15 +12,23 @@ x_sys:
       eeg: true
     - _target_: src.modules.transformation.eeg.divide.Divide
       value: 32
+    - _target_: src.modules.transformation.eeg.butter.ButterFilter
+
+    - _target_: src.modules.transformation.eeg.downsample.Downsample
+      downsample_factor: 5
 
 
 y_sys:
   steps:
     - _target_: src.modules.transformation.target.sum_to_one.SumToOne
+    - _target_: src.modules.transformation.target.gaussian_target.GaussianTarget
+      labels_length: 2000
+      sigma: 2 # in seconds
 
 train_sys:
   steps:
     - _target_: src.modules.training.main_trainer.MainTrainer
+      model_name: q1_spec_res_gru
       model:
         _target_: src.modules.training.models.spectrogram_cnn_gru.MultiResidualBiGRUwSpectrogramCNN
         in_channels: 20
@@ -30,13 +38,25 @@ train_sys:
         _args_:
           - _target_: hydra.utils.get_class
             path: torch.optim.Adam
-        lr: 0.001
+        lr: 0.0001
       criterion:
-        _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
-      epochs: 40
-      batch_size: 32
-      patience: 10
+        _target_: src.modules.training.losses.weighted_kldiv.WeightedKLDivLoss
+        # class_weights: [0.767737189589508, 0.8769737036801599, 1.133067562494455, 1.8903799535040144, 1.0400019137008414, 0.29183967703102165]
+      epochs: 101
+      batch_size: 64
+      patience: 90
       dataset:
         _target_: src.modules.training.datasets.main_dataset.MainDataset
         data_type: "eeg"
+      # scheduler:
+      #   _target_: functools.partial
+      #   _args_:
+      #     - _target_: hydra.utils.get_class
+      #       path: timm.scheduler.cosine_lr.CosineLRScheduler
+      #   t_initial: 25
+      #   cycle_mul: 1
+      #   cycle_decay: 1
+      #   cycle_limit: 1
+      #   warmup_t: 1
+      #   warmup_lr_init: 0.000001
     - _target_: src.modules.postprocessing.softmax.Softmax

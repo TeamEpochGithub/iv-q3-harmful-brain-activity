@@ -49,14 +49,13 @@ train_sys:
         lr: 8e-3
         weight_decay: 1e-2
       criterion:
-        _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
-        reduction: "batchmean"
+        _target_: src.modules.training.losses.weighted_kldiv.WeightedKLDivLoss
       epochs: 20
       batch_size: 64
       patience: 10
-      dataset:
-        _target_: src.modules.training.datasets.main_dataset.MainDataset
+      dataset_args:
         data_type: "eeg"
+        subsample_method: "running_random"
       scheduler:
         _target_: functools.partial
         _args_:

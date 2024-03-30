@@ -111,49 +111,6 @@ class MainTrainer(TorchTrainer, Logger):
         pred_dataset.y = self.y_backup[test_indices, :]
         return pred_dataset
 
-    def custom_predict(self, x: XData, **pred_args: Any) -> torch.Tensor:
-        """Predict on the test data.
-
-        :param x: The input to the system.
-        :return: The output of the system.
-        """
-        print_section_separator(f"Predicting model: {self.model.__class__.__name__}")
-        self.log_to_debug(f"Predicting model: {self.model.__class__.__name__}")
-
-        # Check if pred_args contains batch_size
-        curr_batch_size = pred_args.get("batch_size", self.batch_size)
-
-        # Create dataset
-        pred_dataset = self.create_prediction_dataset(x)
-        pred_dataloader = DataLoader(
-            pred_dataset,
-            batch_size=curr_batch_size,
-            shuffle=False,
-        )
-
-        # If using two-stage training, use the second stage
-        if self.two_stage:
-            self._stage = 1
-
-        # Check if supposed to predict with a single model, or ensemble the fold models
-        model_folds = pred_args.get("model_folds", None)
-
-        # Predict with a single model
-        if model_folds is None or model_folds == -1:
-            self._load_model()
-            return self.predict_on_loader(pred_dataloader)
-
-        # Ensemble the fold models:
-        predictions = []
-        for i in range(model_folds):
-            self.log_to_terminal(f"Predicting with model fold {i+1}/{model_folds}")
-            self._fold = i  # set the fold, which updates the hash
-            self._load_model()  # load the model for this fold
-            predictions.append(self.predict_on_loader(pred_dataloader))
-
-        test_predictions = torch.stack(predictions)
-        return torch.mean(test_predictions, dim=0)
-
     def predict_on_loader(
         self,
         loader: DataLoader[tuple[Tensor, ...]],
@@ -166,6 +123,8 @@ class MainTrainer(TorchTrainer, Logger):
         self.log_to_terminal("Predicting on the test data")
         self.model.eval()
         predictions = []
+        # Create a new dataloader from the dataset of the input dataloader with collate_fn
+        loader = DataLoader(loader.dataset, batch_size=loader.batch_size, shuffle=False, collate_fn=collate_fn)  # type: ignore[arg-type]
         with torch.no_grad(), tqdm(loader, unit="batch", disable=False) as tepoch:
             for data in tepoch:
                 X_batch = data[0].to(self.device).float()
@@ -255,3 +214,65 @@ class MainTrainer(TorchTrainer, Logger):
             model_artifact = wandb.Artifact(self.model_name, type="model")
             model_artifact.add_file(f"{self.model_directory}/{self.get_hash()}.pt")
             wandb.log_artifact(model_artifact)
+
+    def create_dataloaders(
+        self,
+        train_dataset: Dataset[tuple[Tensor, ...]],
+        test_dataset: Dataset[tuple[Tensor, ...]],
+    ) -> tuple[DataLoader[tuple[Tensor, ...]], DataLoader[tuple[Tensor, ...]]]:
+        """Create the dataloaders for training and validation.
+
+        :param train_dataset: The training dataset.
+        :param test_dataset: The validation dataset.
+        :return: The training and validation dataloaders.
+        """
+        train_loader = DataLoader(
+            train_dataset,
+            batch_size=self.batch_size,
+            shuffle=True,
+            collate_fn=collate_fn,  # type: ignore[arg-type]
+        )
+        test_loader = DataLoader(
+            test_dataset,
+            batch_size=self.batch_size,
+            shuffle=False,
+            collate_fn=collate_fn,  # type: ignore[arg-type]
+        )
+        return train_loader, test_loader
+
+    def custom_predict(
+        self,
+        x: XData,
+        **pred_args: Any,
+    ) -> torch.Tensor:
+        """Predict on the test data.
+
+        :param x: The input to the system.
+        :return: The output of the system.
+        """
+        self._load_model()
+
+        print_section_separator(f"Predicting model: {self.model.__class__.__name__}")
+        self.log_to_debug(f"Predicting model: {self.model.__class__.__name__}")
+
+        # Create dataset
+        pred_dataset = self.create_prediction_dataset(x)
+        pred_dataloader = DataLoader(
+            pred_dataset,
+            batch_size=self.batch_size,
+            shuffle=False,
+            collate_fn=collate_fn,  # type: ignore[arg-type]
+        )
+
+        # Predict
+        return self.predict_on_loader(pred_dataloader)
+
+
+def collate_fn(batch: tuple[Tensor, ...]) -> tuple[Tensor, ...]:
+    """Collate function for the dataloader.
+
+    :param batch: The batch to collate.
+    :return: The collated batch.
+    """
+    X, y = batch
+    return X, y
