@@ -46,3 +46,17 @@ class Model(nn.Module):
         # Interpolate to 32x32
         x = F.interpolate(x, size=(1000, 64, 64), mode='trilinear', align_corners=False)
         return self.model(x)
+
+
+
+
+
+
+
+
+
+
+
+
+
+

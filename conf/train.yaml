@@ -1,7 +1,7 @@
 defaults:
   - base_train
   - hydra/logging
-  - model: cnn3d
+  - model: cnn3d-aug
   - wandb: train
 
 metadata_path: data/raw/train.csv
