@@ -246,8 +246,8 @@ class MainTrainer(TorchTrainer, Logger):
 
         if self.two_stage_kl_threshold is not None:
             peak_kl = self.compute_peak_kl(y[indices])
-            indices_1 = indices[peak_kl < self.two_stage_kl_threshold]
-            indices_2 = indices[peak_kl >= self.two_stage_kl_threshold]
+            indices_1 = indices[peak_kl >= self.two_stage_kl_threshold]
+            indices_2 = indices[peak_kl < self.two_stage_kl_threshold]
         elif self.two_stage_evaluator_threshold is not None:
             n_evaluators = y[indices].sum(axis=1)
             indices_1 = indices[n_evaluators <= self.two_stage_evaluator_threshold]
