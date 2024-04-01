@@ -8,6 +8,7 @@ import hydra
 import numpy as np
 import wandb
 from epochalyst.logging.section_separator import print_section_separator
+from epochalyst.pipeline.ensemble import EnsemblePipeline
 from hydra.core.config_store import ConfigStore
 from hydra.utils import instantiate
 from omegaconf import DictConfig
@@ -18,7 +19,6 @@ from src.logging_utils.logger import logger
 from src.utils.script.lock import Lock
 from src.utils.seed_torch import set_torch_seed
 from src.utils.setup import load_training_data, setup_config, setup_data, setup_pipeline, setup_wandb
-from epochalyst.pipeline.ensemble import EnsemblePipeline
 
 warnings.filterwarnings("ignore", category=UserWarning)
 # Makes hydra give full error messages
@@ -55,7 +55,7 @@ def run_train_cfg(cfg: DictConfig) -> None:
 
     # Preload the pipeline
     print_section_separator("Setup pipeline")
-    model_pipeline = setup_pipeline(cfg, is_train=True)
+    model_pipeline = setup_pipeline(cfg)
 
     # Cache arguments for x_sys
     processed_data_path = Path(cfg.processed_path)
@@ -67,7 +67,6 @@ def run_train_cfg(cfg: DictConfig) -> None:
     }
 
     # Read the data if required and split it in X, y
-
     x_cache_exists = model_pipeline.get_x_cache_exists(cache_args)
     y_cache_exists = model_pipeline.get_y_cache_exists(cache_args)
 
@@ -79,10 +78,11 @@ def run_train_cfg(cfg: DictConfig) -> None:
         x_cache_exists=x_cache_exists,
         y_cache_exists=y_cache_exists,
     )
+
     if y is None:
         raise ValueError("No labels loaded to train with")
 
-    # if cache exists, need to read the meta data for the splitter
+    # If cache exists, need to read the meta data for the splitter
     if X is not None:
         splitter_data = X.meta
     else:
@@ -117,7 +117,7 @@ def run_train_cfg(cfg: DictConfig) -> None:
     }
     if isinstance(model_pipeline, EnsemblePipeline):
         train_args = {
-            "ModelPipeline": train_args
+            "ModelPipeline": train_args,
         }
     predictions, _ = model_pipeline.train(X, y, **train_args)
 
@@ -133,8 +133,7 @@ def run_train_cfg(cfg: DictConfig) -> None:
         if wandb.run:
             wandb.log({"Accuracy": accuracy, "F1": f1, "Score": score})
 
-    if wandb.run:
-        wandb.finish()
+    wandb.finish()
 
 
 if __name__ == "__main__":
