@@ -15,6 +15,7 @@ import pandas as pd
 import pyarrow.parquet as pq
 import torch
 import wandb
+from epochalyst.pipeline.ensemble import EnsemblePipeline
 from epochalyst.pipeline.model.model import ModelPipeline
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
@@ -49,12 +50,10 @@ def setup_config(cfg: DictConfig) -> None:
         raise ValueError(f"Missing keys in config: {missing}")
 
 
-def setup_pipeline(pipeline_cfg: DictConfig, is_train: bool | None) -> ModelPipeline:
+def setup_pipeline(pipeline_cfg: DictConfig) -> ModelPipeline | EnsemblePipeline:
     """Instantiate the pipeline.
 
     :param pipeline_cfg: The model pipeline config. Root node should be a ModelPipeline
-    :param output_dir: The directory to save the pipeline to.
-    :param is_train: Whether the pipeline is for training or not.
     """
     logger.info("Instantiating the pipeline")
 
@@ -65,7 +64,7 @@ def setup_pipeline(pipeline_cfg: DictConfig, is_train: bool | None) -> ModelPipe
 
         # Add test size to the config
         model_cfg_dict = OmegaConf.to_container(model_cfg, resolve=True)
-        model_cfg_dict = update_model_cfg_test_size(model_cfg_dict, test_size, is_train=is_train)
+        model_cfg_dict = update_model_cfg_test_size(model_cfg_dict, test_size)
 
         cfg = OmegaConf.create(model_cfg_dict)
 
@@ -74,8 +73,11 @@ def setup_pipeline(pipeline_cfg: DictConfig, is_train: bool | None) -> ModelPipe
 
         ensemble_cfg_dict = OmegaConf.to_container(ensemble_cfg, resolve=True)
         if isinstance(ensemble_cfg_dict, dict):
+            # Turn models into list
+            ensemble_cfg_dict["steps"] = list(ensemble_cfg_dict.get("steps", []).values())
+
             for model in ensemble_cfg_dict.get("models", []):
-                ensemble_cfg_dict["models"][model] = update_model_cfg_test_size(ensemble_cfg_dict["models"][model], test_size, is_train=is_train)
+                ensemble_cfg_dict["models"][model] = update_model_cfg_test_size(ensemble_cfg_dict["models"][model], test_size)
 
         cfg = OmegaConf.create(ensemble_cfg_dict)
 
@@ -89,8 +91,6 @@ def setup_pipeline(pipeline_cfg: DictConfig, is_train: bool | None) -> ModelPipe
 def update_model_cfg_test_size(
     model_cfg_dict: dict[str | bytes | int | Enum | float | bool, Any] | list[Any] | str | None,
     test_size: int = -1,
-    *,
-    is_train: bool | None,
 ) -> dict[str | bytes | int | Enum | float | bool, Any] | list[Any] | str | None:
     """Update the test size in the model config.
 
@@ -104,10 +104,6 @@ def update_model_cfg_test_size(
             model_block["test_size"] = test_size
         for pretrain_block in model_cfg_dict.get("model_loop_pipeline", {}).get("pretrain_pipeline", {}).get("pretrain_steps", []):
             pretrain_block["test_size"] = test_size
-
-        if not is_train:
-            model_cfg_dict.get("feature_pipeline", {})["processed_path"] = "data/test"
-            model_cfg_dict.get("model_loop_pipeline", {}).get("pretrain_pipeline", {})["pretrain_path"] = "data/test"
     return model_cfg_dict
 
 
