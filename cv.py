@@ -18,7 +18,7 @@ from omegaconf import DictConfig
 
 from src.config.cross_validation_config import CVConfig
 from src.logging_utils.logger import logger
-from src.scoring.scorer import Scorer
+from src.scoring.kldiv import KLDiv
 from src.typing.typing import XData
 from src.utils.script.lock import Lock
 from src.utils.seed_torch import set_torch_seed
@@ -131,7 +131,7 @@ def run_fold(
     train_indices: np.ndarray[Any, Any],
     test_indices: np.ndarray[Any, Any],
     cfg: DictConfig,
-    scorer: Scorer,
+    scorer: KLDiv,
     output_dir: Path,
     cache_args: dict[str, Any],
 ) -> tuple[float, float, float]:
@@ -185,7 +185,7 @@ def run_fold(
     score = scorer(y[test_indices], predictions, metadata=X.meta.iloc[test_indices, :])
 
     # Add fold_no to fold path using os.path.join
-    output_dir = os.path.join(output_dir, str(fold_no))
+    output_dir = output_dir / str(fold_no)
     accuracy, f1 = scorer.visualize_preds(y[test_indices], predictions, output_folder=output_dir)
     logger.info(f"Score, fold {fold_no}: {score}")
     logger.info(f"Accuracy, fold {fold_no}: {accuracy}")

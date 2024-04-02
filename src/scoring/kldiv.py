@@ -2,6 +2,7 @@
 import logging
 import os
 import warnings
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -23,7 +24,7 @@ class KLDiv(Scorer):
         """Initialize the scorer with a name."""
         super().__init__(name)
 
-    def __call__(self, y_true: np.ndarray[Any, Any], y_pred: np.ndarray[Any, Any], **kwargs: dict[str, pd.DataFrame]) -> float:
+    def __call__(self, y_true: np.ndarray[Any, Any], y_pred: np.ndarray[Any, Any], **kwargs: pd.DataFrame) -> float:
         """Calculate the Kullback-Leibler divergence between two probability distributions.
 
         :param y_true: The true labels.
@@ -35,7 +36,12 @@ class KLDiv(Scorer):
 
         # Get the metadata
         metadata = kwargs.get("metadata", None).reset_index(drop=True)  # type: ignore[union-attr]
-        scores = metadata.groupby("eeg_id").apply(self.score_group, y_true=y_true, y_pred=y_pred)
+        if metadata is None or not isinstance(metadata, pd.DataFrame):
+            return -1
+
+        grouped_eeg_id = metadata.groupby("eeg_id")
+        scores = grouped_eeg_id.apply(lambda group: self.score_group(group, y_true, y_pred))
+        # scores = metadata.groupby("eeg_id").apply(self.score_group, y_true=y_true, y_pred=y_pred)
         return scores.mean()
 
     def score_group(self, group: pd.DataFrame, y_true: np.ndarray[Any, Any], y_pred: np.ndarray[Any, Any]) -> float:
@@ -75,7 +81,7 @@ class KLDiv(Scorer):
         """Return the name of the scorer."""
         return self.name
 
-    def visualize_preds(self, y_true: np.ndarray[Any, Any], y_pred: np.ndarray[Any, Any], output_folder: str) -> tuple[float, float]:
+    def visualize_preds(self, y_true: np.ndarray[Any, Any], y_pred: np.ndarray[Any, Any], output_folder: Path) -> tuple[float, float]:
         """Visualize the predictions.
 
         :param y_true: The true labels.
@@ -94,11 +100,9 @@ class KLDiv(Scorer):
         logger.setLevel(logging.WARNING)
 
         # Create a folder viz if output_folder + viz does not exist
-        if not os.path.exists(os.path.join(output_folder, "viz")):
-            os.makedirs(os.path.join(output_folder, "viz"))
-
-        # Add viz folder to the output folder
-        output_folder = os.path.join(output_folder, "viz")
+        viz_path = output_folder / "viz"
+        if not os.path.exists(viz_path):
+            os.makedirs(viz_path)
 
         label_names = np.array(["Seizure", "Lpd", "Gpd", "Lrda", "Grda", "Other"])
         y_pred_final = np.argmax(y_pred, axis=1)
@@ -132,7 +136,7 @@ class KLDiv(Scorer):
 
         sns.countplot(data=all_df, x="num_voters", hue="true_name", ax=ax[1], palette=palette)
         ax[1].set_title("Number of voters based on the true label")
-        plt.savefig(os.path.join(output_folder, "num_voters_correct.png"))
+        plt.savefig(viz_path / "num_voters_correct.png")
 
         # Plot a distribution of the true and predicted labels using seaborn kdeplot
         fig, ax = plt.subplots(2, 1, figsize=(40, 20))
@@ -152,7 +156,7 @@ class KLDiv(Scorer):
         sns.kdeplot(data=df_true_long, x="Value", hue="Label", fill=True, ax=ax[1])
         ax[0].set_title("Predicted label distribution")
         ax[1].set_title("True label distribution")
-        plt.savefig(os.path.join(output_folder, "label_distribution.png"))
+        plt.savefig(viz_path / "label_distribution.png")
 
         fig, ax = plt.subplots(figsize=(10, 10))
 
@@ -167,7 +171,7 @@ class KLDiv(Scorer):
         ax.set_title("Confusion Matrix")
 
         # Save the confusion matrix
-        plt.savefig(os.path.join(output_folder, "confusion_matrix.png"))
+        plt.savefig(viz_path / "confusion_matrix.png")
 
         # Calculate the accuracy and the f1 score of the predictions use scikit-learn
         accuracy = sklearn.metrics.accuracy_score(y_true_final, y_pred_final)
