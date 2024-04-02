@@ -1,0 +1,96 @@
+defaults:
+  - pipeline/default@_here_
+  - _self_
+
+x_sys:
+  steps:
+    - _target_: src.modules.transformation.clip.Clip
+      lower: -1024
+      upper: 1024
+    - _target_: src.modules.transformation.nantozero.NaNToZero
+      eeg: true
+    - _target_: src.modules.transformation.eeg.divide.Divide
+      value: 32
+    - _target_: src.modules.transformation.eeg.butter.ButterFilter
+      lower: 0.5
+    - _target_: src.modules.transformation.eeg.quantize.Quantizer
+    - _target_: src.modules.transformation.eeg.downsample.Downsample
+      downsample_factor: 5
+#    - _target_: src.modules.transformation.eeg.rolling.Rolling
+#      channels: [0, 2, 4, 6]
+#      window_sizes: [20, 20, 20, 20]
+#      operations: ["std", "std", "std", "std"]
+#    - _target_: src.modules.transformation.eeg.select_channels.SelectChannels
+#      channels: [8, 9, 10, 11, 12, 13, 14, 15] #Select the last 18 channels
+
+
+train_sys:
+    _target_: src.modules.training.verbose_training_pipeline.VerboseTrainingPipeline
+    steps:
+    - _target_: src.modules.training.main_trainer.MainTrainer
+      model_name: EEGNet
+      model:
+        _target_: src.modules.training.models.grid_eeg_net.GridEEGNet
+        num_classes: 6
+        in_channels: 9
+        fixed_kernel_size: 5
+        linear_layer_features: 304
+        kernels:
+        - 3
+        - 5
+        - 7
+        - 9
+        - 11
+        dropout: 0.09373132051252914
+      optimizer:
+        _target_: functools.partial
+        _args_:
+        - _target_: hydra.utils.get_class
+          path: torch.optim.AdamW
+        lr: 0.003150436594426859
+      criterion:
+        _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
+      epochs: 50
+      batch_size: 64
+      patience: 30
+      two_stage: true
+      two_stage_evaluator_threshold: 4
+      dataset_args:
+        data_type: eeg
+        get_item_custom: null
+        subsample_method: running_random
+        augmentations:
+          # _target_: src.modules.training.augmentations.custom_sequential.CustomSequential
+          # x_transforms:
+          # - _target_: src.modules.training.augmentations.reverse_1d.Reverse1D
+          #   p: 0.22801295284801437
+          # - _target_: src.modules.training.augmentations.mirror_1d.Mirror1D
+          #   p: 0.9469095062894995
+          # - _target_: torch_audiomentations.Shift
+          #   p: 0.21820304460060477
+          #   rollover: true
+          #   mode: per_example
+          # - _target_: src.modules.training.augmentations.random_phase_shift.RandomPhaseShift
+          #   p: 0.40008134950696184
+          #   shift_limit: 0.2501999525667424
+          # - _target_: src.modules.training.augmentations.substract_channels.SubstractChannels
+          #   p: 0.1983820705239484
+          # xy_transforms:
+          # - _target_: src.modules.training.augmentations.mixup_1d.MixUp1D
+          #   p: 0.221265314253958
+          # - _target_: src.modules.training.augmentations.cutmix_1d.CutMix1D
+          #   p: 0.12301533021045688
+          #   low: 0.07886719060925124
+          #   high: 0.5711317254713427
+      scheduler:
+        _target_: functools.partial
+        _args_:
+        - _target_: hydra.utils.get_class
+          path: timm.scheduler.cosine_lr.CosineLRScheduler
+        t_initial: 40
+        cycle_mul: 1
+        cycle_decay: 1
+        cycle_limit: 1
+        warmup_t: 1
+        warmup_lr_init: 1.0e-05
+    - _target_: src.modules.training.postprocessing.softmax.Softmax
