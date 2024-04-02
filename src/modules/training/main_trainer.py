@@ -326,7 +326,9 @@ class MainTrainer(TorchTrainer, Logger):
         return torch.mean(test_predictions, dim=0)
 
     def _train_one_epoch(
-        self, dataloader: DataLoader[tuple[Tensor, ...]], epoch: int
+        self,
+        dataloader: DataLoader[tuple[Tensor, ...]],
+        epoch: int,
     ) -> float:
         """Train the model for one epoch.
 
@@ -334,7 +336,7 @@ class MainTrainer(TorchTrainer, Logger):
         :param epoch: The current epoch.
         :return: The loss for the epoch.
         """
-        self.log_to_terminal(self.initialized_optimizer.param_groups[0]['lr'])
+        self.log_to_terminal(f"Learning rate: {self.initialized_optimizer.param_groups[0]['lr']}")
         return super()._train_one_epoch(dataloader, epoch)
 
     def _early_stopping(self) -> bool:
