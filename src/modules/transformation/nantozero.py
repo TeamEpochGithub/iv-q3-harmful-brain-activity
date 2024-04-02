@@ -10,7 +10,12 @@ from src.typing.typing import XData
 
 @dataclass
 class NaNToZero(VerboseTransformationBlock):
-    """An example transformation block for the transformation pipeline."""
+    """Transformation block that sets NaN values in the EEG data to zero.
+
+    :param eeg: Apply the transformation to the EEG data
+    :param kaggle_spec: Apply the transformation to the Kaggle spectrogram data
+    :param eeg_spec: Apply the transformation to the EEG spectrogram data
+    """
 
     eeg: bool = False
     kaggle_spec: bool = False

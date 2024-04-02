@@ -22,9 +22,10 @@ processed_path: data/processed/small
 
 scorer:
   _target_: src.scoring.kldiv.KLDiv
+  voter_threshold: 10
 test_size: 0.2
 cache_size: -1
 splitter:
   _target_: src.utils.stratified_splitter.StratifiedSplitter
   n_splits: 5
-allow_multiple_instances: false
+allow_multiple_instances: true
