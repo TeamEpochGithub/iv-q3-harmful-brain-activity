@@ -68,7 +68,7 @@ train_sys:
         _target_: src.modules.training.models.timm.Timm
         in_channels: 3
         out_channels: 6
-        model_name: "efficientnet_b0"
+        model_name: "swin_base_patch4_window12_384"
 
       optimizer:
         _target_: functools.partial
@@ -84,16 +84,12 @@ train_sys:
 
       dataset:
         _target_: src.modules.training.datasets.main_dataset.MainDataset
+        subsample_method: "running_random"
         data_type: "custom"
         get_item_custom:
           _target_: src.modules.training.datasets.get_item.chris.ChrisGetItem
           use_kaggle_spec: true
           use_eeg_spec: true
-        # augmentations:
-        #   _target_: kornia.augmentation.AugmentationSequential
-        #   _args_:
-        #     - _target_: kornia.augmentation.RandomHorizontalFlip
-        #       p: 0.5
 
       scheduler:
         _target_: functools.partial
