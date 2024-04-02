@@ -27,3 +27,4 @@ y_sys:
 train_sys:
   steps:
     - _target_: src.modules.training.example_training_block.ExampleTrainingBlock
+    - _target_: src.modules.training.postprocessing.softmax.Softmax

@@ -40,12 +40,13 @@ train_sys:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
         reduction: "batchmean"
         weighted: false
-      epochs: 61
-      batch_size: 32
+      epochs: 1
+      batch_size: 128
       patience: 30
-      dataset:
-        _target_: src.modules.training.datasets.main_dataset.MainDataset
+      dataset_args:
         data_type: "eeg_spec"
+        get_item_custom:
+        subsample_method: "running_random"
         augmentations:
           _target_: kornia.augmentation.AugmentationSequential
           _args_:
@@ -70,3 +71,4 @@ train_sys:
         cycle_limit: 1
         warmup_t: 20
         warmup_lr_init: 1e-5
+    - _target_: src.modules.training.postprocessing.softmax.Softmax

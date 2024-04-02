@@ -6,16 +6,17 @@ defaults:
 
 metadata_path: data/raw/train.csv
 eeg_path: data/raw/train_eegs
-spectrogram_path:
+spectrogram_path: data/raw/train_spectrograms
 raw_path: data/raw
 cache_path: data/cache
 processed_path: data/processed
 
 scorer:
   _target_: src.scoring.kldiv.KLDiv
+  voter_threshold: 10
 test_size: 0.2
 cache_size: -1
 splitter:
   _target_: src.utils.stratified_splitter.StratifiedSplitter
   n_splits: 5
-allow_multiple_instances: false
+allow_multiple_instances: true

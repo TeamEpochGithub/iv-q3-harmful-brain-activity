@@ -1,7 +1,7 @@
 defaults:
   - base_submit
   - hydra/logging
-  - model: nischaydnk
+  - model: eeg_net
 
 # Use this when uploading to Kaggle
 raw_path: /kaggle/input/hms-harmful-brain-activity-classification/
@@ -11,11 +11,11 @@ spectrogram_path: /kaggle/input/hms-harmful-brain-activity-classification/test_s
 result_path: /kaggle/working/
 
 # Use this when running locally
-#metadata_path: data/raw/test.csv
-#eeg_path: data/raw/test_eegs
-#spectrogram_path: data/raw/test_spectrograms
-#raw_path: data/raw/
-#result_path: data/results/
+# metadata_path: data/raw/test.csv
+# eeg_path: data/raw/test_eegs
+# spectrogram_path: data/raw/test_spectrograms
+# raw_path: data/raw/
+# result_path: data/results/
 
-test_size: -1
-model_folds: 5
+test_size: 0.2
+model_folds: 4
