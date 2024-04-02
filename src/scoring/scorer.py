@@ -14,7 +14,7 @@ class Scorer(ABC):
         self.name = name
 
     @abstractmethod
-    def __call__(self, y_true: np.ndarray[Any, Any], y_pred: np.ndarray[Any, Any], **kwargs: dict[str, Any]) -> float:
+    def __call__(self, y_true: np.ndarray[Any, Any], y_pred: np.ndarray[Any, Any], **kwargs: Any) -> float:
         """Calculate the score."""
 
     def __str__(self) -> str:
