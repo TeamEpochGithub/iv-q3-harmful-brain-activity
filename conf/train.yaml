@@ -1,8 +1,8 @@
 defaults:
   - base_train
   - hydra/logging
-  - ensemble: example
-  # - model: eeg_net
+  # - ensemble: example
+  - model: eeg_net
   - wandb: train
 
 metadata_path: data/raw/train.csv
