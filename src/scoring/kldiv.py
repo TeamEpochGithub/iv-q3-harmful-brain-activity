@@ -20,9 +20,14 @@ from src.scoring.scorer import Scorer
 class KLDiv(Scorer):
     """Abstract scorer class from which other scorers inherit from."""
 
-    def __init__(self, name: str = "KLDiv") -> None:
-        """Initialize the scorer with a name."""
+    def __init__(self, name: str = "KLDiv", voter_threshold: int | None = None) -> None:
+        """Initialize the scorer with a name.
+
+        :param name: The name of the scorer.
+        :param voter_threshold: Only include samples with more (exclusive) than voter_threshold voters.
+        """
         super().__init__(name)
+        self.voter_threshold = voter_threshold
 
     def __call__(self, y_true: np.ndarray[Any, Any], y_pred: np.ndarray[Any, Any], **kwargs: pd.DataFrame) -> float:
         """Calculate the Kullback-Leibler divergence between two probability distributions.
@@ -31,6 +36,12 @@ class KLDiv(Scorer):
         :param y_pred: The predicted labels.
         :return: The Kullback-Leibler divergence between the two probability distributions.
         """
+        # Filter out samples with less than voter_threshold voters (sum of y)
+        if self.voter_threshold is not None:
+            indices = y_true.sum(axis=1) > self.voter_threshold
+        else:
+            indices = np.ones(y_true.shape[0], dtype=bool)
+
         # Normalize the true labels to be a probability distribution
         y_true = y_true / y_true.sum(axis=1)[:, None]
 
@@ -39,9 +50,14 @@ class KLDiv(Scorer):
         if metadata is None or not isinstance(metadata, pd.DataFrame):
             return -1
 
+        # Filter the metadata
+        y_true = y_true[indices]
+        y_pred = y_pred[indices]
+        metadata = metadata.iloc[indices].reset_index(drop=True)
+
         grouped_eeg_id = metadata.groupby("eeg_id")
         scores = grouped_eeg_id.apply(lambda group: self.score_group(group, y_true, y_pred))
-        # scores = metadata.groupby("eeg_id").apply(self.score_group, y_true=y_true, y_pred=y_pred)
+
         return scores.mean()
 
     def score_group(self, group: pd.DataFrame, y_true: np.ndarray[Any, Any], y_pred: np.ndarray[Any, Any]) -> float:

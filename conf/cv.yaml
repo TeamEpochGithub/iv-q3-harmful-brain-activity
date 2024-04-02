@@ -2,7 +2,7 @@ defaults:
   - base_cv
   - hydra/logging
   # - ensemble: example
-  - model: eeg_net
+  - model: jaspers_eeg_net_dont_touch
   - wandb: train
 
 metadata_path: data/raw/train.csv
@@ -17,6 +17,6 @@ scorer:
 cache_size: -1
 splitter:
   _target_: src.utils.stratified_splitter.StratifiedSplitter
-  n_splits: 4
-allow_multiple_instances: False
+  n_splits: 5
+allow_multiple_instances: true
 save_folds: true

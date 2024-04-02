@@ -2,7 +2,7 @@ defaults:
   - base_submit
   - hydra/logging
   # - ensemble: example
-  - model: eeg_net
+  - model: jaspers_eeg_net_dont_touch
 
 # Use this when uploading to Kaggle
 # raw_path: /kaggle/input/hms-harmful-brain-activity-classification/
@@ -19,4 +19,4 @@ raw_path: data/raw/
 result_path: data/results/
 
 test_size: 0.2
-model_folds: #5
+model_folds:

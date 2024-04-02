@@ -2,7 +2,7 @@ defaults:
   - base_train
   - hydra/logging
   # - ensemble: example
-  - model: eeg_net
+  - model: jaspers_eeg_net_dont_touch
   - wandb: train
 
 metadata_path: data/raw/train.csv
@@ -14,6 +14,7 @@ processed_path: data/processed
 
 scorer:
   _target_: src.scoring.kldiv.KLDiv
+  # voter_threshold: ???
 test_size: 0.2
 cache_size: -1
 splitter:

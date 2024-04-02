@@ -55,7 +55,7 @@ train_sys:
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
         reduction: "batchmean"
-      epochs: 40
+      epochs: 3
       batch_size: 64
       patience: 15
       dataset_args:
