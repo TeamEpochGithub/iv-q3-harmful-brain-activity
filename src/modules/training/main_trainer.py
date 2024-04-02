@@ -285,7 +285,6 @@ class MainTrainer(TorchTrainer, Logger):
         return torch.mean(test_predictions, dim=0)
 
 
-
 def collate_fn(batch: tuple[Tensor, ...]) -> tuple[Tensor, ...]:
     """Collate function for the dataloader.
 

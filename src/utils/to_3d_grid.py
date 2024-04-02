@@ -1,5 +1,4 @@
 """Converts EEG data to 5D grid format based on the electrode positions."""
-import time
 
 import torch
 
@@ -49,18 +48,19 @@ ELECTRODE_POSITIONS = {
 }
 
 
-def to_3d_grid(eeg_data: torch.tensor, width: int, height: int):
-    """Converts EEG data from 3D (N, C, L) to 5D grid format (N, C, L, W, H) based on the electrode positions.
+def to_3d_grid(eeg_data: torch.Tensor, width: int, height: int) -> torch.Tensor:
+    """Convert EEG data from 3D (N, C, L) to 5D grid format (N, C, L, W, H) based on the electrode positions.
+
     :param eeg_data: EEG data in 3D format (N, C, L).
 
     :return: EEG data in 5D grid format (N, C, L, W, H).
     """
-    n, c, l = eeg_data.shape
+    n, c, l = eeg_data.shape  # noqa: E741
     grid = torch.zeros(n, 1, l, width, height).to(eeg_data.device)
     for i in range(n):
         for curr_t in range(l):
-            slice = eeg_data[i, :, curr_t]
-            for channel, value in enumerate(slice):
+            section = eeg_data[i, :, curr_t]
+            for channel, value in enumerate(section):
                 electrode = ELECTRODES[channel]
                 if electrode == "EKG":
                     continue
@@ -69,12 +69,13 @@ def to_3d_grid(eeg_data: torch.tensor, width: int, height: int):
     return grid
 
 
-def to_3d_grid_vectorized(eeg_data: torch.Tensor, width: int, height: int):
-    """Converts EEG data from 3D (N, C, L) to 5D grid format (N, C, L, W, H) based on the electrode positions, without explicit loops.
+def to_3d_grid_vectorized(eeg_data: torch.Tensor, width: int, height: int) -> torch.Tensor:
+    """Convert EEG data from 3D (N, C, L) to 5D grid format (N, C, L, W, H) based on the electrode positions, without explicit loops.
+
     :param eeg_data: EEG data in 3D format (N, C, L).
     :return: EEG data in 5D grid format (N, 1, L, W, H).
     """
-    n, c, l = eeg_data.shape
+    n, c, l = eeg_data.shape  # noqa: E741
     grid = torch.zeros(n, 1, l, width, height, device=eeg_data.device)
 
     # Generate indices for electrodes excluding "EKG"
@@ -93,17 +94,3 @@ def to_3d_grid_vectorized(eeg_data: torch.Tensor, width: int, height: int):
         grid[:, 0, :, x, y] = valid_eeg_data[:, i, :]
 
     return grid
-
-
-if __name__ == "__main__":
-    eeg_data = torch.rand(32, 19, 2000)
-    start = time.time()
-    grid1 = to_3d_grid(eeg_data, 9, 9)
-    print(f"Time to convert to 5D: {time.time() - start}")
-
-    start = time.time()
-    grid2 = to_3d_grid_vectorized(eeg_data, 9, 9)
-    print(f"Time to convert to 5D (vectorized): {time.time() - start}")
-    print(grid2.shape)
-
-    assert torch.allclose(grid1, grid2, atol=1e-6)
