@@ -26,9 +26,6 @@ x_sys:
 #      channels: [8, 9, 10, 11, 12, 13, 14, 15] #Select the last 18 channels
 
 
-y_sys:
-  steps:
-    - _target_: src.modules.transformation.target.sum_to_one.SumToOne
 
 train_sys:
   steps:
@@ -51,6 +48,8 @@ train_sys:
       epochs: 50
       batch_size: 64
       patience: 15
+      two_stage: true
+      two_stage_evaluator_threshold: 9
       dataset_args:
         data_type: "eeg"
         get_item_custom:
@@ -69,16 +68,7 @@ train_sys:
             - _target_: src.modules.training.augmentations.random_phase_shift.RandomPhaseShift
               p: 0.51237
               shift_limit: 0.138
-            - _target_: src.modules.training.augmentations.substract_channels.SubstractChannels
-              p: 0.062
           xy_transforms:
-            - _target_: src.modules.training.augmentations.mixup_1d.MixUp1D
-              p: 0.123
-            - _target_: src.modules.training.augmentations.cutmix_1d.CutMix1D
-              p: 0.092
-              # Randomly select a percentage between 'low' and 'high' to preserve on the left side of the signal.
-              low: 0.382
-              high: 0.574
       scheduler:
         _target_: functools.partial
         _args_:

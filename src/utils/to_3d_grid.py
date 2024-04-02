@@ -56,6 +56,37 @@ def to_3d_grid_vectorized(eeg_data: torch.Tensor, width: int, height: int):
 
     return grid
 
+def simple_smoothing(grid):
+    """
+    Simple smoothing function to replace zero values with the average of their non-zero neighbors.
+    This is a conceptual demonstration and might need adjustments for optimal performance.
+
+    :param grid: Input grid of shape (N, C, D, H, W)
+    :return: Smoothed grid.
+    """
+    import torch.nn.functional as F
+
+    # Define a kernel for averaging that ignores zeros
+    kernel_size = 5
+    padding = kernel_size // 2
+    channels = grid.size(1)
+    # Creating a kernel that sums neighbors
+    kernel = torch.ones((channels, 1, kernel_size, kernel_size, kernel_size), device=grid.device)
+    kernel[:, :, kernel_size // 2, kernel_size // 2, kernel_size // 2] = 0
+
+    # Convolve with the grid to sum up neighbors
+    neighbor_sum = F.conv3d(grid, kernel, padding=padding, groups=channels)
+    # Count neighbors that are not zero (for averaging)
+    neighbor_count = F.conv3d(torch.where(grid != 0, 1.0, 0.0), kernel, padding=padding, groups=channels)
+
+    # Compute the average, avoiding division by zero
+    neighbor_avg = torch.where(neighbor_count > 0, neighbor_sum / neighbor_count, torch.tensor(0.0, device=grid.device))
+
+    # Replace zeros in the original grid with the computed average
+    smoothed_grid = torch.where(grid == 0, neighbor_avg, grid)
+
+    return smoothed_grid
+
 if __name__ == "__main__":
     eeg_data = torch.rand(32, 19, 2000)
     start = time.time()

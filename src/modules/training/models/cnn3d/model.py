@@ -5,7 +5,7 @@ import torch
 from torch import nn
 
 from src.modules.training.models.cnn3d.efficientnet import EfficientNet3D
-from src.utils.to_3d_grid import to_3d_grid_vectorized
+from src.utils.to_3d_grid import to_3d_grid_vectorized, simple_smoothing
 
 
 class Model(nn.Module):
@@ -43,17 +43,9 @@ class Model(nn.Module):
         start = time.time()
         x = to_3d_grid_vectorized(x, 9, 9)
         import torch.nn.functional as F
-        # Interpolate to 32x32
+        #x = simple_smoothing(x)
         x = F.interpolate(x, size=(1000, 64, 64), mode='trilinear', align_corners=False)
         return self.model(x)
-
-
-
-
-
-
-
-
 
 
 

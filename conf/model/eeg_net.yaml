@@ -53,8 +53,8 @@ train_sys:
       epochs: 50
       batch_size: 64
       patience: 15
-      # two_stage: true
-      # two_stage_evaluator_threshold: 4
+      two_stage: true
+      two_stage_evaluator_threshold: 9
       dataset_args:
         data_type: "eeg"
         get_item_custom:
