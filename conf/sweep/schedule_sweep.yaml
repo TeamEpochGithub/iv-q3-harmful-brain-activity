@@ -5,7 +5,7 @@ command:
 method: bayes
 project: detect-harmful-brain-activity
 program: cv.py
-name: EEGNet
+name: EEGNet two-stage schedule
 metric:
   name: Score
   goal: minimize
