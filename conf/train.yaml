@@ -1,6 +1,7 @@
 defaults:
   - base_train
   - hydra/logging
+  # - ensemble: example
   - model: wave_net
   - wandb: train
 
@@ -13,7 +14,7 @@ processed_path: data/processed
 
 scorer:
   _target_: src.scoring.kldiv.KLDiv
-  voter_threshold: 10
+  # voter_threshold: ???
 test_size: 0.2
 cache_size: -1
 splitter:
