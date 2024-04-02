@@ -34,7 +34,7 @@ train_sys:
       # two_stage_kl_threshold: 5.5
       two_stage_evaluator_threshold: 3
       two_stage_split_test: true
-      two_stage_pretrain_full: false
+      two_stage_pretrain_full: true
       model:
         _target_: src.modules.training.models.eeg_net.EEGNet
         num_classes: 6
@@ -45,13 +45,13 @@ train_sys:
         linear_layer_features: 304 # 1/4 1/5 1/6 Signal = 2_000
         # linear_layer_features: 280 # 1/10 Signal = 1_000
         kernels: [3, 5,7,9,11]
-        dropout: 0.01756
+        dropout: 0.1
       optimizer: # Partially instantiate optimizer, so model parameters can be linked at runtime
         _target_: functools.partial
         _args_:
           - _target_: hydra.utils.get_class
             path: torch.optim.AdamW
-        lr: 0.009654
+        lr: 0.00315
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
         reduction: "batchmean"
@@ -62,20 +62,27 @@ train_sys:
         subsample_method: running_random
         data_type: "eeg"
         augmentations:
-          _target_: torch_audiomentations.Compose
-          transforms:
-          - _target_: torch_audiomentations.Shift
-            p: 0.368
-            rollover: true
-            mode: per_example
-          - _target_: torch_audiomentations.ShuffleChannels
-            p: 0.2996
-          - _target_: torch_audiomentations.AddColoredNoise
-            p: 0.279
-            mode: per_channel
-            p_mode: per_channel
-            max_snr_in_db: 15
-            sample_rate: 200
+          _target_: src.modules.training.augmentations.custom_sequential.CustomSequential
+          x_transforms:
+            - _target_: src.modules.training.augmentations.reverse_1d.Reverse1D
+              p: 0.23
+            - _target_: torch_audiomentations.Shift
+              p: 0.22
+              rollover: true
+              mode: per_example
+            - _target_: src.modules.training.augmentations.random_phase_shift.RandomPhaseShift
+              p: 0.4
+              shift_limit: 0.25
+            - _target_: src.modules.training.augmentations.substract_channels.SubstractChannels
+              p: 0.2
+          xy_transforms:
+            - _target_: src.modules.training.augmentations.mixup_1d.MixUp1D
+              p: 0.22
+            - _target_: src.modules.training.augmentations.cutmix_1d.CutMix1D
+              p: 0.12
+              # Randomly select a percentage between 'low' and 'high' to preserve on the left side of the signal.
+              low: 0.0
+              high: 0.75
       scheduler:
         _target_: functools.partial
         _args_:

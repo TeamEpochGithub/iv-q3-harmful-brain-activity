@@ -15,5 +15,5 @@ class SubstractChannels(torch.nn.Module):
         if torch.rand(1) < self.p:
             length = x.shape[1] - 1
             total = x.sum(dim=1) / length
-            x = x - total + (x / length)
+            x = x - total.unsqueeze(1) + (x / length)
         return x
