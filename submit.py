@@ -6,6 +6,7 @@ from pathlib import Path
 import hydra
 import pandas as pd
 from epochalyst.logging.section_separator import print_section_separator
+from epochalyst.pipeline.ensemble import EnsemblePipeline
 from hydra.core.config_store import ConfigStore
 from omegaconf import DictConfig
 
@@ -39,7 +40,7 @@ def run_submit(cfg: DictConfig) -> None:
 
     # Preload the pipeline
     print_section_separator("Setup pipeline")
-    model_pipeline = setup_pipeline(cfg, is_train=False)
+    model_pipeline = setup_pipeline(cfg)
 
     # Load the test data
     eeg_path = Path(cfg.eeg_path)
@@ -58,6 +59,10 @@ def run_submit(cfg: DictConfig) -> None:
             },
         },
     }
+    if isinstance(model_pipeline, EnsemblePipeline):
+        pred_args = {
+            "ModelPipeline": pred_args,
+        }
     predictions = model_pipeline.predict(X, **pred_args)
 
     # Make submission
