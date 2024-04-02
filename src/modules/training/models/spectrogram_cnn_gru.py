@@ -38,6 +38,7 @@ class MultiResidualBiGRUwSpectrogramCNN(nn.Module):
         )
         # will shape the encoder outputs to the same shape as the original inputs
         self.liner = nn.Linear(in_features=(n_fft+1)//2, out_features=in_channels)
+        self.out_linear = nn.Linear(2000, out_features=1)
 
         self.decoder = UNet1DDecoder(
             n_channels=(n_fft+1)//2,
@@ -50,11 +51,8 @@ class MultiResidualBiGRUwSpectrogramCNN(nn.Module):
 
     def forward(self, x, use_activation=True):
         x = F.pad(x, (0, 16, 0, 0))
-        x = self.batch_norm(x)
         x_spec = self.spectrogram(x)
         x_encoded = self.encoder(x_spec).squeeze(1)
-        # The rest of the features are subsampled and passed to the decoder
-        # as residual features
 
         x_decoded = self.decoder(x_encoded)
 
@@ -65,8 +63,8 @@ class MultiResidualBiGRUwSpectrogramCNN(nn.Module):
 
         y, _ = self.GRU(x_encoded_linear, use_activation=use_activation)
         out = y.permute(0, 2, 1) + x_decoded.permute(0, 2, 1)
-        out = torch.sigmoid(out)
-        return out.permute(0, 2, 1)[:,:-16,:]
+        out = self.out_linear(out[:,:, :-16]).squeeze(-1)
+        return out
 
 
 class SpecNormalize(nn.Module):

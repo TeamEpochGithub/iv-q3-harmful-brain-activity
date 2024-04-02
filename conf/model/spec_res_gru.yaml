@@ -8,22 +8,15 @@ x_sys:
       lower: -1024
       upper: 1024
       eeg: true
-    - _target_: src.modules.transformation.nantozero.NaNToZero
-      eeg: true
     - _target_: src.modules.transformation.eeg.divide.Divide
       value: 32
+    - _target_: src.modules.transformation.nantozero.NaNToZero
+      eeg: true
     - _target_: src.modules.transformation.eeg.butter.ButterFilter
-
+      lower: 0.5
     - _target_: src.modules.transformation.eeg.downsample.Downsample
       downsample_factor: 5
 
-
-y_sys:
-  steps:
-    - _target_: src.modules.transformation.target.sum_to_one.SumToOne
-    - _target_: src.modules.transformation.target.gaussian_target.GaussianTarget
-      labels_length: 2000
-      sigma: 2 # in seconds
 
 train_sys:
   steps:
@@ -40,23 +33,35 @@ train_sys:
             path: torch.optim.Adam
         lr: 0.0001
       criterion:
-        _target_: src.modules.training.losses.weighted_kldiv.WeightedKLDivLoss
-        # class_weights: [0.767737189589508, 0.8769737036801599, 1.133067562494455, 1.8903799535040144, 1.0400019137008414, 0.29183967703102165]
-      epochs: 101
-      batch_size: 64
-      patience: 90
-      dataset:
-        _target_: src.modules.training.datasets.main_dataset.MainDataset
-        data_type: "eeg"
-      # scheduler:
-      #   _target_: functools.partial
-      #   _args_:
-      #     - _target_: hydra.utils.get_class
-      #       path: timm.scheduler.cosine_lr.CosineLRScheduler
-      #   t_initial: 25
-      #   cycle_mul: 1
-      #   cycle_decay: 1
-      #   cycle_limit: 1
-      #   warmup_t: 1
-      #   warmup_lr_init: 0.000001
-    - _target_: src.modules.postprocessing.softmax.Softmax
+        _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
+      epochs: 30
+      batch_size: 48
+      patience: 15
+      dataset_args:
+        data_type: eeg
+        get_item_custom: null
+        subsample_method: running_random
+        augmentations:
+          _target_: src.modules.training.augmentations.custom_sequential.CustomSequential
+          x_transforms:
+          - _target_: src.modules.training.augmentations.reverse_1d.Reverse1D
+            p: 0.22801295284801437
+          - _target_: src.modules.training.augmentations.mirror_1d.Mirror1D
+            p: 0.9469095062894995
+          - _target_: torch_audiomentations.Shift
+            p: 0.21820304460060477
+            rollover: true
+            mode: per_example
+          - _target_: src.modules.training.augmentations.random_phase_shift.RandomPhaseShift
+            p: 0.40008134950696184
+            shift_limit: 0.2501999525667424
+          - _target_: src.modules.training.augmentations.substract_channels.SubstractChannels
+            p: 0.1983820705239484
+          xy_transforms:
+          - _target_: src.modules.training.augmentations.mixup_1d.MixUp1D
+            p: 0.221265314253958
+          - _target_: src.modules.training.augmentations.cutmix_1d.CutMix1D
+            p: 0.12301533021045688
+            low: 0.07886719060925124
+            high: 0.5711317254713427
+    - _target_: src.modules.training.postprocessing.softmax.Softmax
