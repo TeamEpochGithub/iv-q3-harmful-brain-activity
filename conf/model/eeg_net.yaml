@@ -28,70 +28,72 @@ x_sys:
 
 
 train_sys:
-  steps:
+    _target_: src.modules.training.verbose_training_pipeline.VerboseTrainingPipeline
+    steps:
     - _target_: src.modules.training.main_trainer.MainTrainer
-      model_name: EEGNet # Can't have special characters or spaces
+      model_name: EEGNet
       model:
         _target_: src.modules.training.models.eeg_net.EEGNet
         num_classes: 6
         in_channels: 9
         fixed_kernel_size: 5
-        #linear_layer_features: 448
-        #linear_layer_features: 352 # Half Signal = 5_000
-        linear_layer_features: 304 # 1/4 1/5 1/6 Signal = 2_000
-        #linear_layer_features: 280 # 1/10 Signal = 1_000
-        kernels: [3,5,7,9,11]
-        dropout: 0.1
-      optimizer: # Partially instantiate optimizer, so model parameters can be linked at runtime
+        linear_layer_features: 304
+        kernels:
+        - 3
+        - 5
+        - 7
+        - 9
+        - 11
+        dropout: 0.07330780505038759
+      optimizer:
         _target_: functools.partial
         _args_:
-          - _target_: hydra.utils.get_class
-            path: torch.optim.AdamW
-        lr: 0.004
+        - _target_: hydra.utils.get_class
+          path: torch.optim.Adam
+        lr: 0.006262016611033825
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
       epochs: 30
       batch_size: 64
       patience: 15
-      # two_stage: true
-      # two_stage_evaluator_threshold: 4
+      two_stage: true
+      two_stage_evaluator_threshold: 4
       dataset_args:
-        data_type: "eeg"
-        get_item_custom:
-        subsample_method: "running_random"
+        data_type: eeg
+        get_item_custom: null
+        subsample_method: running_random
         augmentations:
           _target_: src.modules.training.augmentations.custom_sequential.CustomSequential
           x_transforms:
-            - _target_: src.modules.training.augmentations.reverse_1d.Reverse1D
-              p: 0.2
-            - _target_: src.modules.training.augmentations.mirror_1d.Mirror1D
-              p: 0.2
-            - _target_: torch_audiomentations.Shift
-              p: 0.5
-              rollover: true
-              mode: per_example
-            - _target_: src.modules.training.augmentations.random_phase_shift.RandomPhaseShift
-              p: 0.4
-              shift_limit: 0.5
-            - _target_: src.modules.training.augmentations.substract_channels.SubstractChannels
-              p: 0.5
+          - _target_: src.modules.training.augmentations.reverse_1d.Reverse1D
+            p: 0.2010456000703182
+          - _target_: src.modules.training.augmentations.mirror_1d.Mirror1D
+            p: 0.705159565225877
+          - _target_: torch_audiomentations.Shift
+            p: 0.11676425792087344
+            rollover: true
+            mode: per_example
+          - _target_: src.modules.training.augmentations.random_phase_shift.RandomPhaseShift
+            p: 0.5123712298424329
+            shift_limit: 0.13808832184948588
+          - _target_: src.modules.training.augmentations.substract_channels.SubstractChannels
+            p: 0.06238920092141911
           xy_transforms:
-            - _target_: src.modules.training.augmentations.mixup_1d.MixUp1D
-              p: 0.2
-            - _target_: src.modules.training.augmentations.cutmix_1d.CutMix1D
-              p: 0.2
-              # Randomly select a percentage between 'low' and 'high' to preserve on the left side of the signal.
-              low: 0.0
-              high: 0.5
+          - _target_: src.modules.training.augmentations.mixup_1d.MixUp1D
+            p: 0.1234646020938464
+          - _target_: src.modules.training.augmentations.cutmix_1d.CutMix1D
+            p: 0.09246681217775204
+            low: 0.3827211141933653
+            high: 0.5744078466985838
       scheduler:
         _target_: functools.partial
         _args_:
-          - _target_: hydra.utils.get_class
-            path: timm.scheduler.cosine_lr.CosineLRScheduler
+        - _target_: hydra.utils.get_class
+          path: timm.scheduler.cosine_lr.CosineLRScheduler
         t_initial: 40
         cycle_mul: 1
         cycle_decay: 1
         cycle_limit: 1
         warmup_t: 1
-        warmup_lr_init: 1e-5
+        warmup_lr_init: 1.0e-05
     - _target_: src.modules.training.postprocessing.softmax.Softmax
