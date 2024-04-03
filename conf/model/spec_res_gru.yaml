@@ -4,16 +4,22 @@ defaults:
 
 x_sys:
   steps:
+    - _target_: src.modules.transformation.eeg.bipolar.BipolarEEG
+      use_full_map: false
+      keep_ekg: false
     - _target_: src.modules.transformation.clip.Clip
       lower: -1024
       upper: 1024
       eeg: true
-    - _target_: src.modules.transformation.eeg.divide.Divide
-      value: 32
     - _target_: src.modules.transformation.nantozero.NaNToZero
       eeg: true
+    - _target_: src.modules.transformation.eeg.divide.Divide
+      value: 32
     - _target_: src.modules.transformation.eeg.butter.ButterFilter
       lower: 0.5
+      upper: 20
+      order: 2
+    - _target_: src.modules.transformation.eeg.quantize.Quantizer
     - _target_: src.modules.transformation.eeg.downsample.Downsample
       downsample_factor: 5
 
@@ -24,8 +30,12 @@ train_sys:
       model_name: q1_spec_res_gru
       model:
         _target_: src.modules.training.models.spectrogram_cnn_gru.MultiResidualBiGRUwSpectrogramCNN
-        in_channels: 20
+        in_channels: 9
         out_channels: 6
+        n_fft: 447
+        hop_length: 9
+        n_layers: 1
+        dropout: 0.2
       optimizer: # Partially instantiate optimizer, so model parameters can be linked at runtime
         _target_: functools.partial
         _args_:
@@ -34,8 +44,8 @@ train_sys:
         lr: 0.0001
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
-      epochs: 30
-      batch_size: 48
+      epochs: 20
+      batch_size: 96
       patience: 15
       dataset_args:
         data_type: eeg
@@ -64,4 +74,16 @@ train_sys:
             p: 0.12301533021045688
             low: 0.07886719060925124
             high: 0.5711317254713427
+      scheduler:
+        _target_: functools.partial
+        _args_:
+          - _target_: hydra.utils.get_class
+            path: timm.scheduler.cosine_lr.CosineLRScheduler
+        t_initial: 40
+        cycle_mul: 1
+        cycle_decay: 1
+        cycle_limit: 1
+        warmup_t: 10
+        warmup_lr_init: 1e-5
+        lr_min: 0.00002
     - _target_: src.modules.training.postprocessing.softmax.Softmax

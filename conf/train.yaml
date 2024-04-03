@@ -1,19 +1,18 @@
 defaults:
   - base_train
   - hydra/logging
-  - model: grid_eeg_net
+  - model: spec_res_gru
   - wandb: train
 
 metadata_path: data/raw/train.csv
 eeg_path: data/raw/train_eegs
-spectrogram_path: data/raw/train_spectrograms
+spectrogram_path: 
 raw_path: data/raw
 cache_path: data/cache
 processed_path: data/processed
 
 scorer:
   _target_: src.scoring.kldiv.KLDiv
-  # voter_threshold: ???
 test_size: 0.2
 cache_size: -1
 splitter:

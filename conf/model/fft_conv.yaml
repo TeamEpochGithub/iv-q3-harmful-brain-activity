@@ -4,6 +4,9 @@ defaults:
 
 x_sys:
   steps:
+    - _target_: src.modules.transformation.eeg.bipolar.BipolarEEG
+      use_full_map: false
+      keep_ekg: false
     - _target_: src.modules.transformation.clip.Clip
       lower: -1024
       upper: 1024
@@ -12,10 +15,13 @@ x_sys:
       eeg: true
     - _target_: src.modules.transformation.eeg.divide.Divide
       value: 32
+    - _target_: src.modules.transformation.eeg.butter.ButterFilter
+      lower: 0.5
+      upper: 20
+      order: 2
+    - _target_: src.modules.transformation.eeg.quantize.Quantizer
 
-y_sys:
-  steps:
-    - _target_: src.modules.transformation.target.sum_to_one.SumToOne
+
 
 train_sys:
   steps:
@@ -31,26 +37,34 @@ train_sys:
             path: torch.optim.Adam
         lr: 0.001
       criterion:
-        _target_: src.modules.training.losses.weighted_kldiv.WeightedKLDivLoss
-      epochs: 50
-      batch_size: 128
-      patience: 50
-      dataset:
-        _target_: src.modules.training.datasets.main_dataset.MainDataset
-        data_type: "eeg"
+        _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
+      epochs: 30
+      batch_size: 64
+      patience: 15
+      dataset_args:
+        data_type: eeg
+        get_item_custom: null
+        subsample_method: running_random
         augmentations:
-          # _target_: src.modules.training.augmentations.random_band_filter.RandomBandFilter
-          # low_cutoff_range: [0.1, 0.5]
-          # high_cutoff_range: [50, 100]
-          # p: 0.5
-      scheduler:
-        _target_: functools.partial
-        _args_:
-          - _target_: hydra.utils.get_class
-            path: timm.scheduler.cosine_lr.CosineLRScheduler
-        t_initial: 50
-        cycle_mul: 1
-        cycle_decay: 1
-        cycle_limit: 1
-        warmup_t: 5
-        warmup_lr_init: 1e-5
+          _target_: src.modules.training.augmentations.custom_sequential.CustomSequential
+          x_transforms:
+          - _target_: src.modules.training.augmentations.reverse_1d.Reverse1D
+            p: 0.22801295284801437
+
+          - _target_: torch_audiomentations.Shift
+            p: 0.21820304460060477
+            rollover: true
+            mode: per_example
+
+          - _target_: src.modules.training.augmentations.substract_channels.SubstractChannels
+            p: 0.1983820705239484
+          xy_transforms:
+          - _target_: src.modules.training.augmentations.mixup_1d.MixUp1D
+            p: 0.221265314253958
+          - _target_: src.modules.training.augmentations.cutmix_1d.CutMix1D
+            p: 0.12301533021045688
+            low: 0.07886719060925124
+            high: 0.5711317254713427
+
+    - _target_: src.modules.training.postprocessing.softmax.Softmax
+    

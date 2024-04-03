@@ -9,7 +9,7 @@ from src.modules.training.models.unet_decoder import UNet1DDecoder
 
 
 class MultiResidualBiGRUwSpectrogramCNN(nn.Module):
-    def __init__(self, in_channels, out_channels, n_fft=127, n_layers=5):
+    def __init__(self, in_channels: int, out_channels, n_fft=127, n_layers=5, dropout: float = 0.0, hop_length=1):
         super(MultiResidualBiGRUwSpectrogramCNN, self).__init__()
         # TODO exclude some of the features from the spectrogram
         self.encoder = Unet(
@@ -20,7 +20,7 @@ class MultiResidualBiGRUwSpectrogramCNN(nn.Module):
             encoder_depth=5,
         )
         self.spectrogram = nn.Sequential(
-            T.Spectrogram(n_fft=n_fft, hop_length=1),
+            T.Spectrogram(n_fft=n_fft, hop_length=hop_length),
             T.AmplitudeToDB(top_db=80),
             SpecNormalize(),
         )
@@ -32,27 +32,27 @@ class MultiResidualBiGRUwSpectrogramCNN(nn.Module):
             bidir=True,
             activation="relu",
             flatten=False,
-            dropout=0,
+            dropout=dropout,
             internal_layers=1,
             model_name="",
         )
         # will shape the encoder outputs to the same shape as the original inputs
         self.liner = nn.Linear(in_features=(n_fft+1)//2, out_features=in_channels)
-        self.out_linear = nn.Linear(2000, out_features=1)
+        self.pool_stage = nn.AvgPool1d(9)
+        self.last_linear = nn.Linear(in_features=224, out_features=1)
 
         self.decoder = UNet1DDecoder(
             n_channels=(n_fft+1)//2,
             n_classes=out_channels,
             bilinear=False,
             scale_factor=2,
-            duration=2016,
+            duration=224,
         )
         self.batch_norm = nn.BatchNorm1d(in_channels)
 
-        self.out_layer = nn.Linear(2000, 1)
 
     def forward(self, x, use_activation=True):
-        x = F.pad(x, (0, 16, 0, 0))
+        x = F.pad(x, (8, 8, 0, 0))
         x_spec = self.spectrogram(x)
         x_encoded = self.encoder(x_spec).squeeze(1)
 
@@ -60,12 +60,12 @@ class MultiResidualBiGRUwSpectrogramCNN(nn.Module):
 
         x_encoded = x_encoded.permute(0, 2, 1)
         x_encoded_linear = self.liner(x_encoded)
-
-        x_encoded_linear = x.permute(0, 2, 1) + x_encoded_linear
+        x_downsampled = self.pool_stage(x)
+        x_encoded_linear = x_downsampled.permute(0, 2, 1) + x_encoded_linear
 
         y, _ = self.GRU(x_encoded_linear, use_activation=use_activation)
         out = y.permute(0, 2, 1) + x_decoded.permute(0, 2, 1)
-        out = self.out_linear(out[:,:, :-16]).squeeze(-1)
+        out = self.last_linear(out).squeeze(-1)
         return out
 
 

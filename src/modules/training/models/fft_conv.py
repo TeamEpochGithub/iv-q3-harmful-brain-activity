@@ -6,7 +6,7 @@ from torch import nn
 
 
 class FFTConv(nn.Module):
-    def __init__(self, in_channels: int = 20, intermediate_channels: int = 64, out_channels: int = 6):
+    def __init__(self, in_channels: int = 9, intermediate_channels: int = 64, out_channels: int = 6):
         super().__init__()
         self.conv_list1 = nn.ModuleList(
             [nn.Conv1d(in_channels, intermediate_channels, kernel_size=100, padding=0) for _ in range(100)])
@@ -18,7 +18,7 @@ class FFTConv(nn.Module):
     def forward(self, x):
         # Given x takethe fft of the input
         x = torch.fft.fft(x, dim=-1)
-        x_abs = torch.log(torch.clamp(torch.abs(x), min=1e-15, max=1-1e-15))
+        x_abs = torch.nan_to_num(torch.log(torch.abs(x)), nan=0.0, posinf=0.0, neginf=0.0)
         x2 = torch.zeros(x.shape[0], self.intermediate_channels, 100).to('cuda')
         out = torch.zeros(x.shape[0], 6).to('cuda')
         # Apply the convolutions

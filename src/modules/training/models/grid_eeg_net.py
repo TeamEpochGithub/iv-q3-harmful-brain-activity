@@ -49,6 +49,11 @@ class GridEEGNet(nn.Module):
             nn.Conv2d(1, 1, 9),
 
         )
+        if kwargs.get("residual", False):
+            self.residual = True
+            del kwargs["residual"]
+
+        self.batch_norm = nn.BatchNorm1d(24)
 
         self.eeg_net = EEGNet(**kwargs)  # type: ignore[arg-type]
 
@@ -74,9 +79,10 @@ class GridEEGNet(nn.Module):
         all_features = torch.cat(all_features, dim=2)
 
         # concat the inital features with the conv features
-        model_input = torch.cat([x, all_features.permute(0, 2, 1)], dim=1)
-
-        return self.eeg_net(model_input)
+        if self.residual:
+            all_features = torch.cat([x, all_features.permute(0, 2, 1)], dim=1)
+        all_features = self.batch_norm(all_features)
+        return self.eeg_net(all_features)
 
 if __name__ == "__main__":
     
