@@ -29,7 +29,7 @@ train_sys:
     - _target_: src.modules.training.main_trainer.MainTrainer
       model_name: q1_spec_res_gru
       model:
-        _target_: src.modules.training.models.spectrogram_cnn_gru.MultiResidualBiGRUwSpectrogramCNN
+        _target_: src.modules.training.models.spectrogram_cnn_gru2.MultiResidualBiGRUwSpectrogramCNN
         in_channels: 9
         out_channels: 6
         n_fft: 447
