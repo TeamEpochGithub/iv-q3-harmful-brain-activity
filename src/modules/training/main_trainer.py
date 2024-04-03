@@ -1,5 +1,6 @@
 """Module for example training block."""
 import copy
+import gc
 from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any
@@ -42,8 +43,12 @@ class MainTrainer(TorchTrainer, Logger):
     two_stage_pretrain_full: bool = False
     two_stage_split_test: bool = False
     early_stopping: bool = True
+    revert_to_best: bool = False
     _fold: int = field(default=-1, init=False, repr=False, compare=False)
     _stage: int = field(default=-1, init=False, repr=False, compare=False)
+
+    _cur_epoch: int = field(default=-1, init=False, repr=False, compare=False)
+    _last_lr: float = field(default=-1, init=False, repr=False, compare=False)
 
     def create_datasets(
         self,
@@ -221,6 +226,97 @@ class MainTrainer(TorchTrainer, Logger):
 
         return list(indices_1), list(indices_2)
 
+    def _train_one_epoch(
+        self,
+        dataloader: DataLoader[tuple[Tensor, ...]],
+        epoch: int,
+    ) -> float:
+        """Train the model for one epoch.
+
+        :param dataloader: Dataloader for the training data.
+        :param epoch: Epoch number.
+        :return: Average loss for the epoch.
+        """
+        losses = []
+        self.model.train()
+
+        pbar = tqdm(dataloader, unit="batch", desc=f"Epoch {epoch} Train ({self.initialized_optimizer.param_groups[0]['lr']})")
+        for batch in pbar:
+            X_batch, y_batch = batch
+            X_batch = X_batch.to(self.device).float()
+            y_batch = y_batch.to(self.device).float()
+
+            # Forward pass
+            y_pred = self.model(X_batch).squeeze(1)
+            loss = self.criterion(y_pred, y_batch)
+
+            # Backward pass
+            self.initialized_optimizer.zero_grad()
+            loss.backward()
+            self.initialized_optimizer.step()
+
+            # Print tqdm
+            losses.append(loss.item())
+            pbar.set_postfix(loss=sum(losses) / len(losses))
+
+        # Save last LR
+        self._last_lr = self.initialized_optimizer.param_groups[0]["lr"]
+
+        # Step the scheduler
+        if self.initialized_scheduler is not None:
+            if isinstance(self.initialized_scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+                self._cur_epoch = epoch
+            else:
+                self.initialized_scheduler.step(epoch=epoch)
+
+        # Remove the cuda cache
+        torch.cuda.empty_cache()
+        gc.collect()
+
+        return sum(losses) / len(losses)
+
+    def _val_one_epoch(
+        self,
+        dataloader: DataLoader[tuple[Tensor, ...]],
+        desc: str,
+    ) -> float:
+        """Compute validation loss of the model for one epoch.
+
+        :param dataloader: Dataloader for the testing data.
+        :param desc: Description for the tqdm progress bar.
+        :return: Average loss for the epoch.
+        """
+        losses = []
+        self.model.eval()
+        pbar = tqdm(dataloader, unit="batch")
+        with torch.no_grad():
+            for batch in pbar:
+                X_batch, y_batch = batch
+                X_batch = X_batch.to(self.device).float()
+                y_batch = y_batch.to(self.device).float()
+
+                # Forward pass
+                y_pred = self.model(X_batch).squeeze(1)
+                loss = self.criterion(y_pred, y_batch)
+
+                # Print losses
+                losses.append(loss.item())
+                pbar.set_description(desc=desc)
+                pbar.set_postfix(loss=sum(losses) / len(losses))
+
+        validation_loss = sum(losses) / len(losses)
+        if self.initialized_scheduler is not None and isinstance(self.initialized_scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+            self.initialized_scheduler.step(epoch=self._cur_epoch, metrics=validation_loss)
+
+        if self.revert_to_best and self._last_lr != self.initialized_optimizer.param_groups[0]["lr"]:
+            self.log_to_terminal(
+                f"Learning stopped. New learning rate: {self.initialized_optimizer.param_groups[0]['lr']}."
+                f"Reverting to previous best model (Val Loss: {self.lowest_val_loss}).",
+            )
+            self.model.load_state_dict(self.best_model_state_dict)
+
+        return validation_loss
+
     def compute_peak_kl(self, y: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
         """Compute the KL-loss against a uniform distribution.
 
@@ -324,20 +420,6 @@ class MainTrainer(TorchTrainer, Logger):
 
         test_predictions = torch.stack(predictions)
         return torch.mean(test_predictions, dim=0)
-
-    def _train_one_epoch(
-        self,
-        dataloader: DataLoader[tuple[Tensor, ...]],
-        epoch: int,
-    ) -> float:
-        """Train the model for one epoch.
-
-        :param dataloader: The dataloader to train on.
-        :param epoch: The current epoch.
-        :return: The loss for the epoch.
-        """
-        # self.log_to_terminal(f"Learning rate: {self.initialized_optimizer.param_groups[0]['lr']}")
-        return super()._train_one_epoch(dataloader, epoch)
 
     def _early_stopping(self) -> bool:
         """Check if early stopping should be done.
