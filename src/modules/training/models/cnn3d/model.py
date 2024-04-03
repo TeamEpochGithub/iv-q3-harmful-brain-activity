@@ -43,6 +43,9 @@ class Model(nn.Module):
         x = to_3d_grid_vectorized(x, 9, 9)
         import torch.nn.functional as F
 
+        #Only take the middle 5 seconds
+        x = x[:,:, 4500:5500, :, :]
+
         # x = simple_smoothing(x)
         x = F.interpolate(x, size=(1000, 64, 64), mode="trilinear", align_corners=False)
         return self.model(x)
