@@ -5,7 +5,6 @@ import os
 import pickle
 import re
 from collections.abc import Callable
-from enum import Enum
 from pathlib import Path
 from typing import Any, cast
 
@@ -58,6 +57,11 @@ def setup_pipeline(pipeline_cfg: DictConfig) -> ModelPipeline | EnsemblePipeline
     logger.info("Instantiating the pipeline")
 
     test_size = pipeline_cfg.get("test_size", -1)
+    if test_size == -1:
+        # if in CV, use the number of splits, so that the model hash depends on that
+        test_size = pipeline_cfg.get("splitter", {}).get("n_splits", -1)
+        if test_size == -1:
+            raise ValueError("test_size not found in config and no n_splits found in splitter")
 
     if "model" in pipeline_cfg:
         model_cfg = pipeline_cfg.model
@@ -70,14 +74,11 @@ def setup_pipeline(pipeline_cfg: DictConfig) -> ModelPipeline | EnsemblePipeline
 
     elif "ensemble" in pipeline_cfg:
         ensemble_cfg = pipeline_cfg.ensemble
-
         ensemble_cfg_dict = OmegaConf.to_container(ensemble_cfg, resolve=True)
-        if isinstance(ensemble_cfg_dict, dict):
-            # Turn models into list
-            ensemble_cfg_dict["steps"] = list(ensemble_cfg_dict.get("steps", []).values())
 
-            for model in ensemble_cfg_dict.get("models", []):
-                ensemble_cfg_dict["models"][model] = update_model_cfg_test_size(ensemble_cfg_dict["models"][model], test_size)
+        ensemble_cfg_dict["steps"] = list(ensemble_cfg_dict.get("steps", []).values())
+        for model in ensemble_cfg_dict.get("steps", []):
+            update_model_cfg_test_size(model, test_size)
 
         cfg = OmegaConf.create(ensemble_cfg_dict)
 
@@ -89,9 +90,9 @@ def setup_pipeline(pipeline_cfg: DictConfig) -> ModelPipeline | EnsemblePipeline
 
 
 def update_model_cfg_test_size(
-    model_cfg_dict: dict[str | bytes | int | Enum | float | bool, Any] | list[Any] | str | None,
+    cfg: dict,
     test_size: int = -1,
-) -> dict[str | bytes | int | Enum | float | bool, Any] | list[Any] | str | None:
+) -> dict:
     """Update the test size in the model config.
 
     :param cfg: The model config.
@@ -99,12 +100,11 @@ def update_model_cfg_test_size(
 
     :return: The updated model config.
     """
-    if isinstance(model_cfg_dict, dict):
-        for model_block in model_cfg_dict.get("model_loop_pipeline", {}).get("model_blocks_pipeline", {}).get("model_blocks", []):
-            model_block["test_size"] = test_size
-        for pretrain_block in model_cfg_dict.get("model_loop_pipeline", {}).get("pretrain_pipeline", {}).get("pretrain_steps", []):
-            pretrain_block["test_size"] = test_size
-    return model_cfg_dict
+    for model in cfg["train_sys"]["steps"]:
+        if model["_target_"] == "src.modules.training.main_trainer.MainTrainer":
+            if "_train_split_type" not in model:
+                model["_train_split_type"] = test_size
+    return cfg
 
 
 def setup_data(

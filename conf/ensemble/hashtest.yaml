@@ -1,0 +1,7 @@
+defaults:
+  - /model/eeg_net_traintest@steps.0
+  - /model/eeg_net_3fold@steps.1
+#  - /model/eeg_net_4fold@steps.2
+
+_target_: src.modules.training.base_ensembling.BaseEnsemble
+_convert_: partial

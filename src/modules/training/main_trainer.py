@@ -43,13 +43,16 @@ class MainTrainer(TorchTrainer, Logger):
     two_stage_evaluator_threshold: int | None = None
     two_stage_pretrain_full: bool = False
     two_stage_split_test: bool = False
+    early_stopping: bool = True
     revert_to_best: bool = False
-    predict_with_n_folds: int | None = field(default=None, init=True, repr=False, compare=True, hash=False)
     _fold: int = field(default=-1, init=False, repr=False, compare=False)
     _stage: int = field(default=-1, init=False, repr=False, compare=False)
 
     _cur_epoch: int = field(default=-1, init=False, repr=False, compare=False)
     _last_lr: float = field(default=-1, init=False, repr=False, compare=False)
+
+    # use to make the hash unique depending on the training setup, test_size or n_folds
+    _train_split_type: float = field(default=-1, init=True, repr=True, compare=False)
 
     def create_datasets(
         self,
