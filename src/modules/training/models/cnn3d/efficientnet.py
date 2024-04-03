@@ -2,18 +2,28 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from src.modules.training.models.cnn3d.utils import round_filters, round_repeats, drop_connect, get_same_padding_conv3d, get_model_params, efficientnet_params, Swish, MemoryEfficientSwish
+from src.modules.training.models.cnn3d.utils import (
+    MemoryEfficientSwish,
+    Swish,
+    drop_connect,
+    efficientnet_params,
+    get_model_params,
+    get_same_padding_conv3d,
+    round_filters,
+    round_repeats,
+)
 
 
 class MBConvBlock3D(nn.Module):
-    """
-    Mobile Inverted Residual Bottleneck Block
+    """Mobile Inverted Residual Bottleneck Block
 
     Args:
+    ----
         block_args (namedtuple): BlockArgs, see above
         global_params (namedtuple): GlobalParam, see above
 
     Attributes:
+    ----------
         has_se (bool): Whether the block contains a Squeeze and Excitation layer.
     """
 
@@ -39,8 +49,13 @@ class MBConvBlock3D(nn.Module):
         k = self._block_args.kernel_size
         s = self._block_args.stride
         self._depthwise_conv = Conv3d(
-            in_channels=oup, out_channels=oup, groups=oup,  # groups makes it depthwise
-            kernel_size=k, stride=s, bias=False)
+            in_channels=oup,
+            out_channels=oup,
+            groups=oup,  # groups makes it depthwise
+            kernel_size=k,
+            stride=s,
+            bias=False,
+        )
         self._bn1 = nn.BatchNorm3d(num_features=oup, momentum=self._bn_mom, eps=self._bn_eps)
 
         # Squeeze and Excitation layer, if desired
@@ -56,12 +71,10 @@ class MBConvBlock3D(nn.Module):
         self._swish = MemoryEfficientSwish()
 
     def forward(self, inputs, drop_connect_rate=None):
-        """
-        :param inputs: input tensor
+        """:param inputs: input tensor
         :param drop_connect_rate: drop connect rate (float, between 0 and 1)
         :return: output of block
         """
-
         # Expansion and Depthwise Convolution
         x = inputs
         if self._block_args.expand_ratio != 1:
@@ -90,22 +103,23 @@ class MBConvBlock3D(nn.Module):
 
 
 class EfficientNet3D(nn.Module):
-    """
-    An EfficientNet model. Most easily loaded with the .from_name or .from_pretrained methods
+    """An EfficientNet model. Most easily loaded with the .from_name or .from_pretrained methods
 
     Args:
+    ----
         blocks_args (list): A list of BlockArgs to construct blocks
         global_params (namedtuple): A set of GlobalParams shared between blocks
 
     Example:
+    -------
         model = EfficientNet3D.from_pretrained('efficientnet-b0')
 
     """
 
     def __init__(self, blocks_args=None, global_params=None, in_channels=3):
         super().__init__()
-        assert isinstance(blocks_args, list), 'blocks_args should be a list'
-        assert len(blocks_args) > 0, 'block args must be greater than 0'
+        assert isinstance(blocks_args, list), "blocks_args should be a list"
+        assert len(blocks_args) > 0, "block args must be greater than 0"
         self._global_params = global_params
         self._blocks_args = blocks_args
 
@@ -124,12 +138,11 @@ class EfficientNet3D(nn.Module):
         # Build blocks
         self._blocks = nn.ModuleList([])
         for block_args in self._blocks_args:
-
             # Update block input and output filters based on depth multiplier.
             block_args = block_args._replace(
                 input_filters=round_filters(block_args.input_filters, self._global_params),
                 output_filters=round_filters(block_args.output_filters, self._global_params),
-                num_repeat=round_repeats(block_args.num_repeat, self._global_params)
+                num_repeat=round_repeats(block_args.num_repeat, self._global_params),
             )
 
             # The first block needs to take care of stride and filter size increase.
@@ -157,10 +170,8 @@ class EfficientNet3D(nn.Module):
         for block in self._blocks:
             block.set_swish(memory_efficient)
 
-
     def extract_features(self, inputs):
-        """ Returns output of the final convolution layer """
-
+        """Returns output of the final convolution layer"""
         # Stem
         x = self._swish(self._bn0(self._conv_stem(inputs)))
 
@@ -177,8 +188,7 @@ class EfficientNet3D(nn.Module):
         return x
 
     def forward(self, inputs):
-        """ Calls extract_features to extract features, applies final linear layer, and returns logits. """
-
+        """Calls extract_features to extract features, applies final linear layer, and returns logits."""
         bs = inputs.size(0)
         # Convolution layers
         x = self.extract_features(inputs)
@@ -205,7 +215,7 @@ class EfficientNet3D(nn.Module):
 
     @classmethod
     def _check_model_name_is_valid(cls, model_name):
-        """ Validates model name. """
-        valid_models = ['efficientnet-b'+str(i) for i in range(9)]
+        """Validates model name."""
+        valid_models = ["efficientnet-b" + str(i) for i in range(9)]
         if model_name not in valid_models:
-            raise ValueError('model_name should be one of: ' + ', '.join(valid_models))
+            raise ValueError("model_name should be one of: " + ", ".join(valid_models))

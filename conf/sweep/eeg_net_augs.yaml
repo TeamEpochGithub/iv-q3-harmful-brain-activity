@@ -40,4 +40,3 @@ parameters: # Will use the model file in cv.yaml and override the values there w
   model.train_sys.steps.0.model.dropout:
     max: 0.5
     min: 0.0
-

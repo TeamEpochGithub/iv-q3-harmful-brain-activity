@@ -5,7 +5,7 @@ import torch
 from torch import nn
 
 from src.modules.training.models.cnn3d.efficientnet import EfficientNet3D
-from src.utils.to_3d_grid import to_3d_grid_vectorized, simple_smoothing
+from src.utils.to_3d_grid import to_3d_grid_vectorized
 
 
 class Model(nn.Module):
@@ -31,7 +31,7 @@ class Model(nn.Module):
         self.model_type = model_type
         self.in_channels = in_channels
         self.out_channels = out_channels
-        self.model = EfficientNet3D.from_name(self.model_type, override_params={'num_classes': self.out_channels}, in_channels=self.in_channels)
+        self.model = EfficientNet3D.from_name(self.model_type, override_params={"num_classes": self.out_channels}, in_channels=self.in_channels)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass of the Timm model.
@@ -40,15 +40,9 @@ class Model(nn.Module):
         :return: The output data.
         """
         # Convert to 5D
-        start = time.time()
         x = to_3d_grid_vectorized(x, 9, 9)
         import torch.nn.functional as F
-        #x = simple_smoothing(x)
-        x = F.interpolate(x, size=(1000, 64, 64), mode='trilinear', align_corners=False)
+
+        # x = simple_smoothing(x)
+        x = F.interpolate(x, size=(1000, 64, 64), mode="trilinear", align_corners=False)
         return self.model(x)
-
-
-
-
-
-
