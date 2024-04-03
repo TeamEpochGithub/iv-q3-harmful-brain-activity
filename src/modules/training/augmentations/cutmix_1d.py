@@ -1,5 +1,6 @@
 """CutMix augmentation for 1D signals."""
 from dataclasses import dataclass
+
 import torch
 
 

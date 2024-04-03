@@ -1,6 +1,6 @@
 """Mixup augmentation for 1d signals."""
-import torch
 from dataclasses import dataclass
+
 import torch
 
 

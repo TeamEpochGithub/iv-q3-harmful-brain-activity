@@ -1,7 +1,8 @@
 """Given a sequence with multiple channels, reverse it in time."""
 
-import torch
 from dataclasses import dataclass
+
+import torch
 
 
 @dataclass
