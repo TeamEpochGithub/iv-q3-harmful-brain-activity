@@ -1,0 +1,6 @@
+defaults:
+  - /model/jaspers_eeg_net_dont_touch@steps.0
+  - /model/jaspers_eeg_net_dont_touch@steps.1
+
+_target_: src.modules.training.base_ensembling.BaseEnsemble
+_convert_: partial

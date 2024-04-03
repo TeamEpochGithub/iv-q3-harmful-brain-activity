@@ -1,5 +1,7 @@
 """Model that will make a grid and use eeg_net as a backbone."""
 
+from typing import Any
+
 import torch
 from torch import nn
 
@@ -20,7 +22,7 @@ class GridEEGNet(nn.Module):
     # kernels: [3,5,7,9,11]
     # dropout: 0.1
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs: dict[str, Any]) -> None:
         """Initialize the model."""
         super().__init__()
 
@@ -32,7 +34,7 @@ class GridEEGNet(nn.Module):
             nn.Conv2d(8, 16, 3),
             nn.ReLU(),
         )
-        self.eeg_net = EEGNet(**kwargs)
+        self.eeg_net = EEGNet(**kwargs)  # type: ignore[arg-type]
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass of the model."""
@@ -51,11 +53,3 @@ class GridEEGNet(nn.Module):
         x_features = x_features.view(batch_size, sequence_len, C_out, H_out, W_out).squeeze(-1).squeeze(-1)
         concat_features = torch.cat([x_features.permute(0, 2, 1), x], dim=1)
         return self.eeg_net(concat_features)
-
-
-if __name__ == "__main__":
-    test_in = torch.zeros(32, 1, 9, 9)
-
-    model = nn.Sequential(nn.Conv2d(1, 2, 3), nn.Conv2d(2, 4, 3), nn.ReLU(), nn.Conv2d(4, 8, 3), nn.Conv2d(8, 16, 3), nn.ReLU())
-    out = model(test_in)
-    print(out.shape)

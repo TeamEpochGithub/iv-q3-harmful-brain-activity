@@ -1,7 +1,7 @@
 """Main dataset for EEG / Spectrogram data."""
 import copy
 import typing
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 import numpy as np
@@ -38,7 +38,9 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
             # Set sample seed for consistent results
             seed = 42
             unique_indices = X_meta.groupby("eeg_id").sample(1, random_state=seed)["index"]
+
             # Use the unique indices to index the meta data
+            self.X = replace(self.X)  # shallow copy of XData, so only meta is changed
             self.X.meta = X_meta.loc[unique_indices].reset_index(drop=True)
 
             self.indices = unique_indices.to_list()

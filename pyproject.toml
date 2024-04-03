@@ -26,7 +26,10 @@ dependencies = [
     "scipy>=1.11.4",
     "tqdm>=4.66.1",
     "polars>=0.19.19",
-    "epochalyst>=0.0.1",
+    "epochalyst==0.2",
+
+    # Data loading
+    "pyarrow>=6.0.0",
 
     # Visualizations
     "seaborn>=0.13.0",
