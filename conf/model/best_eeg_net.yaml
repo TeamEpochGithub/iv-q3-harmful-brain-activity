@@ -1,3 +1,4 @@
+
 defaults:
   - pipeline/default@_here_
   - _self_
@@ -16,6 +17,8 @@ x_sys:
       value: 32
     - _target_: src.modules.transformation.eeg.butter.ButterFilter
       lower: 0.5
+      upper: 20
+      order: 2
     - _target_: src.modules.transformation.eeg.quantize.Quantizer
     - _target_: src.modules.transformation.eeg.downsample.Downsample
       downsample_factor: 5
@@ -26,6 +29,10 @@ x_sys:
 #    - _target_: src.modules.transformation.eeg.select_channels.SelectChannels
 #      channels: [8, 9, 10, 11, 12, 13, 14, 15] #Select the last 18 channels
 
+
+y_sys:
+  steps:
+    - _target_: src.modules.transformation.target.sum_to_one.SumToOne
 
 train_sys:
   steps:
@@ -47,48 +54,35 @@ train_sys:
         _args_:
           - _target_: hydra.utils.get_class
             path: torch.optim.AdamW
-        lr: 0.003
+        lr: 0.004
+        weight_decay: 1e-2
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
       epochs: 50
       batch_size: 64
-      patience: 15
-      two_stage: true
-      two_stage_evaluator_threshold: 9
+      patience: 10
       dataset_args:
         data_type: "eeg"
         get_item_custom:
         subsample_method: "running_random"
         augmentations:
-          _target_: src.modules.training.augmentations.custom_sequential.CustomSequential
-          x_transforms:
-            - _target_: src.modules.training.augmentations.reverse_1d.Reverse1D
-              p: 0.2
-            - _target_: src.modules.training.augmentations.mirror_1d.Mirror1D
-              p: 0.2
-            - _target_: torch_audiomentations.Shift
-              p: 0.5
-              rollover: true
-              mode: per_example
-            - _target_: src.modules.training.augmentations.random_phase_shift.RandomPhaseShift
-              p: 0.4
-              shift_limit: 0.5
-            - _target_: src.modules.training.augmentations.substract_channels.SubstractChannels
-              p: 0.5
-          xy_transforms:
-            - _target_: src.modules.training.augmentations.mixup_1d.MixUp1D
-              p: 0.2
-            - _target_: src.modules.training.augmentations.cutmix_1d.CutMix1D
-              p: 0.2
-              # Randomly select a percentage between 'low' and 'high' to preserve on the left side of the signal.
-              low: 0.0
-              high: 0.5
+          _target_: torch_audiomentations.Compose
+          transforms:
+          - _target_: torch_audiomentations.Shift
+            p: 0.5
+            rollover: true
+            mode: per_example
+          - _target_: src.modules.training.augmentations.random_phase_shift.RandomPhaseShift
+            p: 0.4
+            shift_limit: 0.5
+          - _target_: src.modules.training.augmentations.substract_channels.SubstractChannels
+            p: 0.5
       scheduler:
         _target_: functools.partial
         _args_:
           - _target_: hydra.utils.get_class
             path: timm.scheduler.cosine_lr.CosineLRScheduler
-        t_initial: 50
+        t_initial: 40
         cycle_mul: 1
         cycle_decay: 1
         cycle_limit: 1

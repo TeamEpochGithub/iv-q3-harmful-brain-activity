@@ -15,7 +15,6 @@ x_sys:
     - _target_: src.modules.transformation.eeg.divide.Divide
       value: 32
     - _target_: src.modules.transformation.eeg.butter.ButterFilter
-      lower: 0.5
     - _target_: src.modules.transformation.eeg.quantize.Quantizer
     - _target_: src.modules.transformation.eeg.downsample.Downsample
       downsample_factor: 5
@@ -52,37 +51,27 @@ train_sys:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
       epochs: 50
       batch_size: 64
-      patience: 15
+      patience: 10
       two_stage: true
-      two_stage_evaluator_threshold: 9
+      two_stage_evaluator_threshold: 4
       dataset_args:
         data_type: "eeg"
         get_item_custom:
         subsample_method: "running_random"
         augmentations:
-          _target_: src.modules.training.augmentations.custom_sequential.CustomSequential
-          x_transforms:
-            - _target_: src.modules.training.augmentations.reverse_1d.Reverse1D
-              p: 0.2
-            - _target_: src.modules.training.augmentations.mirror_1d.Mirror1D
-              p: 0.2
-            - _target_: torch_audiomentations.Shift
-              p: 0.5
-              rollover: true
-              mode: per_example
-            - _target_: src.modules.training.augmentations.random_phase_shift.RandomPhaseShift
-              p: 0.4
-              shift_limit: 0.5
-            - _target_: src.modules.training.augmentations.substract_channels.SubstractChannels
-              p: 0.5
-          xy_transforms:
-            - _target_: src.modules.training.augmentations.mixup_1d.MixUp1D
-              p: 0.2
-            - _target_: src.modules.training.augmentations.cutmix_1d.CutMix1D
-              p: 0.2
-              # Randomly select a percentage between 'low' and 'high' to preserve on the left side of the signal.
-              low: 0.0
-              high: 0.5
+          _target_: torch_audiomentations.Compose
+          transforms:
+          - _target_: torch_audiomentations.Shift
+            p: 0.5
+            rollover: true
+            mode: per_example
+          - _target_: torch_audiomentations.Gain
+            p: 0.5
+          - _target_: src.modules.training.augmentations.random_phase_shift.RandomPhaseShift
+            p: 0.4
+            shift_limit: 0.5
+          - _target_: src.modules.training.augmentations.substract_channels.SubstractChannels
+            p: 0.5
       scheduler:
         _target_: functools.partial
         _args_:

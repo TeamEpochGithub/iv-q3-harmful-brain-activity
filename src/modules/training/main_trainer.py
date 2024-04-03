@@ -30,6 +30,7 @@ class MainTrainer(TorchTrainer, Logger):
     :param two_stage_evaluator_threshold: The threshold for dividing the dataset into two stages, based on total number of votes.
     :param two_stage_pretrain_full: Whether to train the first stage on the full dataset.
     :param two_stage_split_test: Whether to split the test data into two stages as well.
+    :param early_stopping: Whether to do early stopping.
      Note: remove the sum to one block from the target pipeline for this to work
     """
 
@@ -40,6 +41,7 @@ class MainTrainer(TorchTrainer, Logger):
     two_stage_evaluator_threshold: int | None = None
     two_stage_pretrain_full: bool = False
     two_stage_split_test: bool = False
+    early_stopping: bool = True
     _fold: int = field(default=-1, init=False, repr=False, compare=False)
     _stage: int = field(default=-1, init=False, repr=False, compare=False)
 
@@ -322,6 +324,29 @@ class MainTrainer(TorchTrainer, Logger):
 
         test_predictions = torch.stack(predictions)
         return torch.mean(test_predictions, dim=0)
+
+    def _train_one_epoch(
+        self,
+        dataloader: DataLoader[tuple[Tensor, ...]],
+        epoch: int,
+    ) -> float:
+        """Train the model for one epoch.
+
+        :param dataloader: The dataloader to train on.
+        :param epoch: The current epoch.
+        :return: The loss for the epoch.
+        """
+        # self.log_to_terminal(f"Learning rate: {self.initialized_optimizer.param_groups[0]['lr']}")
+        return super()._train_one_epoch(dataloader, epoch)
+
+    def _early_stopping(self) -> bool:
+        """Check if early stopping should be done.
+
+        :return: Whether to do early stopping.
+        """
+        if not self.early_stopping:
+            return False
+        return super()._early_stopping()
 
 
 def collate_fn(batch: tuple[Tensor, ...]) -> tuple[Tensor, ...]:

@@ -4,9 +4,6 @@ defaults:
 
 x_sys:
   steps:
-    - _target_: src.modules.transformation.eeg.bipolar.BipolarEEG
-      use_full_map: false
-      keep_ekg: false
     - _target_: src.modules.transformation.clip.Clip
       lower: -1024
       upper: 1024
@@ -15,9 +12,12 @@ x_sys:
     - _target_: src.modules.transformation.eeg.divide.Divide
       value: 32
     - _target_: src.modules.transformation.eeg.butter.ButterFilter
+      lower: 0.5
+      upper: 20
+      order: 2
     - _target_: src.modules.transformation.eeg.quantize.Quantizer
     - _target_: src.modules.transformation.eeg.downsample.Downsample
-      downsample_factor: 5
+      downsample_factor: 10
 #    - _target_: src.modules.transformation.eeg.rolling.Rolling
 #      channels: [0, 2, 4, 6]
 #      window_sizes: [20, 20, 20, 20]
@@ -26,23 +26,26 @@ x_sys:
 #      channels: [8, 9, 10, 11, 12, 13, 14, 15] #Select the last 18 channels
 
 
+y_sys:
+  steps:
+    - _target_: src.modules.transformation.target.sum_to_one.SumToOne
+
 train_sys:
   steps:
     - _target_: src.modules.training.main_trainer.MainTrainer
-      model_name: GRUSimple # Can't have special characters or spaces
+      model_name: EEGNet # Can't have special characters or spaces
       model:
-        _target_: src.modules.training.models.gru_simple.GRUTimeSeriesClassifier
-        num_classes: 6
-        input_dim: 9
-        gru_layers: 2
-        hidden_dim: 128
-        bidirectional: true
+        _target_: src.modules.training.models.cnn3d.model.Model
+        in_channels: 1
+        out_channels: 6
+        model_type: "efficientnet-b0"
       optimizer: # Partially instantiate optimizer, so model parameters can be linked at runtime
         _target_: functools.partial
         _args_:
           - _target_: hydra.utils.get_class
             path: torch.optim.AdamW
-        lr: 0.003
+        lr: 0.001
+        weight_decay: 1e-2
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
       epochs: 50
@@ -59,28 +62,9 @@ train_sys:
             p: 0.5
             rollover: true
             mode: per_example
-#          - _target_: torch_audiomentations.ShuffleChannels
-#            p: 0.4
-#          - _target_: torch_audiomentations.AddColoredNoise
-#            p: 0.05
-#            mode: per_channel
-#            p_mode: per_channel
-#            max_snr_in_db: 15
-#            sample_rate: 200
           - _target_: src.modules.training.augmentations.random_phase_shift.RandomPhaseShift
             p: 0.4
             shift_limit: 0.5
           - _target_: src.modules.training.augmentations.substract_channels.SubstractChannels
             p: 0.5
-      scheduler:
-        _target_: functools.partial
-        _args_:
-          - _target_: hydra.utils.get_class
-            path: timm.scheduler.cosine_lr.CosineLRScheduler
-        t_initial: 50
-        cycle_mul: 1
-        cycle_decay: 1
-        cycle_limit: 1
-        warmup_t: 1
-        warmup_lr_init: 1e-5
     - _target_: src.modules.training.postprocessing.softmax.Softmax
