@@ -336,7 +336,7 @@ class MainTrainer(TorchTrainer, Logger):
         :param epoch: The current epoch.
         :return: The loss for the epoch.
         """
-        self.log_to_terminal(f"Learning rate: {self.initialized_optimizer.param_groups[0]['lr']}")
+        #self.log_to_terminal(f"Learning rate: {self.initialized_optimizer.param_groups[0]['lr']}")
         return super()._train_one_epoch(dataloader, epoch)
 
     def _early_stopping(self) -> bool:
