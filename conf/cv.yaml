@@ -1,7 +1,8 @@
 defaults:
   - base_cv
   - hydra/logging
-  - model: eeg_net
+  # - ensemble: example
+  - model: jaspers_eeg_net_dont_touch
   - wandb: train
 
 metadata_path: data/raw/train.csv
