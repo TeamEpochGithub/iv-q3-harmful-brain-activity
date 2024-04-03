@@ -28,10 +28,11 @@ class MainTrainer(TorchTrainer, Logger):
     :param two_stage: Whether to use two-stage training. See: https://www.kaggle.com/competitions/hms-harmful-brain-activity-classification/discussion/477461
     :param two_stage_kl_threshold: The threshold for dividing the dataset into two stages.
     :param two_stage_evaluator_threshold: The threshold for dividing the dataset into two stages, based on total number of votes.
+     Note: remove the sum to one block from the target pipeline for this to work
     :param two_stage_pretrain_full: Whether to train the first stage on the full dataset.
     :param two_stage_split_test: Whether to split the test data into two stages as well.
     :param early_stopping: Whether to do early stopping.
-     Note: remove the sum to one block from the target pipeline for this to work
+    :param predict_with_n_folds: The number of folds to ensemble over. Requires the model to be CV'ed with save_folds=True.
     """
 
     dataset_args: dict[str, Any] = field(default_factory=dict)
@@ -42,6 +43,7 @@ class MainTrainer(TorchTrainer, Logger):
     two_stage_pretrain_full: bool = False
     two_stage_split_test: bool = False
     early_stopping: bool = True
+    predict_with_n_folds: int | None = field(default=None, init=True, repr=False, compare=True, hash=False)
     _fold: int = field(default=-1, init=False, repr=False, compare=False)
     _stage: int = field(default=-1, init=False, repr=False, compare=False)
 
@@ -306,18 +308,15 @@ class MainTrainer(TorchTrainer, Logger):
         if self.two_stage:
             self._stage = 1
 
-        # Check if supposed to predict with a single model, or ensemble the fold models
-        model_folds = pred_args.get("model_folds", None)
-
         # Predict with a single model
-        if model_folds is None or model_folds == -1:
+        if self.predict_with_n_folds is None:
             self._load_model()
             return self.predict_on_loader(pred_dataloader)
 
         # Ensemble the fold models:
         predictions = []
-        for i in range(model_folds):
-            self.log_to_terminal(f"Predicting with model fold {i+1}/{model_folds}")
+        for i in range(self.predict_with_n_folds):
+            self.log_to_terminal(f"Predicting with model fold {i+1}/{self.predict_with_n_folds}")
             self._fold = i  # set the fold, which updates the hash
             self._load_model()  # load the model for this fold
             predictions.append(self.predict_on_loader(pred_dataloader))
