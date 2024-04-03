@@ -1,174 +1,307 @@
-# **********************************
-# 	Author: Suraj Subramanian
-# 	2nd January 2020
-# **********************************
-
 import torch
-import torch.nn as nn
+import numpy as np
+import pandas as pd
+import os
+import math
+import warnings
+import itertools
+import numbers
+import torch.utils.data as utils
+
+#
+# The convention for RNNs is that the feature dimension is last - adapt for that. also need to adapt input tensors in the run file.
+#
 
 
-class GRUDCell(nn.Module):
-    def __init__(self, input_dim, hidden_dim, mask_dim, delta_dim, x_mean=None):
-        super(GRUDCell, self).__init__()
+# TODO: error on GPU is probably caused because hidden state of GRU is not initialized on GPU.
+class GRUD(torch.nn.Module):
+    def __init__(self, input_size, hidden_size, output_size, num_layers=1, x_mean=0,
+                 bias=True, batch_first=False, bidirectional=False, dropout_type='mloss', dropout=0):
+        super(GRUD, self).__init__()
 
-        self.device = try_gpu()
-        self.hidden_dim = hidden_dim
+        self.gru_d = GRUD_cell(input_size=input_size, hidden_size=hidden_size, output_size=output_size,
+                               dropout=dropout, dropout_type=dropout_type, x_mean=x_mean)
+        self.hidden_to_output = torch.nn.Linear(hidden_size, output_size, bias=True)
+        self.num_layers = num_layers
+        self.hidden_size = hidden_size
 
-        # Set empirical mean if first GRU-D layer. Subsequent stacked layers don't need the mean.
-        if x_mean is not None:
-            self.x_mean = x_mean
-            self.first_layer = True
+        if self.num_layers > 1:
+            # (batch, seq, feature)
+            self.gru_layers = torch.nn.GRU(input_size=hidden_size, hidden_size=hidden_size, batch_first=True, num_layers=self.num_layers - 1, dropout=dropout)
+
+    def initialize_hidden(self, batch_size):
+        device = next(self.parameters()).device
+        # The hidden state at the start are all zeros
+        return torch.zeros(self.num_layers-1, batch_size, self.hidden_size, device=device)
+
+    def forward(self, input):
+
+        # pass through GRU-D
+        output, hidden = self.gru_d(input)
+        # print(self.gru_d.return_hidden)
+        # output = self.gru_d(input)
+        # print(output.size())
+
+        # batch_size, n_hidden, n_timesteps
+
+        if self.num_layers > 1:
+            # TODO remove init hidden, not necessary, auto init works fine
+            init_hidden = self.initialize_hidden(hidden.size()[0])
+
+            output, hidden = self.gru_layers(hidden)  # , init_hidden)
+
+            output = self.hidden_to_output(output)
+            output = torch.sigmoid(output)
+
+        # print("final output size passed as model result")
+        # print(output.size())
+        return output
+
+
+class GRUD_cell(torch.nn.Module):
+    """
+    Implementation of GRUD.
+    Inputs: x_mean
+            n_smp x 3 x n_channels x len_seq tensor (0: data, 1: mask, 2: deltat)
+    """
+
+    def __init__(self, input_size, hidden_size, output_size, num_layers=1, x_mean=0,
+                 bias=True, batch_first=False, bidirectional=False, dropout_type='mloss', dropout=0, return_hidden=False):
+
+        super(GRUD_cell, self).__init__()
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.output_size = output_size
+        self.num_layers = num_layers
+        self.return_hidden = return_hidden  # controls the output, True if another GRU-D layer follows
+
+        x_mean = torch.tensor(x_mean, requires_grad=True)
+        self.register_buffer('x_mean', x_mean)
+        self.bias = bias
+        self.batch_first = batch_first
+        self.dropout_type = dropout_type
+        self.dropout = dropout
+        self.bidirectional = bidirectional
+
+        if not isinstance(dropout, numbers.Number) or not 0 <= dropout <= 1 or \
+                isinstance(dropout, bool):
+            raise ValueError("dropout should be a number in range [0, 1] "
+                             "representing the probability of an element being "
+                             "zeroed")
+        if dropout > 0 and num_layers == 1:
+            warnings.warn("dropout option adds dropout after all but last "
+                          "recurrent layer, so non-zero dropout expects "
+                          "num_layers greater than 1, but got dropout={} and "
+                          "num_layers={}".format(dropout, num_layers))
+
+        # set up all the operations that are needed in the forward pass
+        self.w_dg_x = torch.nn.Linear(input_size, input_size, bias=True)
+        self.w_dg_h = torch.nn.Linear(input_size, hidden_size, bias=True)
+
+        self.w_xz = torch.nn.Linear(input_size, hidden_size, bias=False)
+        self.w_hz = torch.nn.Linear(hidden_size, hidden_size, bias=False)
+        self.w_mz = torch.nn.Linear(input_size, hidden_size, bias=True)
+
+        self.w_xr = torch.nn.Linear(input_size, hidden_size, bias=False)
+        self.w_hr = torch.nn.Linear(hidden_size, hidden_size, bias=False)
+        self.w_mr = torch.nn.Linear(input_size, hidden_size, bias=False)
+        self.w_xh = torch.nn.Linear(input_size, hidden_size, bias=False)
+        self.w_hh = torch.nn.Linear(hidden_size, hidden_size, bias=False)
+        self.w_mh = torch.nn.Linear(input_size, hidden_size, bias=True)
+
+        self.w_hy = torch.nn.Linear(hidden_size, output_size, bias=True)
+
+        Hidden_State = torch.zeros(self.hidden_size, requires_grad=True)
+        # we use buffers because pytorch will take care of pushing them to GPU for us
+        self.register_buffer('Hidden_State', Hidden_State)
+        # torch.tensor(x_mean) #TODO: what to initialize last observed values with?, also check broadcasting behaviour
+        self.register_buffer('X_last_obs', torch.zeros(input_size))
+
+    # TODO: check usefulness of everything below here, just copied skeleton
+
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        stdv = 1.0 / math.sqrt(self.hidden_size)
+        for weight in self.parameters():
+            torch.nn.init.uniform_(weight, -stdv, stdv)
+
+    def check_forward_args(self, input, hidden, batch_sizes):
+        is_input_packed = batch_sizes is not None
+        expected_input_dim = 2 if is_input_packed else 3
+        if input.dim() != expected_input_dim:
+            raise RuntimeError(
+                'input must have {} dimensions, got {}'.format(
+                    expected_input_dim, input.dim()))
+        if self.input_size != input.size(-1):
+            raise RuntimeError(
+                'input.size(-1) must be equal to input_size. Expected {}, got {}'.format(
+                    self.input_size, input.size(-1)))
+
+        if is_input_packed:
+            mini_batch = int(batch_sizes[0])
         else:
-            self.first_layer = False
+            mini_batch = input.size(0) if self.batch_first else input.size(1)
 
-        self.R_lin = nn.Linear(input_dim + hidden_dim + mask_dim, hidden_dim)  # RESET
-        self.Z_lin = nn.Linear(input_dim + hidden_dim + mask_dim, hidden_dim)  # UPDATE
-        self.tilde_lin = nn.Linear(input_dim + hidden_dim + mask_dim, hidden_dim)  # CANDIDATE STATE
-        self.gamma_h_lin = nn.Linear(delta_dim, hidden_dim)  # HIDDEN STATE DECAY PARAMETERS
-        if self.first_layer:
-            self.gamma_x_lin = nn.Linear(delta_dim, delta_dim)  # INPUT DECAY PARAMETERS
+        num_directions = 2 if self.bidirectional else 1
+        expected_hidden_size = (self.num_layers * num_directions,
+                                mini_batch, self.hidden_size)
 
-        # XAVIER INIT FOR FASTER CONVERGENCE
-        nn.init.xavier_normal_(self.R_lin.weight)
-        nn.init.xavier_normal_(self.Z_lin.weight)
-        nn.init.xavier_normal_(self.tilde_lin.weight)
+        def check_hidden_size(hx, expected_hidden_size, msg='Expected hidden size {}, got {}'):
+            if tuple(hx.size()) != expected_hidden_size:
+                raise RuntimeError(msg.format(expected_hidden_size, tuple(hx.size())))
 
-    def init_hidden(self, batch_size):
-        return torch.zeros(batch_size, self.hidden_dim, device=self.device, dtype=torch.float)
+        if self.mode == 'LSTM':
+            check_hidden_size(hidden[0], expected_hidden_size,
+                              'Expected hidden[0] size {}, got {}')
+            check_hidden_size(hidden[1], expected_hidden_size,
+                              'Expected hidden[1] size {}, got {}')
+        else:
+            check_hidden_size(hidden, expected_hidden_size)
 
-    def forward(self, x, obs_mask, delta, x_tm1, h):  # inputs = (batch_size x type x dim)
-        # DECAY OPERATIONS
-        if self.first_layer:
-            # Input is decayed only in the first GRU-D layer
-            gamma_x = torch.exp(-torch.max(torch.zeros(delta.size(), device=self.device), self.gamma_x_lin(delta)))
-            x = (obs_mask * x) + (1-obs_mask)*((gamma_x*x_tm1) + (1-gamma_x)*self.x_mean)
-        gamma_h = torch.exp(-torch.max(torch.zeros(h.size(), device=self.device), self.gamma_h_lin(delta)))
-        h = torch.squeeze(gamma_h*h)
+    def extra_repr(self):
+        s = '{input_size}, {hidden_size}'
+        if self.num_layers != 1:
+            s += ', num_layers={num_layers}'
+        if self.bias is not True:
+            s += ', bias={bias}'
+        if self.batch_first is not False:
+            s += ', batch_first={batch_first}'
+        if self.dropout != 0:
+            s += ', dropout={dropout}'
+        if self.bidirectional is not False:
+            s += ', bidirectional={bidirectional}'
+        return s.format(**self.__dict__)
 
-        # GRU OPERATIONS
-        gate_in = torch.cat((x, h, obs_mask), -1)
-        z = torch.sigmoid(self.Z_lin(gate_in))
-        r = torch.sigmoid(self.R_lin(gate_in))
-        tilde_in = torch.cat((x, r*h, obs_mask), -1)
-        tilde = torch.tanh(self.tilde_lin(tilde_in))
-        h = (1-z)*h + z*tilde
+    @property
+    def _flat_weights(self):
+        return list(self._parameters.values())
 
-        return h
+    def forward(self, input):
+        # input.size = (3, 33,49) : num_input or num_hidden, num_layer or step
+        # X = torch.squeeze(input[0]) # .size = (33,49)
+        # Mask = torch.squeeze(input[1]) # .size = (33,49)
+        # Delta = torch.squeeze(input[2]) # .size = (33,49)
+        X = input[:, 0, :, :]
+        Mask = input[:, 1, :, :]
+        Delta = input[:, 2, :, :]
 
+        step_size = X.size(1)  # 49
+        # print('step size : ', step_size)
 
-class StackedGRUDClassifier(nn.Module):
-    def __init__(self, input_dim, output_dim, x_mean, aux_op_dims=[], op_act=None):
-        """
-        Example classifier with 2 GRUD layers, {aux_op_dims} auxiliary target classifiers, and 1 primary target classifier
-        """
-        super(StackedGRUDClassifier, self).__init__()
-        self.device = try_gpu()
+        output = None
+        # h = Hidden_State
+        h = getattr(self, 'Hidden_State')
+        # felix - buffer system from newer pytorch version
+        x_mean = getattr(self, 'x_mean')
+        x_last_obsv = getattr(self, 'X_last_obs')
 
-        # Assign input and hidden dim
-        self.hidden_dim = input_dim*6
-        self.output_dim = output_dim
-        self.x_mean = torch.tensor(x_mean, device=self.device, dtype=float)
+        device = next(self.parameters()).device
+        output_tensor = torch.empty([X.size()[0], X.size()[2], self.output_size], dtype=X.dtype, device=device)
+        hidden_tensor = torch.empty(X.size()[0], X.size()[2], self.hidden_size, dtype=X.dtype, device=device)
 
-        # Activation function
-        self.op_act = op_act or nn.LeakyReLU()
+        # iterate over seq
+        for timestep in range(X.size()[2]):
 
-        # GRU layers
-        self.gru1 = GRUDCell(input_dim, self.hidden_dim, input_dim, input_dim, self.x_mean)
-        self.gru2 = GRUDCell(self.hidden_dim, self.hidden_dim, input_dim, input_dim)
+            # x = torch.squeeze(X[:,layer:layer+1])
+            # m = torch.squeeze(Mask[:,layer:layer+1])
+            # d = torch.squeeze(Delta[:,layer:layer+1])
+            x = torch.squeeze(X[:, :, timestep])
+            m = torch.squeeze(Mask[:, :, timestep])
+            d = torch.squeeze(Delta[:, :, timestep])
 
-        # 4 FC Layers with dropout for each Aux output
-        self.aux_fc_layers = nn.ModuleList()
-        for aux in aux_op_dims:
-            self.aux_fc_layers.append(
-                nn.Sequential(
-                    nn.Linear(self.hidden_dim, self.hidden_dim//3),
-                    nn.Dropout(0.3),
-                    self.op_act,
-                    nn.Linear(self.hidden_dim//3, self.hidden_dim//9),
-                    nn.Dropout(0.3),
-                    self.op_act,
-                    nn.Linear(self.hidden_dim//9, self.hidden_dim//27),
-                    nn.Dropout(0.3),
-                    self.op_act,
-                    nn.Linear(self.hidden_dim//27, aux)
-                )
-            )
-            nn.init.xavier_normal_(self.aux_fc_layers[-1][0].weight, 0.1)
-            nn.init.xavier_normal_(self.aux_fc_layers[-1][3].weight, 0.1)
-            nn.init.xavier_normal_(self.aux_fc_layers[-1][6].weight, 0.1)
-            nn.init.xavier_normal_(self.aux_fc_layers[-1][9].weight, 0.1)
+            # (4)
+            gamma_x = torch.exp(-1 * torch.nn.functional.relu(self.w_dg_x(d)))
+            gamma_h = torch.exp(-1 * torch.nn.functional.relu(self.w_dg_h(d)))
 
-        # 4 FC Layers with dropout for primary output
-        self.fc_op = nn.Sequential(
-            nn.Linear(self.hidden_dim, self.hidden_dim//3),
-            nn.Dropout(0.3),
-            self.op_act,
-            nn.Linear(self.hidden_dim//3, self.hidden_dim//9),
-            nn.Dropout(0.3),
-            self.op_act,
-            nn.Linear(self.hidden_dim//9, self.hidden_dim//27),
-            nn.Dropout(0.3),
-            self.op_act,
-            nn.Linear(self.hidden_dim//27, output_dim)
-        )
-        nn.init.xavier_normal_(self.aux_fc_layers[-1][0].weight, 0.1)
-        nn.init.xavier_normal_(self.aux_fc_layers[-1][3].weight, 0.1)
-        nn.init.xavier_normal_(self.aux_fc_layers[-1][6].weight, 0.1)
-        nn.init.xavier_normal_(self.aux_fc_layers[-1][9].weight, 0.1)
+            # (5)
+            # standard mult handles case correctly, this should work - maybe broadcast x_mean, seems to be taking care of that anyway
 
-    def init_hidden(self, batch_size):
-        return torch.zeros(batch_size, self.hidden_dim, device=self.device, dtype=torch.float)
+            # update x_last_obsv
+            # print(x.size())
+            # print(x_last_obsv.size())
+            x_last_obsv = torch.where(m > 0, x, x_last_obsv)
+            # print('after update')
+            # print(x_last_obsv)
+            x = m * x + (1 - m) * (gamma_x * x + (1 - gamma_x) * x_mean)
+            x = m * x + (1 - m) * (gamma_x * x_last_obsv + (1 - gamma_x) * x_mean)
 
-    def forward(self, inputs, h1, h2):
-        inputs = inputs.float()
-        batch_size = inputs.size(0)
-        step_size = inputs.size(2)
-        outputs = None
-        tr_out = torch.zeros(batch_size, step_size, self.output_dim)
+            # (6)
+            if self.dropout == 0:
 
-        # TR prediction
-        for t in range(step_size):
-            h1, h2 = self.step(inputs[:, :, t:t+1, :], h1, h2)
-            tr_out[:, t:t+1, :] = torch.unsqueeze(self.fc_op(h2), 1)
+                h = gamma_h*h
+                z = torch.sigmoid(self.w_xz(x) + self.w_hz(h) + self.w_mz(m))
+                r = torch.sigmoid(self.w_xr(x) + self.w_hr(h) + self.w_mr(m))
 
-        # OP prediction
-        outputs = self.fc_op(h2)
+                h_tilde = torch.tanh(self.w_xh(x) + self.w_hh(r*h) + self.w_mh(m))
 
-        # Aux prediction
-        aux_out = []
-        for aux_layer in self.aux_fc_layers:
-            a_o = aux_layer(h2)
-            aux_out.append(a_o)
+                h = (1 - z) * h + z * h_tilde
 
-        return outputs, tr_out, aux_out, h2
+            # TODO: not adapted yet
+            elif self.dropout_type == 'Moon':
+                '''
+                RNNDROP: a novel dropout for rnn in asr(2015)
+                '''
+                h = gamma_h * h
 
-    def predict(self, inputs, h1, h2):
-        """
-        Returns: pred_op, h2
-        """
-        step_size = inputs.size(2)
-        outputs = None
+                z = torch.sigmoid((w_xz*x + w_hz*h + w_mz*m + b_z))
+                r = torch.sigmoid((w_xr*x + w_hr*h + w_mr*m + b_r))
 
-        for t in range(step_size):
-            h1, h2 = self.step(inputs[:, :, t:t+1, :], h1, h2)
+                h_tilde = torch.tanh((w_xh*x + w_hh*(r * h) + w_mh*m + b_h))
 
-        outputs = self.fc_op(h2)
-        return outputs, h2
+                h = (1 - z) * h + z * h_tilde
+                dropout = torch.nn.Dropout(p=self.dropout)
+                h = dropout(h)
 
-    def step(self, inputs, h1, h2):  # inputs = (batch_size x type x dim)
-        inputs = inputs.float()
-        x, obs_mask, delta, x_tm1 = torch.squeeze(inputs[:, 0, :, :]), \
-            torch.squeeze(inputs[:, 1, :, :]), \
-            torch.squeeze(inputs[:, 2, :, :]), \
-            torch.squeeze(inputs[:, 3, :, :])
+            elif self.dropout_type == 'Gal':
+                '''
+                A Theoretically grounded application of dropout in recurrent neural networks(2015)
+                '''
+                dropout = torch.nn.Dropout(p=self.dropout)
+                h = dropout(h)
 
-        h1 = self.gru1(x, obs_mask, delta, x_tm1, h1)
-        h1 = nn.Dropout()(h1)
-        h2 = self.gru2(h1, obs_mask, delta, x_tm1, h2)
-        h2 = nn.Dropout()(h2)
+                h = gamma_h * h
 
-        return h1, h2
+                z = torch.sigmoid((w_xz*x + w_hz*h + w_mz*m + b_z))
+                r = torch.sigmoid((w_xr*x + w_hr*h + w_mr*m + b_r))
+                h_tilde = torch.tanh((w_xh*x + w_hh*(r * h) + w_mh*m + b_h))
 
+                h = (1 - z) * h + z * h_tilde
 
-def try_gpu():
-    return torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+            elif self.dropout_type == 'mloss':
+                '''
+                recurrent dropout without memory loss arXiv 1603.05118
+                g = h_tilde, p = the probability to not drop a neuron
+                '''
+                h = gamma_h*h
+                z = torch.sigmoid(self.w_xz(x) + self.w_hz(h) + self.w_mz(m))
+                r = torch.sigmoid(self.w_xr(x) + self.w_hr(h) + self.w_mr(m))
+
+                dropout = torch.nn.Dropout(p=self.dropout)
+                h_tilde = torch.tanh(self.w_xh(x) + self.w_hh(r*h) + self.w_mh(m))
+
+                h = (1 - z) * h + z * h_tilde
+                #######
+
+            else:
+                h = gamma_h * h
+
+                z = torch.sigmoid((w_xz*x + w_hz*h + w_mz*m + b_z))
+                r = torch.sigmoid((w_xr*x + w_hr*h + w_mr*m + b_r))
+                h_tilde = torch.tanh((w_xh*x + w_hh*(r * h) + w_mh*m + b_h))
+
+                h = (1 - z) * h + z * h_tilde
+
+            step_output = self.w_hy(h)
+            step_output = torch.sigmoid(step_output)
+            output_tensor[:, timestep, :] = step_output
+            hidden_tensor[:, timestep, :] = h
+
+        # if self.return_hidden:
+            # when i want to stack GRU-Ds, need to put the tensor back together
+            # output = torch.stack([hidden_tensor,Mask,Delta], dim=1)
+
+        output = output_tensor, hidden_tensor
+        # else:
+        #    output = output_tensor
+        return output

@@ -29,17 +29,16 @@ y_sys:
 train_sys:
   steps:
     - _target_: src.modules.training.main_trainer.MainTrainer
-      model_name: EEGNet # Can't have special characters or spaces
+      model_name: WaveNet # Can't have special characters or spaces
       two_stage: true
       # two_stage_kl_threshold: 5.5
       two_stage_evaluator_threshold: 3
       two_stage_split_test: true
       two_stage_pretrain_full: true
       model:
-        _target_: src.modules.training.models.gru_d.GRUD
-        input_size: 9
-        output_size: 6
-        hidden_size: 64
+        _target_: src.modules.training.models.wave_net.Classifier
+        inch: 9
+        n_classes: 6
       optimizer: # Partially instantiate optimizer, so model parameters can be linked at runtime
         _target_: functools.partial
         _args_:
@@ -49,7 +48,7 @@ train_sys:
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
         reduction: "batchmean"
-      epochs: 3
+      epochs: 30 
       batch_size: 64
       patience: 15
       dataset_args:
