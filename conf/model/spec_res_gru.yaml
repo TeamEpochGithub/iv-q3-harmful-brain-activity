@@ -44,8 +44,9 @@ train_sys:
         lr: 0.0001
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
-      epochs: 20
-      batch_size: 96
+
+      epochs: 30
+      batch_size: 128
       patience: 15
       dataset_args:
         data_type: eeg
@@ -86,4 +87,7 @@ train_sys:
         warmup_t: 10
         warmup_lr_init: 1e-5
         lr_min: 0.00002
+
     - _target_: src.modules.training.postprocessing.softmax.Softmax
+
+

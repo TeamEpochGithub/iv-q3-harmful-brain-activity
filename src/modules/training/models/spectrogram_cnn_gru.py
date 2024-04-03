@@ -13,7 +13,7 @@ class MultiResidualBiGRUwSpectrogramCNN(nn.Module):
         super(MultiResidualBiGRUwSpectrogramCNN, self).__init__()
         # TODO exclude some of the features from the spectrogram
         self.encoder = Unet(
-            encoder_name="resnet34",
+            encoder_name="resnet18",
             in_channels=in_channels,
             encoder_weights=None,
             classes=1,
