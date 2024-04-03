@@ -27,7 +27,7 @@ class TrainConfig:
     eeg_path: str | None
     spectrogram_path: str | None
     raw_path: str
-    cache_path: str
+    cache_path: str | None
     processed_path: str
     scorer: Any
     cache_size: int
