@@ -1,7 +1,6 @@
 defaults:
   - base_train
   - hydra/logging
-  # - ensemble: example
   - model: jaspers_eeg_net_dont_touch
   - wandb: train
 
