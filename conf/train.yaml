@@ -14,7 +14,7 @@ processed_path: data/processed
 
 scorer:
   _target_: src.scoring.kldiv.KLDiv
-  # voter_threshold: ???
+  voter_threshold: 9 
 test_size: 0.2
 cache_size: -1
 splitter:

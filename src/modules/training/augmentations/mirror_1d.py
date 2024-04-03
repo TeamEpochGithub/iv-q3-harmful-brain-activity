@@ -17,4 +17,4 @@ class Mirror1D(torch.nn.Module):
         for i in range(x.shape[0]):
             if torch.rand(1) < self.p:
                 augmented_x[i] = -1 * x[i] + 2 * x[i].mean(dim=-1).unsqueeze(-1)
-        return x
+        return augmented_x

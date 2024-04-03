@@ -21,7 +21,7 @@ x_sys:
       order: 2
     - _target_: src.modules.transformation.eeg.quantize.Quantizer
     - _target_: src.modules.transformation.eeg.downsample.Downsample
-      downsample_factor: 5
+      downsample_factor: 10
 
 y_sys:
   steps: []
@@ -36,19 +36,9 @@ train_sys:
       two_stage_split_test: true
       two_stage_pretrain_full: true
       model:
-        _target_: src.modules.training.models.eeg_net.EEGNet
-        num_classes: 6
-        in_channels: 9
-        fixed_kernel_size: 5
-        # linear_layer_features: 448 # Full Signal = 10_000
-        # linear_layer_features: 352 # Half Signal = 5_000
-        # linear_layer_features: 304 # 1/4 1/5 1/6 Signal = 2_000
-        # linear_layer_features: 176
-        # linear_layer_features: 280 # 1/10 Signal = 1_000
-        kernels: [3, 5,7,9,11]
-        dropout: 0.1
-        hidden_size: 32 
-        gru_layers: 1
+        _target_: src.modules.training.models.enc_mtan_classifier.enc_mtan_classif
+        input_dim: 9
+
       optimizer: # Partially instantiate optimizer, so model parameters can be linked at runtime
         _target_: functools.partial
         _args_:
@@ -58,7 +48,7 @@ train_sys:
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
         reduction: "batchmean"
-      epochs: 30 
+      epochs: 3
       batch_size: 64
       patience: 15
       dataset_args:
@@ -73,8 +63,6 @@ train_sys:
               p: 0.22
               rollover: true
               mode: per_example
-            - _target_: src.modules.training.augmentations.mirror_1d.Mirror1D
-              p: 0.9
             - _target_: src.modules.training.augmentations.random_phase_shift.RandomPhaseShift
               p: 0.4
               shift_limit: 0.25
@@ -97,6 +85,6 @@ train_sys:
         cycle_mul: 1
         cycle_decay: 1
         cycle_limit: 1
-        warmup_t: 1
+        warmup_t: 5
         warmup_lr_init: 1e-5
     - _target_: src.modules.training.postprocessing.softmax.Softmax
