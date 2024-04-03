@@ -24,10 +24,13 @@ class MainTrainer(TorchTrainer, Logger):
     """Main training block for training EEG / Spectrogram models.
 
     :param model_name: The name of the model. No spaces allowed
-    :param dataset: The dataset to use for training.
+    :param dataset_args: The MainDataset args to use for training.
     :param two_stage: Whether to use two-stage training. See: https://www.kaggle.com/competitions/hms-harmful-brain-activity-classification/discussion/477461
     :param two_stage_kl_threshold: The threshold for dividing the dataset into two stages.
     :param two_stage_evaluator_threshold: The threshold for dividing the dataset into two stages, based on total number of votes.
+    :param two_stage_pretrain_full: Whether to train the first stage on the full dataset.
+    :param two_stage_split_test: Whether to split the test data into two stages as well.
+    :param early_stopping: Whether to do early stopping.
      Note: remove the sum to one block from the target pipeline for this to work
     """
 
@@ -36,6 +39,9 @@ class MainTrainer(TorchTrainer, Logger):
     two_stage: bool = False
     two_stage_kl_threshold: float | None = None
     two_stage_evaluator_threshold: int | None = None
+    two_stage_pretrain_full: bool = False
+    two_stage_split_test: bool = False
+    early_stopping: bool = True
     _fold: int = field(default=-1, init=False, repr=False, compare=False)
     _stage: int = field(default=-1, init=False, repr=False, compare=False)
 
@@ -66,8 +72,9 @@ class MainTrainer(TorchTrainer, Logger):
 
         # Set up the test dataset
         if test_indices is not None:
-            self.dataset_args["subsample_method"] = "random"
-            test_dataset = MainDataset(X=test_data, y=test_labels, use_aug=False, **self.dataset_args)
+            test_dataset_args = self.dataset_args.copy()
+            test_dataset_args["subsample_method"] = "random"
+            test_dataset = MainDataset(X=test_data, y=test_labels, use_aug=False, **test_dataset_args)
         else:
             test_dataset = None
 
@@ -83,7 +90,9 @@ class MainTrainer(TorchTrainer, Logger):
         :param x: The input data.
         :return: The prediction dataset.
         """
-        predict_dataset = MainDataset(X=x, use_aug=False, **self.dataset_args)
+        pred_args = self.dataset_args.copy()
+        pred_args["subsample_method"] = None
+        predict_dataset = MainDataset(X=x, use_aug=False, **pred_args)
         predict_dataset.setup_prediction(x)
         return predict_dataset
 
@@ -135,7 +144,7 @@ class MainTrainer(TorchTrainer, Logger):
 
     def custom_train(
         self,
-        x: npt.NDArray[np.float32],
+        x: XData,
         y: npt.NDArray[np.float32],
         **train_args: Any,
     ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]:
@@ -154,31 +163,63 @@ class MainTrainer(TorchTrainer, Logger):
         # Two-stage training
         self.log_to_terminal("Two-stage training")
         train_indices = np.array(train_args.get("train_indices", range(len(y))))
-        if self.two_stage_kl_threshold is not None and self.two_stage_evaluator_threshold is not None:
-            raise ValueError("Cannot use both KL and evaluator threshold for two-stage training")
+        test_indices = np.array(train_args.get("test_indices", []))
 
-        if self.two_stage_kl_threshold is not None:
-            peak_kl = self.compute_peak_kl(y[train_indices])
-            train_indices_stage1 = list(train_indices)  # first stage is all data
-            train_indices_stage2 = list(train_indices[peak_kl < self.two_stage_kl_threshold])  # second stage is with low KL
-        elif self.two_stage_evaluator_threshold is not None:
-            n_evaluators = y[train_indices].sum(axis=1)
-            train_indices_stage1 = list(train_indices[n_evaluators <= self.two_stage_evaluator_threshold])
-            train_indices_stage2 = list(train_indices[n_evaluators > self.two_stage_evaluator_threshold])
+        # Split data according to the chosen criterion
+        train_indices_stage1, train_indices_stage2 = self._split_criterion(train_indices, y)
+        if self.two_stage_split_test:
+            test_indices_stage1, test_indices_stage2 = self._split_criterion(test_indices, y)
         else:
-            raise ValueError("No two-stage threshold provided")
-
-        self.log_to_terminal(f"Split data into two stages, sizes: {len(train_indices_stage1)} / {len(train_indices_stage2)}")
+            test_indices_stage1, test_indices_stage2 = list(test_indices), list(test_indices)
+        self.log_to_terminal(
+            f"Split data into two stages, train sizes: {len(train_indices_stage1)} / {len(train_indices_stage2)},"
+            f" test sizes: {len(test_indices_stage1)} / {len(test_indices_stage2)}",
+        )
 
         self._stage = 0
         self.log_to_terminal("Training stage 1")
         train_args["train_indices"] = train_indices_stage1
+        train_args["test_indices"] = test_indices_stage1
         super().custom_train(x, y, **train_args)
 
         self._stage = 1
         self.log_to_terminal("Training stage 2")
         train_args["train_indices"] = train_indices_stage2
+        train_args["test_indices"] = test_indices_stage2
+        if self.two_stage_split_test:
+            super().custom_train(x, y, **train_args)
+
+            # predict again on the entire test data for scoring later on to work
+            test_meta = x.meta.iloc[test_indices, :]
+            x_test = XData(x.eeg, x.kaggle_spec, x.eeg_spec, test_meta, x.shared)
+            return self.custom_predict(x_test), y  # type: ignore[return-value]
         return super().custom_train(x, y, **train_args)
+
+    def _split_criterion(self, indices: npt.NDArray[np.float32], y: npt.NDArray[np.float32]) -> tuple[list[int], list[int]]:
+        """Split the indices based on the criterion from the two stage parameters.
+
+        :param indices: The indices to split.
+        :param y: The target variable.
+        :return: The indices for the two stages.
+        """
+        if self.two_stage_kl_threshold is not None and self.two_stage_evaluator_threshold is not None:
+            raise ValueError("Cannot use both KL and evaluator threshold for two-stage training")
+
+        if self.two_stage_kl_threshold is not None:
+            peak_kl = self.compute_peak_kl(y[indices])
+            indices_1 = indices[peak_kl >= self.two_stage_kl_threshold]
+            indices_2 = indices[peak_kl < self.two_stage_kl_threshold]
+        elif self.two_stage_evaluator_threshold is not None:
+            n_evaluators = y[indices].sum(axis=1)
+            indices_1 = indices[n_evaluators <= self.two_stage_evaluator_threshold]
+            indices_2 = indices[n_evaluators > self.two_stage_evaluator_threshold]
+        else:
+            raise ValueError("No two-stage threshold provided, set either two_stage_kl_threshold or two_stage_evaluator_threshold")
+
+        if self.two_stage_pretrain_full:
+            indices_1 = indices
+
+        return list(indices_1), list(indices_2)
 
     def compute_peak_kl(self, y: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
         """Compute the KL-loss against a uniform distribution.
@@ -283,6 +324,29 @@ class MainTrainer(TorchTrainer, Logger):
 
         test_predictions = torch.stack(predictions)
         return torch.mean(test_predictions, dim=0)
+
+    def _train_one_epoch(
+        self,
+        dataloader: DataLoader[tuple[Tensor, ...]],
+        epoch: int,
+    ) -> float:
+        """Train the model for one epoch.
+
+        :param dataloader: The dataloader to train on.
+        :param epoch: The current epoch.
+        :return: The loss for the epoch.
+        """
+        self.log_to_terminal(f"Learning rate: {self.initialized_optimizer.param_groups[0]['lr']}")
+        return super()._train_one_epoch(dataloader, epoch)
+
+    def _early_stopping(self) -> bool:
+        """Check if early stopping should be done.
+
+        :return: Whether to do early stopping.
+        """
+        if not self.early_stopping:
+            return False
+        return super()._early_stopping()
 
 
 def collate_fn(batch: tuple[Tensor, ...]) -> tuple[Tensor, ...]:

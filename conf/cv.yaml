@@ -1,7 +1,7 @@
 defaults:
   - base_cv
   - hydra/logging
-  - model: cnn3d-aug
+  - model: eeg_net_mirror_95
   - wandb: train
 
 metadata_path: data/raw/train.csv
