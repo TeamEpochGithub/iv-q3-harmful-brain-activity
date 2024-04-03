@@ -1,7 +1,7 @@
 defaults:
   - base_train
   - hydra/logging
-  - model: cnn3d-aug
+  - model: chris_512
   - wandb: train
 
 # Use these for normal training
