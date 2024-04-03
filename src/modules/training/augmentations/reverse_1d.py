@@ -1,15 +1,14 @@
 """Given a sequence with multiple channels, reverse it in time."""
 
 import torch
+from dataclasses import dataclass
 
 
+@dataclass
 class Reverse1D(torch.nn.Module):
     """Reverse augmentation for 1D signals."""
 
-    def __init__(self, p: float = 0.5) -> None:
-        """Initialize the augmentation."""
-        super().__init__()
-        self.p = p
+    p: float = 0.5
 
     def __call__(self, x: torch.Tensor) -> torch.Tensor:
         """Apply the augmentation to the input signal."""

@@ -1,16 +1,15 @@
 """CutMix augmentation for 1D signals."""
+from dataclasses import dataclass
 import torch
 
 
+@dataclass
 class CutMix1D(torch.nn.Module):
     """CutMix augmentation for 1D signals."""
 
-    def __init__(self, p: float = 0.5, low: float = 0, high: float = 1) -> None:
-        """Initialize the augmentation."""
-        super().__init__()
-        self.p = p
-        self.low = low
-        self.high = high
+    p: float = 0.5
+    low: float = 0
+    high: float = 1
 
     def __call__(self, x: torch.Tensor, y: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """Apply the augmentation to the input signal."""

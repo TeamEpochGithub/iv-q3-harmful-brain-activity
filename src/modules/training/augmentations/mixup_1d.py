@@ -1,14 +1,14 @@
 """Mixup augmentation for 1d signals."""
 import torch
+from dataclasses import dataclass
+import torch
 
 
+@dataclass
 class MixUp1D(torch.nn.Module):
     """CutMix augmentation for 1D signals."""
 
-    def __init__(self, p: float = 0.5) -> None:
-        """Initialize the augmentation."""
-        super().__init__()
-        self.p = p
+    p: float = 0.5
 
     def __call__(self, x: torch.Tensor, y: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """Apply the augmentation to the input signal."""
