@@ -89,7 +89,7 @@ train_sys:
         _args_:
           - _target_: hydra.utils.get_class
             path: timm.scheduler.cosine_lr.CosineLRScheduler
-        t_initial: ${model.train_sys.steps.0.epochs}
+        t_initial: 37
         cycle_mul: 1
         cycle_decay: 1
         cycle_limit: 1

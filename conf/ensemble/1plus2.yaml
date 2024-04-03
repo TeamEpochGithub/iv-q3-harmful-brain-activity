@@ -1,0 +1,6 @@
+defaults:
+  - /model/tender-cycle-cv382@steps.0
+  - /model/icy-azimuth-cv384@steps.1
+
+_target_: src.modules.training.base_ensembling.BaseEnsemble
+_convert_: partial
