@@ -40,7 +40,7 @@ train_sys:
         _target_: functools.partial
         _args_:
           - _target_: hydra.utils.get_class
-            path: torch.optim.Adam
+            path: torch.optim.AdamW
         lr: 0.0001
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
