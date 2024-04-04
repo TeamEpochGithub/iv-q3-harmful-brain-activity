@@ -19,7 +19,6 @@ x_sys:
     - _target_: src.modules.transformation.eeg.quantize.Quantizer
     - _target_: src.modules.transformation.eeg.downsample.Downsample
       downsample_factor: 5
-      operation: "std"
 #    - _target_: src.modules.transformation.eeg.rolling.Rolling
 #      channels: [0, 2, 4, 6]
 #      window_sizes: [20, 20, 20, 20]
