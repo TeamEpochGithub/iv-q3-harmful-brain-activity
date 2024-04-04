@@ -43,6 +43,7 @@ class MainTrainer(TorchTrainer, Logger):
     two_stage_split_test: bool = False
     _fold: int = field(default=-1, init=False, repr=False, compare=False)
     _stage: int = field(default=-1, init=False, repr=False, compare=False)
+    grad_clip_range: int | None = None
 
     def create_datasets(
         self,
@@ -353,7 +354,8 @@ class MainTrainer(TorchTrainer, Logger):
             loss.backward()
 
             # Clip gradients
-            torch.nn.utils.clip_grad_value_(self.model.parameters(), 0.2)
+            if self.grad_clip_range is not None:
+                torch.nn.utils.clip_grad_value_(self.model.parameters(), self.grad_clip_range)
             self.initialized_optimizer.step()
             
             # Print tqdm

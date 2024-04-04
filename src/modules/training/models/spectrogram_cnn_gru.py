@@ -13,7 +13,7 @@ class MultiResidualBiGRUwSpectrogramCNN(nn.Module):
         super(MultiResidualBiGRUwSpectrogramCNN, self).__init__()
         # TODO exclude some of the features from the spectrogram
         self.encoder = Unet(
-            encoder_name="efficientnet-b0",
+            encoder_name="resnet34",
             in_channels=in_channels,
             encoder_weights=None,
             classes=1,
@@ -41,31 +41,42 @@ class MultiResidualBiGRUwSpectrogramCNN(nn.Module):
         self.pool_stage = nn.AvgPool1d(9)
         self.last_linear = nn.Linear(in_features=224, out_features=1)
 
-        self.decoder = UNet1DDecoder(
+        self.decoder1 = UNet1DDecoder(
             n_channels=(n_fft+1)//2,
             n_classes=out_channels,
             bilinear=False,
             scale_factor=2,
             duration=224,
         )
+        self.decoder2 = UNet1DDecoder(
+            n_channels=(n_fft+1)//2,
+            n_classes=in_channels,
+            bilinear=False,
+            scale_factor=2,
+            duration=224,
+        )
         self.batch_norm = nn.BatchNorm1d(in_channels)
-
+        self.last_conv = nn.Sequential(nn.Conv1d(in_channels=6, out_channels=18, kernel_size=5, stride=1, padding=2),
+                                       nn.AvgPool1d(14),
+                                       nn.Conv1d(in_channels=18, out_channels=9, kernel_size=3, stride=1),
+                                       nn.AvgPool1d(14),
+                                       nn.Conv1d(in_channels=9, out_channels=6, kernel_size=1, stride=1))
 
     def forward(self, x, use_activation=True):
         x = F.pad(x, (8, 8, 0, 0))
         x_spec = self.spectrogram(x)
         x_encoded = self.encoder(x_spec).squeeze(1)
 
-        x_decoded = self.decoder(x_encoded)
+        x_decoded = self.decoder1(x_encoded)
 
-        x_encoded = x_encoded.permute(0, 2, 1)
         x_encoded_linear = self.liner(x_encoded)
         x_downsampled = self.pool_stage(x)
         x_encoded_linear = x_downsampled.permute(0, 2, 1) + x_encoded_linear
 
         y, _ = self.GRU(x_encoded_linear, use_activation=use_activation)
         out = y.permute(0, 2, 1) + x_decoded.permute(0, 2, 1)
-        out = self.last_linear(out).squeeze(-1)
+
+        out = self.last_conv(out).squeeze(-1)
         return out
 
 
