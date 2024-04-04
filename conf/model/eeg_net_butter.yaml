@@ -16,6 +16,8 @@ x_sys:
       value: 32
     - _target_: src.modules.transformation.eeg.butter.ButterFilter
       lower: 0.5
+      method: "extend"
+      ranges: [[3,6],[6,12],[12,25]]
     - _target_: src.modules.transformation.eeg.quantize.Quantizer
     - _target_: src.modules.transformation.eeg.downsample.Downsample
       downsample_factor: 5
@@ -96,5 +98,5 @@ train_sys:
         warmup_lr_init: 1e-5
     - _target_: src.modules.training.postprocessing.softmax.Softmax
     - _target_: src.modules.training.postprocessing.smooth_patient.SmoothPatient
-      smooth_factor: 0.5
+      smooth_factor: 0.09
 

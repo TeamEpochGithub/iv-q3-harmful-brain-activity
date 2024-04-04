@@ -11,7 +11,6 @@ from tqdm import tqdm
 from src.modules.transformation.verbose_transformation_block import VerboseTransformationBlock
 from src.typing.typing import XData
 
-
 @dataclass
 class ButterFilter(VerboseTransformationBlock):
     """Butter filter for eeg signals.
