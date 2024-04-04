@@ -18,6 +18,7 @@ x_sys:
       lower: 0.5
       method: "extend"
       ranges: [[1,4],[4,8],[8,12],[12,25]]
+    - _target_: src.modules.transformation.eeg.quantize.Quantizer
     - _target_: src.modules.transformation.eeg.downsample.Downsample
       downsample_factor: 5
 #    - _target_: src.modules.transformation.eeg.rolling.Rolling
