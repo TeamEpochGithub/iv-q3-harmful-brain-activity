@@ -53,10 +53,10 @@ train_sys:
       epochs: 1
       batch_size: 256
       patience: 15
-      two_stage: true
+      two_stage: false
       two_stage_evaluator_threshold: 9
 
-      predict_with_n_folds: 3
+      train_split_type: 3
 
       dataset_args:
         data_type: "eeg"

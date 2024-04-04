@@ -40,7 +40,7 @@ def run_submit(cfg: DictConfig) -> None:
 
     # Preload the pipeline
     print_section_separator("Setup pipeline")
-    model_pipeline = setup_pipeline(cfg)
+    model_pipeline = setup_pipeline(cfg, is_train=False)
 
     # Load the test data
     eeg_path = Path(cfg.eeg_path)
