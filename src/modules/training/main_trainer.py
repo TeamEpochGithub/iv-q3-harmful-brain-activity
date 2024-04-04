@@ -36,7 +36,6 @@ class MainTrainer(TorchTrainer, Logger):
     :param early_stopping: Whether to do early stopping.
     """
 
-
     dataset_args: dict[str, Any] = field(default_factory=dict)
     model_name: str = "WHAT_ARE_YOU_TRAINING_PUT_A_NAME_IN_THE_MAIN_TRAINER"  # No spaces allowed
     two_stage: bool = False

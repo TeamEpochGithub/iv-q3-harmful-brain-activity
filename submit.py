@@ -2,6 +2,7 @@
 import os
 import warnings
 from pathlib import Path
+from typing import Any
 
 import hydra
 import pandas as pd
@@ -51,7 +52,7 @@ def run_submit(cfg: DictConfig) -> None:
     # Predict on the test data
     logger.info("Making predictions...")
 
-    pred_args = {
+    pred_args: dict[str, Any] = {
         "train_sys": {
             "MainTrainer": {
                 "batch_size": 16,

@@ -5,6 +5,7 @@ import os
 import pickle
 import re
 from collections.abc import Callable
+from enum import Enum
 from pathlib import Path
 from typing import Any, cast
 
@@ -49,7 +50,7 @@ def setup_config(cfg: DictConfig) -> None:
         raise ValueError(f"Missing keys in config: {missing}")
 
 
-def setup_pipeline(cfg: DictConfig, is_train: bool = True) -> ModelPipeline | EnsemblePipeline:
+def setup_pipeline(cfg: DictConfig, *, is_train: bool = True) -> ModelPipeline | EnsemblePipeline:
     """Instantiate the pipeline.
 
     :param pipeline_cfg: The model pipeline config. Root node should be a ModelPipeline
@@ -67,17 +68,18 @@ def setup_pipeline(cfg: DictConfig, is_train: bool = True) -> ModelPipeline | En
     if "model" in cfg:
         model_cfg = cfg.model
         model_cfg_dict = OmegaConf.to_container(model_cfg, resolve=True)
-        if is_train:
+        if isinstance(model_cfg_dict, dict) and is_train:
             model_cfg_dict = update_model_cfg_test_size(model_cfg_dict, test_size)
         pipeline_cfg = OmegaConf.create(model_cfg_dict)
 
     elif "ensemble" in cfg:
         ensemble_cfg = cfg.ensemble
         ensemble_cfg_dict = OmegaConf.to_container(ensemble_cfg, resolve=True)
-        ensemble_cfg_dict["steps"] = list(ensemble_cfg_dict.get("steps", []).values())
-        if is_train:
-            for model in ensemble_cfg_dict.get("steps", []):
-                update_model_cfg_test_size(model, test_size)
+        if isinstance(ensemble_cfg_dict, dict):
+            ensemble_cfg_dict["steps"] = list(ensemble_cfg_dict.get("steps", {}).values())
+            if is_train:
+                for model in ensemble_cfg_dict.get("steps", []):
+                    update_model_cfg_test_size(model, test_size)
         pipeline_cfg = OmegaConf.create(ensemble_cfg_dict)
     else:
         raise ValueError("Neither model nor ensemble specified in config.")
@@ -89,9 +91,9 @@ def setup_pipeline(cfg: DictConfig, is_train: bool = True) -> ModelPipeline | En
 
 
 def update_model_cfg_test_size(
-        cfg: dict,
-        test_size: int = -1,
-) -> dict:
+    cfg: dict[str | bytes | int | Enum | float | bool, Any] | list[Any] | str | None,
+    test_size: int = -1,
+) -> dict[str | bytes | int | Enum | float | bool, Any] | list[Any] | str | None:
     """Update the test size in the model config.
 
     :param cfg: The model config.
@@ -99,19 +101,22 @@ def update_model_cfg_test_size(
 
     :return: The updated model config.
     """
-    for model in cfg["train_sys"]["steps"]:
-        if model["_target_"] == "src.modules.training.main_trainer.MainTrainer":
-            model["test_split_type"] = test_size
+    if cfg is None:
+        raise ValueError("cfg should not be None")
+    if isinstance(cfg, dict):
+        for model in cfg["train_sys"]["steps"]:
+            if model["_target_"] == "src.modules.training.main_trainer.MainTrainer":
+                model["test_split_type"] = test_size
     return cfg
 
 
 def setup_data(
-        metadata_path: str | Path | None,
-        eeg_path: str | Path | None,
-        spectrogram_path: str | Path | None,
-        cache_path: str | Path | None = None,
-        *,
-        use_test_data: bool = False,
+    metadata_path: str | Path | None,
+    eeg_path: str | Path | None,
+    spectrogram_path: str | Path | None,
+    cache_path: str | Path | None = None,
+    *,
+    use_test_data: bool = False,
 ) -> tuple[XData, npt.NDArray[np.float32] | None]:
     """Read the metadata and return the data and target in the proper format.
 
@@ -136,8 +141,7 @@ def setup_data(
     # Process the metadata (Extract ids, offsets, and labels)
     ids = metadata[["patient_id", "eeg_id", "spectrogram_id"]]
     if use_test_data:
-        offsets = pd.DataFrame(np.zeros((metadata.shape[0], 2)),
-                               columns=["eeg_label_offset_seconds", "spectrogram_label_offset_seconds"])
+        offsets = pd.DataFrame(np.zeros((metadata.shape[0], 2)), columns=["eeg_label_offset_seconds", "spectrogram_label_offset_seconds"])
         labels_np = None
     else:
         offsets = metadata[["eeg_label_offset_seconds", "spectrogram_label_offset_seconds"]]
@@ -206,13 +210,13 @@ def setup_label_data(raw_path: Path) -> np.ndarray[Any, Any] | None:
 
 
 def load_training_data(
-        metadata_path: str | Path | None,
-        eeg_path: str | Path | None,
-        spectrogram_path: str | Path | None,
-        cache_path: str | Path | None,
-        *,
-        x_cache_exists: bool,
-        y_cache_exists: bool,
+    metadata_path: str | Path | None,
+    eeg_path: str | Path | None,
+    spectrogram_path: str | Path | None,
+    cache_path: str | Path | None,
+    *,
+    x_cache_exists: bool,
+    y_cache_exists: bool,
 ) -> tuple[XData | None, npt.NDArray[np.float32] | None]:
     """Read the data if required and split it in X, y.
 
@@ -306,8 +310,7 @@ def load_all_eegs(eeg_path: Path, cache_path: Path | None, ids: pd.DataFrame) ->
     return all_eegs
 
 
-def load_all_spectrograms(spectrogram_path: Path, cache_path: Path | None, ids: pd.DataFrame) -> dict[
-    int, torch.Tensor]:
+def load_all_spectrograms(spectrogram_path: Path, cache_path: Path | None, ids: pd.DataFrame) -> dict[int, torch.Tensor]:
     """Read the spectrogram data and return it as a dictionary.
 
     :param spectrogram_path: Path to the spectrogram data.
@@ -324,8 +327,7 @@ def load_all_spectrograms(spectrogram_path: Path, cache_path: Path | None, ids: 
         logger.info("Loaded pickle cache for spectrogram data")
     else:
         with concurrent.futures.ProcessPoolExecutor() as executor:
-            all_spec = dict(
-                executor.map(load_spectrogram, itertools.repeat(spectrogram_path), ids["spectrogram_id"].unique()))
+            all_spec = dict(executor.map(load_spectrogram, itertools.repeat(spectrogram_path), ids["spectrogram_id"].unique()))
             executor.shutdown()
         for spectrogram_id in all_spec:
             all_spec[spectrogram_id] = torch.tensor(all_spec[spectrogram_id])
@@ -341,11 +343,11 @@ def load_all_spectrograms(spectrogram_path: Path, cache_path: Path | None, ids: 
 
 
 def setup_wandb(
-        cfg: DictConfig,
-        job_type: str,
-        output_dir: Path,
-        name: str | None = None,
-        group: str | None = None,
+    cfg: DictConfig,
+    job_type: str,
+    output_dir: Path,
+    name: str | None = None,
+    group: str | None = None,
 ) -> wandb.sdk.wandb_run.Run | wandb.sdk.lib.RunDisabled | None:
     """Initialize Weights & Biases and log the config and code.
 
@@ -372,8 +374,7 @@ def setup_wandb(
         reinit=True,
     )
 
-    if isinstance(run,
-                  wandb.sdk.lib.RunDisabled) or run is None:  # Can't be True after wandb.init, but this casts wandb.run to be non-None, which is necessary for MyPy
+    if isinstance(run, wandb.sdk.lib.RunDisabled) or run is None:  # Can't be True after wandb.init, but this casts wandb.run to be non-None, which is necessary for MyPy
         raise RuntimeError("Failed to initialize Weights & Biases")
 
     if cfg.wandb.log_config:
@@ -405,9 +406,7 @@ def setup_wandb(
 
         run.log_code(
             root=".",
-            exclude_fn=cast(Callable[[str, str], bool], lambda abs_path, root: re.match(cfg.wandb.log_code.exclude,
-                                                                                        Path(abs_path).relative_to(
-                                                                                            root).as_posix()) is not None),
+            exclude_fn=cast(Callable[[str, str], bool], lambda abs_path, root: re.match(cfg.wandb.log_code.exclude, Path(abs_path).relative_to(root).as_posix()) is not None),
         )
 
     logger.info("Done initializing Weights & Biases")
