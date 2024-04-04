@@ -80,18 +80,18 @@ train_sys:
             p: 0.12301533021045688
             low: 0.07886719060925124
             high: 0.5711317254713427
-      scheduler:
-        _target_: functools.partial
-        _args_:
-          - _target_: hydra.utils.get_class
-            path: timm.scheduler.cosine_lr.CosineLRScheduler
-        t_initial: 40
-        cycle_mul: 1
-        cycle_decay: 1
-        cycle_limit: 1
-        warmup_t: 0
-        warmup_lr_init: 1e-5
-        lr_min: 0.00002
+      # scheduler:
+      #   _target_: functools.partial
+      #   _args_:
+      #     - _target_: hydra.utils.get_class
+      #       path: timm.scheduler.cosine_lr.CosineLRScheduler
+      #   t_initial: 40
+      #   cycle_mul: 1
+      #   cycle_decay: 1
+      #   cycle_limit: 1
+      #   warmup_t: 0
+      #   warmup_lr_init: 1e-5
+      #   lr_min: 0.00002
 
     - _target_: src.modules.training.postprocessing.softmax.Softmax
 
