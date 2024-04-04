@@ -106,6 +106,14 @@ class KLDiv(Scorer):
 
         :return: The accuracy and the f1 score of the predictions.
         """
+        if self.voter_threshold is not None:
+            indices = y_true.sum(axis=1) > self.voter_threshold
+        else:
+            indices = np.ones(y_true.shape[0], dtype=bool)
+
+        y_true = y_true[indices]
+        y_pred = y_pred[indices]
+
         # Suppress all matplotlib and seaborn warnings
         warnings.filterwarnings("ignore")
 

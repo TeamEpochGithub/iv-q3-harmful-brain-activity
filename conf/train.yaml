@@ -7,6 +7,7 @@ defaults:
   # - model: multi_res_bi_gru
   - wandb: train
 
+# Use these for normal training
 metadata_path: data/raw/train.csv
 eeg_path: data/raw/train_eegs
 spectrogram_path: data/raw/train_spectrograms
@@ -14,9 +15,21 @@ raw_path: data/raw
 cache_path: data/cache
 processed_path: data/processed
 
+# Use these if you want to use the smaller dataset
+# metadata_path: data/raw/train_small.csv
+# eeg_path: data/raw/train_eegs_small
+# spectrogram_path: data/raw/train_spectrograms_small
+# raw_path: data/raw
+# cache_path: # Path to pickled version of the raw dicts
+# processed_path: data/processed/small
+
 scorer:
   _target_: src.scoring.kldiv.KLDiv
+<<<<<<< HEAD
   voter_threshold: 9 
+=======
+  voter_threshold: 9
+>>>>>>> main
 test_size: 0.2
 cache_size: -1
 splitter:
