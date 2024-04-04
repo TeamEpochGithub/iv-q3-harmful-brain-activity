@@ -208,7 +208,7 @@ class MainTrainer(TorchTrainer, Logger):
             # predict again on the entire test data for scoring later on to work
             test_meta = x.meta.iloc[test_indices, :]
             x_test = XData(x.eeg, x.kaggle_spec, x.eeg_spec, test_meta, x.shared)
-            return self.custom_predict(x_test), y  # type: ignore[return-value]
+            return self.custom_predict(x_test, use_single_model=True), y  # type: ignore[return-value]
         return super().custom_train(x, y, **train_args)
 
     def _split_criterion(self, indices: npt.NDArray[np.float32], y: npt.NDArray[np.float32]) -> tuple[list[int], list[int]]:
@@ -413,8 +413,8 @@ class MainTrainer(TorchTrainer, Logger):
         if self.two_stage:
             self._stage = 1
 
-        # Predict with a single model
-        if self.test_split_type < 1:  # lower than 1 means a single test size, no CV
+        # Predict with a single model, test_split_type lower than 1 means a single test size, no CV
+        if self.test_split_type < 1 or pred_args.get("use_single_model", False):
             self._load_model()
             return self.predict_on_loader(pred_dataloader)
 
