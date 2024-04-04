@@ -1,6 +1,7 @@
 from torch import nn
 import torch
 
+
 class Wave_Block(nn.Module):
 
     def __init__(self, in_channels, out_channels, dilation_rates, kernel_size):

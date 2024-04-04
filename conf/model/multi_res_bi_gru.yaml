@@ -29,7 +29,7 @@ y_sys:
 train_sys:
   steps:
     - _target_: src.modules.training.main_trainer.MainTrainer
-      model_name: WaveNet # Can't have special characters or spaces
+      model_name: MultiResidualBiGRU # Can't have special characters or spaces
       two_stage: true
       # two_stage_kl_threshold: 5.5
       two_stage_evaluator_threshold: 3

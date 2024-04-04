@@ -64,10 +64,8 @@ class MultiResidualBiGRU(nn.Module):
         x = self.ln(x)
         x = nn.functional.relu(x)
 
-        new_h = []
         for i, res_bigru in enumerate(self.res_bigrus):
-            x, new_hi = res_bigru(x, h[i])
-            new_h.append(new_hi)
+            x, _ = res_bigru(x, h[i])
 
         x = x[:, -1, :]
         x = self.fc_out(x)
