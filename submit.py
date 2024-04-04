@@ -2,6 +2,7 @@
 import os
 import warnings
 from pathlib import Path
+from typing import Any
 
 import hydra
 import pandas as pd
@@ -40,7 +41,7 @@ def run_submit(cfg: DictConfig) -> None:
 
     # Preload the pipeline
     print_section_separator("Setup pipeline")
-    model_pipeline = setup_pipeline(cfg)
+    model_pipeline = setup_pipeline(cfg, is_train=False)
 
     # Load the test data
     eeg_path = Path(cfg.eeg_path)
@@ -51,11 +52,10 @@ def run_submit(cfg: DictConfig) -> None:
     # Predict on the test data
     logger.info("Making predictions...")
 
-    pred_args = {
+    pred_args: dict[str, Any] = {
         "train_sys": {
             "MainTrainer": {
                 "batch_size": 16,
-                "model_folds": cfg.model_folds,
             },
             "SmoothPatient": {
                 "metadata": X.meta,
