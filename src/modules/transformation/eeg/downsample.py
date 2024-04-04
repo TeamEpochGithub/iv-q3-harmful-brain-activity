@@ -14,7 +14,7 @@ class Downsample(VerboseTransformationBlock):
     """Downsampling for eeg signals."""
 
     downsample_factor: int = 5
-    operation: str | None   = None
+    operation: str | None = None
 
     def custom_transform(self, data: XData, **kwargs: Any) -> XData:
         """Downsample the eeg signals.

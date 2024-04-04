@@ -168,7 +168,7 @@ def run_fold(
             },
             "SmoothPatient": {
                 "test_indices": test_indices,
-                "metadata": X.meta
+                "metadata": X.meta,
             },
             # "cache_args": cache_args, # TODO(Jasper): Allow for caching after training in fold
         },

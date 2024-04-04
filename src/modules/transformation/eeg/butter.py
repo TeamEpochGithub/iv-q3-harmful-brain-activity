@@ -11,6 +11,7 @@ from tqdm import tqdm
 from src.modules.transformation.verbose_transformation_block import VerboseTransformationBlock
 from src.typing.typing import XData
 
+
 @dataclass
 class ButterFilter(VerboseTransformationBlock):
     """Butter filter for eeg signals.
@@ -26,7 +27,7 @@ class ButterFilter(VerboseTransformationBlock):
     order: int = 2
     sampling_rate: float = 200
     method: str = "filter"
-    ranges: list[list[float, float]] = None
+    ranges: list[list[float]] | None = None
 
     def custom_transform(self, data: XData, **kwargs: Any) -> XData:
         """Filter the eeg signals with a butter filter.
@@ -35,11 +36,12 @@ class ButterFilter(VerboseTransformationBlock):
         :return: The transformed data
         """
         if self.method == "filter":
-            return self.filter(data)
-        elif self.method == "extend":
+            return self.apply_filter(data)
+        if self.method == "extend":
             return self.extend(data)
+        raise ValueError(f"Method {self.method} not recognized")
 
-    def filter(self, data: XData) -> XData:
+    def apply_filter(self, data: XData) -> XData:
         """Filter the data with a butter filter.
 
         :param data: The data to filter
@@ -66,16 +68,18 @@ class ButterFilter(VerboseTransformationBlock):
         eeg = data.eeg
         if eeg is None:
             raise ValueError("No EEG data to transform")
+        if self.ranges is None:
+            raise ValueError("No ranges provided")
         for key in tqdm(eeg.keys(), desc="Butter Filtering EEG data"):
             extended = []
-            for i, (lower, upper) in enumerate(self.ranges):
+            for lower, upper in self.ranges:
                 self.lower = lower
                 self.upper = upper
                 curr_range = eeg[key].apply(self.butter_bandpass_filter)
                 extended.append(curr_range)
-                #Rename the columns of curr_range based on lower and upper
+                # Rename the columns of curr_range based on lower and upper
                 for col in curr_range.columns:
-                    curr_range.rename(columns={col: f"{col}_{lower}-{upper}"}, inplace=True)
+                    curr_range.rename(columns={col: f"{col}_{lower}-{upper}"}, inplace=True)  # noqa: PD002
             eeg[key] = pd.concat(extended, axis=1)
         return data
 

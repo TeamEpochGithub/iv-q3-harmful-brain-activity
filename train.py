@@ -37,7 +37,7 @@ def run_train(cfg: DictConfig) -> None:
         run_train_cfg(cfg)
 
 
-def run_train_cfg(cfg: DictConfig) -> None: # noq
+def run_train_cfg(cfg: DictConfig) -> None:  # noqa: PLR0915
     """Train a model pipeline with a train-test split."""
     print_section_separator("Q3 Detect Harmful Brain Activity - Training")
     set_torch_seed()
@@ -114,7 +114,7 @@ def run_train_cfg(cfg: DictConfig) -> None: # noq
             },
             "SmoothPatient": {
                 "test_indices": test_indices,
-                "metadata": X.meta
+                "metadata": X.meta,
             },
             "cache_args": cache_args,
         },

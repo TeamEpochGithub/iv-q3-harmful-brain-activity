@@ -40,7 +40,7 @@ train_sys:
       model:
         _target_: src.modules.training.models.eeg_net.EEGNet
         num_classes: 6
-        in_channels: 9
+        in_channels: 27
         fixed_kernel_size: 5
         #linear_layer_features: 448
         #linear_layer_features: 352 # Half Signal = 5_000
@@ -99,4 +99,3 @@ train_sys:
     - _target_: src.modules.training.postprocessing.softmax.Softmax
     - _target_: src.modules.training.postprocessing.smooth_patient.SmoothPatient
       smooth_factor: 0.09
-

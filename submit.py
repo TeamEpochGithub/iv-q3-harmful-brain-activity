@@ -58,7 +58,7 @@ def run_submit(cfg: DictConfig) -> None:
                 "model_folds": cfg.model_folds,
             },
             "SmoothPatient": {
-                "metadata": X.meta
+                "metadata": X.meta,
             },
         },
     }
