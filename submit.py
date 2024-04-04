@@ -57,6 +57,9 @@ def run_submit(cfg: DictConfig) -> None:
                 "batch_size": 16,
                 "model_folds": cfg.model_folds,
             },
+            "SmoothPatient": {
+                "metadata": X.meta
+            },
         },
     }
     if isinstance(model_pipeline, EnsemblePipeline):

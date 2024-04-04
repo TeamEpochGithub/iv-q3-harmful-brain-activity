@@ -48,7 +48,7 @@ train_sys:
         lr: 0.003
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
-      epochs: 51
+      epochs: 50
       batch_size: 64
       patience: 10
       dataset_args:
@@ -85,3 +85,4 @@ train_sys:
         warmup_t: 0
         warmup_lr_init: 1e-5
     - _target_: src.modules.training.postprocessing.softmax.Softmax
+    - _target_: src.modules.training.postprocessing.smooth_patient.SmoothPatient

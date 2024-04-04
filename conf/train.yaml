@@ -1,7 +1,7 @@
 defaults:
   - base_train
   - hydra/logging
-  - model: gru_advanced
+  - model: eeg_net_best
   - wandb: train
 
 # Use these for normal training
