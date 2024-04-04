@@ -37,7 +37,7 @@ def run_train(cfg: DictConfig) -> None:
         run_train_cfg(cfg)
 
 
-def run_train_cfg(cfg: DictConfig) -> None:
+def run_train_cfg(cfg: DictConfig) -> None: # noq
     """Train a model pipeline with a train-test split."""
     print_section_separator("Q3 Detect Harmful Brain Activity - Training")
     set_torch_seed()
@@ -126,9 +126,10 @@ def run_train_cfg(cfg: DictConfig) -> None:
         scorer = instantiate(cfg.scorer)
         score = scorer(y[test_indices], predictions, metadata=X.meta.iloc[test_indices, :])
         accuracy, f1 = scorer.visualize_preds(y[test_indices], predictions, output_folder=output_dir)
-        logger.info(f"Accuracy: {accuracy}")
-        logger.info(f"F1: {f1}")
-        logger.info(f"Score: {score}")
+        scorer.voter_threshold = 0
+        accuracy_all, f1_all = scorer.visualize_preds(y[test_indices], predictions, output_folder=output_dir)
+        logger.info(f"Accuracy > {scorer.voter_threshold}: {accuracy} on all data: {accuracy_all}")
+        logger.info(f"F1 > {scorer.voter_threshold}: {f1} on all data: {f1_all}")
 
         if wandb.run:
             wandb.log({"Accuracy": accuracy, "F1": f1, "Score": score})
