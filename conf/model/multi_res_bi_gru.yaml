@@ -32,7 +32,7 @@ train_sys:
       model_name: MultiResidualBiGRU # Can't have special characters or spaces
       two_stage: true
       # two_stage_kl_threshold: 5.5
-      two_stage_evaluator_threshold: 3
+      two_stage_evaluator_threshold: 9
       two_stage_split_test: true
       two_stage_pretrain_full: true
       model:
@@ -40,7 +40,7 @@ train_sys:
         input_size: 9 
         hidden_size: 64
         out_size: 6
-        n_layers: 2
+        n_layers: 1
       optimizer: # Partially instantiate optimizer, so model parameters can be linked at runtime
         _target_: functools.partial
         _args_:
@@ -62,13 +62,13 @@ train_sys:
             - _target_: src.modules.training.augmentations.reverse_1d.Reverse1D
               p: 0.23
             - _target_: torch_audiomentations.Shift
-              p: 0.22
+              p: 0.2
               rollover: true
               mode: per_example
             - _target_: src.modules.training.augmentations.mirror_1d.Mirror1D
-              p: 0.9
+              p: 0.5
             - _target_: src.modules.training.augmentations.random_phase_shift.RandomPhaseShift
-              p: 0.4
+              p: 0.15
               shift_limit: 0.25
             - _target_: src.modules.training.augmentations.substract_channels.SubstractChannels
               p: 0.2
@@ -76,10 +76,10 @@ train_sys:
             - _target_: src.modules.training.augmentations.mixup_1d.MixUp1D
               p: 0.22
             - _target_: src.modules.training.augmentations.cutmix_1d.CutMix1D
-              p: 0.12
+              p: 0.35
               # Randomly select a percentage between 'low' and 'high' to preserve on the left side of the signal.
-              low: 0.0
-              high: 0.75
+              low: 0.1
+              high: 0.8
       scheduler:
         _target_: functools.partial
         _args_:

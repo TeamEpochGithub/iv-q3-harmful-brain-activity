@@ -32,7 +32,7 @@ train_sys:
       model_name: WaveNet # Can't have special characters or spaces
       two_stage: true
       # two_stage_kl_threshold: 5.5
-      two_stage_evaluator_threshold: 3
+      two_stage_evaluator_threshold: 9
       two_stage_split_test: true
       two_stage_pretrain_full: true
       model:

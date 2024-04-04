@@ -2,9 +2,9 @@ defaults:
   - base_train
   - hydra/logging
   # - ensemble: example
-  - model: wave_net
+  # - model: wave_net
   # - model: jaspers_eeg_net_dont_touch
-  # - model: multi_res_bi_gru
+  - model: multi_res_bi_gru
   - wandb: train
 
 # Use these for normal training
@@ -25,11 +25,7 @@ processed_path: data/processed
 
 scorer:
   _target_: src.scoring.kldiv.KLDiv
-<<<<<<< HEAD
   voter_threshold: 9 
-=======
-  voter_threshold: 9
->>>>>>> main
 test_size: 0.2
 cache_size: -1
 splitter:
