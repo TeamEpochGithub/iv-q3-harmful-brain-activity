@@ -68,17 +68,16 @@ class ButterFilter(VerboseTransformationBlock):
         if eeg is None:
             raise ValueError("No EEG data to transform")
         for key in tqdm(eeg.keys(), desc="Butter Filtering EEG data"):
+            extended = []
             for i, (lower, upper) in enumerate(self.ranges):
                 self.lower = lower
                 self.upper = upper
-                key = f"{key}_band_{i}"
-
-                if self.lower == 0:
-                    # low pass
-                    eeg[key] = eeg[key].apply(self.butter_lowpass_filter)
-                else:
-                    # bandpass
-                    eeg[key] = eeg[key].apply(self.butter_bandpass_filter)
+                curr_range = eeg[key].apply(self.butter_bandpass_filter)
+                extended.append(curr_range)
+                #Rename the columns of curr_range based on lower and upper
+                for col in curr_range.columns:
+                    curr_range.rename(columns={col: f"{col}_{lower}-{upper}"}, inplace=True)
+            eeg[key] = pd.concat(extended, axis=1)
         return data
 
     def butter_lowpass_filter(self, data: pd.DataFrame) -> npt.NDArray[np.float32]:
