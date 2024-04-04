@@ -56,7 +56,7 @@ train_sys:
       two_stage: false
       two_stage_evaluator_threshold: 9
 
-      train_split_type: 3
+      test_split_type: 0.2
 
       dataset_args:
         data_type: "eeg"

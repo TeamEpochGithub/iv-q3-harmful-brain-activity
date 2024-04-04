@@ -16,4 +16,3 @@ eeg_path: data/raw/test_eegs
 spectrogram_path: data/raw/test_spectrograms
 raw_path: data/raw/
 result_path: data/results/
-

@@ -26,6 +26,6 @@ scorer:
 cache_size: -1
 splitter:
   _target_: src.utils.stratified_splitter.StratifiedSplitter
-  n_splits: 4
+  n_splits: 3
 allow_multiple_instances: true
 save_folds: true

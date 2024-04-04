@@ -49,7 +49,7 @@ def setup_config(cfg: DictConfig) -> None:
         raise ValueError(f"Missing keys in config: {missing}")
 
 
-def setup_pipeline(pipeline_cfg: DictConfig, is_train: bool = True) -> ModelPipeline | EnsemblePipeline:
+def setup_pipeline(cfg: DictConfig, is_train: bool = True) -> ModelPipeline | EnsemblePipeline:
     """Instantiate the pipeline.
 
     :param pipeline_cfg: The model pipeline config. Root node should be a ModelPipeline
@@ -57,49 +57,35 @@ def setup_pipeline(pipeline_cfg: DictConfig, is_train: bool = True) -> ModelPipe
     """
     logger.info("Instantiating the pipeline")
 
+    test_size = -1
     if is_train:
-        # overwrite the test size that the model is trained with
-        pipeline_cfg = update_cfg_test_size(pipeline_cfg)
+        # First looks for test_size in the config, then in the splitter config
+        test_size = cfg.get("test_size", -1)
+        if test_size == -1:
+            test_size = cfg.get("splitter", {}).get("n_splits", -1)
+
+    if "model" in cfg:
+        model_cfg = cfg.model
+        model_cfg_dict = OmegaConf.to_container(model_cfg, resolve=True)
+        if is_train:
+            model_cfg_dict = update_model_cfg_test_size(model_cfg_dict, test_size)
+        pipeline_cfg = OmegaConf.create(model_cfg_dict)
+
+    elif "ensemble" in cfg:
+        ensemble_cfg = cfg.ensemble
+        ensemble_cfg_dict = OmegaConf.to_container(ensemble_cfg, resolve=True)
+        ensemble_cfg_dict["steps"] = list(ensemble_cfg_dict.get("steps", []).values())
+        if is_train:
+            for model in ensemble_cfg_dict.get("steps", []):
+                update_model_cfg_test_size(model, test_size)
+        pipeline_cfg = OmegaConf.create(ensemble_cfg_dict)
+    else:
+        raise ValueError("Neither model nor ensemble specified in config.")
 
     model_pipeline = instantiate(pipeline_cfg)
     logger.debug(f"Pipeline: \n{model_pipeline}")
 
     return model_pipeline
-
-
-def update_cfg_test_size(cfg: DictConfig) -> DictConfig:
-    """Update the test size in the model config.
-
-    :param cfg: The config object. Created with Hydra or OmegaConf.
-    :return: The updated config object."""
-
-    test_size = cfg.get("test_size", -1)
-    if test_size == -1:
-        # if in CV, use the number of splits, so that the model hash depends on that
-        test_size = cfg.get("splitter", {}).get("n_splits", -1)
-        if test_size == -1:
-            raise ValueError("test_size not found in config and no n_splits found in splitter")
-
-    if "model" in cfg:
-        model_cfg = cfg.model
-
-        # Add test size to the config
-        model_cfg_dict = OmegaConf.to_container(model_cfg, resolve=True)
-        model_cfg_dict = update_model_cfg_test_size(model_cfg_dict, test_size)
-
-        return OmegaConf.create(model_cfg_dict)
-
-    elif "ensemble" in cfg:
-        ensemble_cfg = cfg.ensemble
-        ensemble_cfg_dict = OmegaConf.to_container(ensemble_cfg, resolve=True)
-
-        ensemble_cfg_dict["steps"] = list(ensemble_cfg_dict.get("steps", {}).values())
-        for model in ensemble_cfg_dict.get("steps", []):
-            update_model_cfg_test_size(model, test_size)
-
-        return OmegaConf.create(ensemble_cfg_dict)
-
-    raise ValueError("Model or Ensemble not found in config")
 
 
 def update_model_cfg_test_size(
@@ -115,8 +101,7 @@ def update_model_cfg_test_size(
     """
     for model in cfg["train_sys"]["steps"]:
         if model["_target_"] == "src.modules.training.main_trainer.MainTrainer":
-            if "train_split_type" not in model:
-                model["train_split_type"] = test_size
+            model["test_split_type"] = test_size
     return cfg
 
 

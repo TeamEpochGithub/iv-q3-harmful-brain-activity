@@ -26,7 +26,7 @@ class MainTrainer(TorchTrainer, Logger):
 
     :param model_name: The name of the model. No spaces allowed
     :param dataset_args: The MainDataset args to use for training.
-    :param train_split_type: The type of train split, either test_size or n_folds. Overwritten automatically by train and cv. Needs to be added manually for submit.
+    :param test_split_type: The type of train split, either test_size or n_folds. Overwritten automatically by train and cv. Needs to be added manually for submit.
     :param two_stage: Whether to use two-stage training. See: https://www.kaggle.com/competitions/hms-harmful-brain-activity-classification/discussion/477461
     :param two_stage_kl_threshold: The threshold for dividing the dataset into two stages.
     :param two_stage_evaluator_threshold: The threshold for dividing the dataset into two stages, based on total number of votes.
@@ -34,10 +34,9 @@ class MainTrainer(TorchTrainer, Logger):
     :param two_stage_pretrain_full: Whether to train the first stage on the full dataset.
     :param two_stage_split_test: Whether to split the test data into two stages as well.
     :param early_stopping: Whether to do early stopping.
-    :param predict_with_n_folds: The number of folds to ensemble over. Requires the model to be CV'ed with save_folds=True.
     """
 
-    train_split_type: float = -1
+
     dataset_args: dict[str, Any] = field(default_factory=dict)
     model_name: str = "WHAT_ARE_YOU_TRAINING_PUT_A_NAME_IN_THE_MAIN_TRAINER"  # No spaces allowed
     two_stage: bool = False
@@ -53,19 +52,21 @@ class MainTrainer(TorchTrainer, Logger):
     _cur_epoch: int = field(default=-1, init=False, repr=False, compare=False)
     _last_lr: float = field(default=-1, init=False, repr=False, compare=False)
 
+    test_split_type: float = field(default=-1, init=True, repr=False, compare=False)
+
     def __post_init__(self) -> None:
         """Post init method."""
         super().__post_init__()
-        if self.train_split_type == -1:
+        if self.test_split_type == -1:
             raise ValueError("train_split_type needs to be set to either test_size or n_folds")
 
     def create_datasets(
-            self,
-            x: XData,
-            y: npt.NDArray[np.float32],
-            train_indices: list[int],
-            test_indices: list[int],
-            cache_size: int = -1,  # noqa: ARG002
+        self,
+        x: XData,
+        y: npt.NDArray[np.float32],
+        train_indices: list[int],
+        test_indices: list[int],
+        cache_size: int = -1,  # noqa: ARG002
     ) -> tuple[Dataset[Any], Dataset[Any]]:
         """Override custom create_datasets to allow for training and validation.
 
@@ -111,11 +112,11 @@ class MainTrainer(TorchTrainer, Logger):
         return predict_dataset
 
     def _concat_datasets(
-            self,
-            train_dataset: MainDataset,  # noqa: ARG002
-            test_dataset: MainDataset,
-            train_indices: list[int],  # noqa: ARG002
-            test_indices: list[int],
+        self,
+        train_dataset: MainDataset,  # noqa: ARG002
+        test_dataset: MainDataset,
+        train_indices: list[int],  # noqa: ARG002
+        test_indices: list[int],
     ) -> Dataset[tuple[Tensor, ...]]:
         """Concatenate the training and test datasets according to original order specified by train_indices and test_indices.
 
@@ -135,8 +136,8 @@ class MainTrainer(TorchTrainer, Logger):
         return pred_dataset
 
     def predict_on_loader(
-            self,
-            loader: DataLoader[tuple[Tensor, ...]],
+        self,
+        loader: DataLoader[tuple[Tensor, ...]],
     ) -> torch.Tensor:
         """Predict on the loader.
 
@@ -147,8 +148,7 @@ class MainTrainer(TorchTrainer, Logger):
         self.model.eval()
         predictions = []
         # Create a new dataloader from the dataset of the input dataloader with collate_fn
-        loader = DataLoader(loader.dataset, batch_size=loader.batch_size, shuffle=False,
-                            collate_fn=collate_fn)  # type: ignore[arg-type]
+        loader = DataLoader(loader.dataset, batch_size=loader.batch_size, shuffle=False, collate_fn=collate_fn)  # type: ignore[arg-type]
         with torch.no_grad(), tqdm(loader, unit="batch", disable=False) as tepoch:
             for data in tepoch:
                 X_batch = data[0].to(self.device).float()
@@ -158,10 +158,10 @@ class MainTrainer(TorchTrainer, Logger):
         return torch.stack(predictions)
 
     def custom_train(
-            self,
-            x: XData,
-            y: npt.NDArray[np.float32],
-            **train_args: Any,
+        self,
+        x: XData,
+        y: npt.NDArray[np.float32],
+        **train_args: Any,
     ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]:
         """Train the model.
 
@@ -210,8 +210,7 @@ class MainTrainer(TorchTrainer, Logger):
             return self.custom_predict(x_test), y  # type: ignore[return-value]
         return super().custom_train(x, y, **train_args)
 
-    def _split_criterion(self, indices: npt.NDArray[np.float32], y: npt.NDArray[np.float32]) -> tuple[
-        list[int], list[int]]:
+    def _split_criterion(self, indices: npt.NDArray[np.float32], y: npt.NDArray[np.float32]) -> tuple[list[int], list[int]]:
         """Split the indices based on the criterion from the two stage parameters.
 
         :param indices: The indices to split.
@@ -230,8 +229,7 @@ class MainTrainer(TorchTrainer, Logger):
             indices_1 = indices[n_evaluators <= self.two_stage_evaluator_threshold]
             indices_2 = indices[n_evaluators > self.two_stage_evaluator_threshold]
         else:
-            raise ValueError(
-                "No two-stage threshold provided, set either two_stage_kl_threshold or two_stage_evaluator_threshold")
+            raise ValueError("No two-stage threshold provided, set either two_stage_kl_threshold or two_stage_evaluator_threshold")
 
         if self.two_stage_pretrain_full:
             indices_1 = indices
@@ -239,9 +237,9 @@ class MainTrainer(TorchTrainer, Logger):
         return list(indices_1), list(indices_2)
 
     def _train_one_epoch(
-            self,
-            dataloader: DataLoader[tuple[Tensor, ...]],
-            epoch: int,
+        self,
+        dataloader: DataLoader[tuple[Tensor, ...]],
+        epoch: int,
     ) -> float:
         """Train the model for one epoch.
 
@@ -252,8 +250,7 @@ class MainTrainer(TorchTrainer, Logger):
         losses = []
         self.model.train()
 
-        pbar = tqdm(dataloader, unit="batch",
-                    desc=f"Epoch {epoch} Train ({self.initialized_optimizer.param_groups[0]['lr']})")
+        pbar = tqdm(dataloader, unit="batch", desc=f"Epoch {epoch} Train ({self.initialized_optimizer.param_groups[0]['lr']})")
         for batch in pbar:
             X_batch, y_batch = batch
             X_batch = X_batch.to(self.device).float()
@@ -289,9 +286,9 @@ class MainTrainer(TorchTrainer, Logger):
         return sum(losses) / len(losses)
 
     def _val_one_epoch(
-            self,
-            dataloader: DataLoader[tuple[Tensor, ...]],
-            desc: str,
+        self,
+        dataloader: DataLoader[tuple[Tensor, ...]],
+        desc: str,
     ) -> float:
         """Compute validation loss of the model for one epoch.
 
@@ -318,8 +315,7 @@ class MainTrainer(TorchTrainer, Logger):
                 pbar.set_postfix(loss=sum(losses) / len(losses))
 
         validation_loss = sum(losses) / len(losses)
-        if self.initialized_scheduler is not None and isinstance(self.initialized_scheduler,
-                                                                 torch.optim.lr_scheduler.ReduceLROnPlateau):
+        if self.initialized_scheduler is not None and isinstance(self.initialized_scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
             self.initialized_scheduler.step(epoch=self._cur_epoch, metrics=validation_loss)
 
         if self.revert_to_best and self._last_lr != self.initialized_optimizer.param_groups[0]["lr"]:
@@ -352,7 +348,7 @@ class MainTrainer(TorchTrainer, Logger):
 
         :return: The hash of the block.
         """
-        result = f"{self._hash}_{self.train_split_type}"
+        result = f"{self._hash}_{self.test_split_type}"
         if self._fold != -1:
             result += f"_f{self._fold}"
         if self._stage != -1:
@@ -367,9 +363,9 @@ class MainTrainer(TorchTrainer, Logger):
             wandb.log_artifact(model_artifact)
 
     def create_dataloaders(
-            self,
-            train_dataset: Dataset[tuple[Tensor, ...]],
-            test_dataset: Dataset[tuple[Tensor, ...]],
+        self,
+        train_dataset: Dataset[tuple[Tensor, ...]],
+        test_dataset: Dataset[tuple[Tensor, ...]],
     ) -> tuple[DataLoader[tuple[Tensor, ...]], DataLoader[tuple[Tensor, ...]]]:
         """Create the dataloaders for training and validation.
 
@@ -417,14 +413,14 @@ class MainTrainer(TorchTrainer, Logger):
             self._stage = 1
 
         # Predict with a single model
-        if self.predict_with_n_folds is None:
+        if self.test_split_type < 1:  # lower than 1 means a single test size, no CV
             self._load_model()
             return self.predict_on_loader(pred_dataloader)
 
         # Ensemble the fold models:
         predictions = []
-        for i in range(self.predict_with_n_folds):
-            self.log_to_terminal(f"Predicting with model fold {i + 1}/{self.predict_with_n_folds}")
+        for i in range(int(self.test_split_type)):
+            self.log_to_terminal(f"Predicting with model fold {i + 1}/{self.test_split_type}")
             self._fold = i  # set the fold, which updates the hash
             self._load_model()  # load the model for this fold
             predictions.append(self.predict_on_loader(pred_dataloader))
