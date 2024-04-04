@@ -219,15 +219,6 @@ notebooks/feature_engineering/*pkl
 # Ignore Submission related files
 submission/dependencies
 submission/source-code
-tm_backup/9a43d0d07ee82ebe12f42f9235d7fe19_f0_s0.pt
-tm_backup/9a43d0d07ee82ebe12f42f9235d7fe19_f0_s1.pt
-tm_backup/9a43d0d07ee82ebe12f42f9235d7fe19_f1_s0.pt
-tm_backup/9a43d0d07ee82ebe12f42f9235d7fe19_f1_s1.pt
-tm_backup/9a43d0d07ee82ebe12f42f9235d7fe19_f2_s0.pt
-tm_backup/9a43d0d07ee82ebe12f42f9235d7fe19_f2_s1.pt
-tm_backup/9a43d0d07ee82ebe12f42f9235d7fe19_f3_s0.pt
-tm_backup/9a43d0d07ee82ebe12f42f9235d7fe19_f3_s1.pt
-tm_backup/ccc3c186c22843eea63a4f4b9dcc9b85_f0.pt
-tm_backup/ccc3c186c22843eea63a4f4b9dcc9b85_f1.pt
-tm_backup/ccc3c186c22843eea63a4f4b9dcc9b85_f2.pt
-tm_backup/ccc3c186c22843eea63a4f4b9dcc9b85_f3.pt
+
+
+saved_configs

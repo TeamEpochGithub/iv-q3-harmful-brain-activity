@@ -259,16 +259,23 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
 
         X_eeg, X_kaggle_spec, X_eeg_spec = None, None, None
 
-        if self.X.eeg is not None:
-            X_eeg, _ = self._eeg_getitem(idx)
+        if self.get_item_custom.use_eeg:
+            if self.X.eeg is not None:
+                X_eeg, _ = self._eeg_getitem(idx)
+            else:
+                raise ValueError("EEG data is not set up.")
 
-        if self.X.kaggle_spec is not None:
-            X_kaggle_spec, _ = self._kaggle_spec_getitem(idx)
+        if self.get_item_custom.use_kaggle_spec:
+            if self.X.kaggle_spec is not None:
+                X_kaggle_spec, _ = self._kaggle_spec_getitem(idx)
+            else:
+                raise ValueError("Kaggle spectrogram data is not set up.")
 
-        if self.X.eeg_spec is not None:
-            X_eeg_spec, _ = self._eeg_spec_getitem(idx)
+        if self.get_item_custom.use_eeg_spec:
+            if self.X.eeg_spec is not None:
+                X_eeg_spec, _ = self._eeg_spec_getitem(idx)
+            else:
+                raise ValueError("EEG spectrogram data is not set up.")
 
-        idx = self.indices[idx]
         labels = [] if self.y is None else self.y[idx, :]
-
-        return self.get_item_custom(X_eeg, X_kaggle_spec, X_eeg_spec, labels)
+        return self.get_item_custom(X_eeg, X_kaggle_spec, X_eeg_spec, labels, use_augmentations=self.use_aug)

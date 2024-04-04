@@ -35,6 +35,7 @@ train_sys:
       two_stage_evaluator_threshold: 3
       two_stage_split_test: true
       two_stage_pretrain_full: true
+      ensemble_folds: 2
       model:
         _target_: src.modules.training.models.eeg_net.EEGNet
         num_classes: 6
