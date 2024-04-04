@@ -33,6 +33,7 @@ x_sys:
 train_sys:
   steps:
     - _target_: src.modules.training.main_trainer.MainTrainer
+      test_split_type: 5
       model_name: EEGNet # Can't have special characters or spaces
       two_stage: true
       two_stage_evaluator_threshold: 9
