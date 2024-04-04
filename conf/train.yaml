@@ -1,7 +1,7 @@
 defaults:
   - base_train
   - hydra/logging
-  - model: spec_res_gru
+  - model: eeg_net_pick_one
   - wandb: train
 
 # Use these for normal training
@@ -22,6 +22,7 @@ processed_path: data/processed
 
 scorer:
   _target_: src.scoring.kldiv.KLDiv
+  voter_threshold: 9
 test_size: 0.2
 cache_size: -1
 splitter:

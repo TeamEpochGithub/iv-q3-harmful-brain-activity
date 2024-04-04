@@ -48,7 +48,7 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
             if self.y is not None:
                 self.y = self.y[self.indices, :]
 
-        elif self.subsample_method == "running_random":
+        elif "running" in self.subsample_method:
             # Create a mapping of idx to unique eeg_id
             self.id_mapping = dict(enumerate(self.X.meta["eeg_id"].unique()))
             # Group the metadata by eeg_id
@@ -61,7 +61,7 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
     def __len__(self) -> int:
         """Get the length of the dataset."""
         # Trick the dataloader into thinking the dataset is smaller than it is
-        if self.subsample_method == "running_random":
+        if "running" in self.subsample_method:
             if self.X is None:
                 raise ValueError("X Data not set up.")
             return len(self.X.meta["eeg_id"].unique())
@@ -99,14 +99,19 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
         if self.X is None:
             raise ValueError("X Data not set up.")
 
-        if self.subsample_method == "running_random":
+        if "running" in self.subsample_method:
             # Using the mapping get the eeg_id for this idx
             eeg_id = self.id_mapping[idx]
             # Get the indices for this eeg_id
-            indices = self.grouped.get_group(eeg_id)
+            group = self.grouped.get_group(eeg_id)
             # Get a random index from the indices
-            idx = indices.sample(1, random_state=42).index[0]
+            idx = group.sample(1, random_state=42).index[0]
             # Now idx is the dataframe index and not the idx of the dataset
+        if self.subsample_method == "running_random_w_mean":
+            # Find all items from the group where the difference in eeg_label_offset_seconds is less than the threshold
+            threshold = 5  # specify your threshold here
+            similar_items = group[abs(group["eeg_label_offset_seconds"] - self.X.meta.iloc[idx]["eeg_label_offset_seconds"]) < threshold]
+            pass
 
         # Create a switch statement to handle the different data types
         match self.data_type:
