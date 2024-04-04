@@ -1,7 +1,7 @@
 defaults:
   - base_cv
   - hydra/logging
-  - model: eeg_net_mirror_95
+  - model: gru_advanced
   - wandb: train
 
 # Use these for normal training
