@@ -56,16 +56,15 @@ class MultiResidualBiGRU(nn.Module):
 
     def forward(self, x, h=None):
         # if we are at the beginning of a sequence (no hidden state)
-        if h is None:
-            # (re)initialize the hidden state
-            h = [None for _ in range(self.n_layers)]
-
+        # if h is None:
+        #     # (re)initialize the hidden state
+        #     h = [None for _ in range(self.n_layers)]
         x = self.fc_in(x.transpose(2, 1))
         x = self.ln(x)
         x = nn.functional.relu(x)
 
         for i, res_bigru in enumerate(self.res_bigrus):
-            x, _ = res_bigru(x, h[i])
+            x, _ = res_bigru(x, None)
 
         x = x[:, -1, :]
         x = self.fc_out(x)

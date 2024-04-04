@@ -2,8 +2,8 @@ defaults:
   - base_train
   - hydra/logging
   # - ensemble: example
-  # - model: wave_net
-  - model: jaspers_eeg_net_dont_touch
+  - model: wave_net
+  # - model: jaspers_eeg_net_dont_touch
   # - model: multi_res_bi_gru
   - wandb: train
 
