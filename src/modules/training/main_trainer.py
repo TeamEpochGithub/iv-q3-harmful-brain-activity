@@ -26,13 +26,14 @@ class MainTrainer(TorchTrainer, Logger):
 
     :param model_name: The name of the model. No spaces allowed
     :param dataset_args: The MainDataset args to use for training.
+    :param test_split_type: The type of train split, either test_size or n_folds. Overwritten automatically by train and cv. Needs to be added manually for submit.
     :param two_stage: Whether to use two-stage training. See: https://www.kaggle.com/competitions/hms-harmful-brain-activity-classification/discussion/477461
     :param two_stage_kl_threshold: The threshold for dividing the dataset into two stages.
     :param two_stage_evaluator_threshold: The threshold for dividing the dataset into two stages, based on total number of votes.
+     Note: remove the sum to one block from the target pipeline for this to work
     :param two_stage_pretrain_full: Whether to train the first stage on the full dataset.
     :param two_stage_split_test: Whether to split the test data into two stages as well.
     :param early_stopping: Whether to do early stopping.
-     Note: remove the sum to one block from the target pipeline for this to work
     """
 
     dataset_args: dict[str, Any] = field(default_factory=dict)
@@ -50,6 +51,14 @@ class MainTrainer(TorchTrainer, Logger):
     _cur_epoch: int = field(default=-1, init=False, repr=False, compare=False)
     _last_lr: float = field(default=-1, init=False, repr=False, compare=False)
 
+    test_split_type: float = field(default=-1, init=True, repr=False, compare=False)
+
+    def __post_init__(self) -> None:
+        """Post init method."""
+        super().__post_init__()
+        if self.test_split_type == -1:
+            raise ValueError("train_split_type needs to be set to either test_size or n_folds")
+
     def create_datasets(
         self,
         x: XData,
@@ -58,7 +67,7 @@ class MainTrainer(TorchTrainer, Logger):
         test_indices: list[int],
         cache_size: int = -1,  # noqa: ARG002
     ) -> tuple[Dataset[Any], Dataset[Any]]:
-        """Override custom create_datasets to allow for for training and validation.
+        """Override custom create_datasets to allow for training and validation.
 
         :param x: The input data.
         :param y: The target variable.
@@ -338,7 +347,7 @@ class MainTrainer(TorchTrainer, Logger):
 
         :return: The hash of the block.
         """
-        result = self._hash
+        result = f"{self._hash}_{self.test_split_type}"
         if self._fold != -1:
             result += f"_f{self._fold}"
         if self._stage != -1:
@@ -402,18 +411,15 @@ class MainTrainer(TorchTrainer, Logger):
         if self.two_stage:
             self._stage = 1
 
-        # Check if supposed to predict with a single model, or ensemble the fold models
-        model_folds = pred_args.get("model_folds", None)
-
         # Predict with a single model
-        if model_folds is None or model_folds == -1:
+        if self.test_split_type < 1:  # lower than 1 means a single test size, no CV
             self._load_model()
             return self.predict_on_loader(pred_dataloader)
 
         # Ensemble the fold models:
         predictions = []
-        for i in range(model_folds):
-            self.log_to_terminal(f"Predicting with model fold {i+1}/{model_folds}")
+        for i in range(int(self.test_split_type)):
+            self.log_to_terminal(f"Predicting with model fold {i + 1}/{self.test_split_type}")
             self._fold = i  # set the fold, which updates the hash
             self._load_model()  # load the model for this fold
             predictions.append(self.predict_on_loader(pred_dataloader))

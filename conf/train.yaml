@@ -1,7 +1,7 @@
 defaults:
   - base_train
   - hydra/logging
-  - model: chris_512
+  - model: eeg_net_traintest
   - wandb: train
 
 # Use these for normal training
