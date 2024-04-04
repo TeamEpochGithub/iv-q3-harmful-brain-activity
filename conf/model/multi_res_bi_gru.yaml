@@ -17,8 +17,8 @@ x_sys:
       value: 32
     - _target_: src.modules.transformation.eeg.butter.ButterFilter
       lower: 0.5
-      upper: 20
-      order: 2
+      method: "extend"
+      ranges: [[1,4],[4,8],[8,12],[12,25]]
     - _target_: src.modules.transformation.eeg.quantize.Quantizer
     - _target_: src.modules.transformation.eeg.downsample.Downsample
       downsample_factor: 5
@@ -37,10 +37,10 @@ train_sys:
       two_stage_pretrain_full: true
       model:
         _target_: src.modules.training.models.parkinson_multi_res_bi_gru.MultiResidualBiGRU
-        input_size: 9 
+        input_size: 36 
         hidden_size: 64
         out_size: 6
-        n_layers: 1
+        n_layers: 2
       optimizer: # Partially instantiate optimizer, so model parameters can be linked at runtime
         _target_: functools.partial
         _args_:
