@@ -1,7 +1,7 @@
 defaults:
   - base_cv
   - hydra/logging
-  - model: eeg_net_0.370
+  - model: eeg_net_butter
   - wandb: train
 
 # Use these for normal training

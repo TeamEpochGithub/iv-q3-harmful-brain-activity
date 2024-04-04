@@ -73,8 +73,6 @@ class SmoothPatient(VerboseTrainingBlock):
 
         # Now we calculate the average prediction for each patient
         for patient_id in patient_predictions:
-            if len(patient_predictions[patient_id]) == 1:
-                continue
             curr_avg = np.mean(np.array(patient_predictions[patient_id]), axis=0)
             patient_predictions[patient_id] = curr_avg
 

@@ -10,6 +10,7 @@ x_sys:
     - _target_: src.modules.transformation.clip.Clip
       lower: -1024
       upper: 1024
+      eeg: true
     - _target_: src.modules.transformation.nantozero.NaNToZero
       eeg: true
     - _target_: src.modules.transformation.eeg.divide.Divide
@@ -53,10 +54,10 @@ train_sys:
         _args_:
           - _target_: hydra.utils.get_class
             path: torch.optim.AdamW
-        lr: 0.00245
+        lr: 0.003
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
-      epochs: 58
+      epochs: 75
       batch_size: 64
       patience: 15
       dataset_args:
@@ -90,7 +91,7 @@ train_sys:
         _args_:
           - _target_: hydra.utils.get_class
             path: timm.scheduler.cosine_lr.CosineLRScheduler
-        t_initial: 58
+        t_initial: 75
         cycle_mul: 1
         cycle_decay: 1
         cycle_limit: 1
