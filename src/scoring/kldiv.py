@@ -124,7 +124,7 @@ class KLDiv(Scorer):
         logger.setLevel(logging.WARNING)
 
         # Create a folder viz if output_folder + viz does not exist
-        viz_path = output_folder / "viz"
+        viz_path = output_folder / "viz_all" if self.voter_threshold is None else output_folder / f"viz_higher_{self.voter_threshold}"
         if not os.path.exists(viz_path):
             os.makedirs(viz_path)
 

@@ -57,6 +57,9 @@ def run_submit(cfg: DictConfig) -> None:
             "MainTrainer": {
                 "batch_size": 16,
             },
+            "SmoothPatient": {
+                "metadata": X.meta,
+            },
         },
     }
     if isinstance(model_pipeline, EnsemblePipeline):
