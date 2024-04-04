@@ -17,8 +17,7 @@ x_sys:
     - _target_: src.modules.transformation.eeg.butter.ButterFilter
       lower: 0.5
       method: "extend"
-      ranges: [[3,6],[6,12],[12,25]]
-    - _target_: src.modules.transformation.eeg.quantize.Quantizer
+      ranges: [[1,4],[4,8],[8,12],[12,25]]
     - _target_: src.modules.transformation.eeg.downsample.Downsample
       downsample_factor: 5
 #    - _target_: src.modules.transformation.eeg.rolling.Rolling
@@ -40,7 +39,7 @@ train_sys:
       model:
         _target_: src.modules.training.models.eeg_net.EEGNet
         num_classes: 6
-        in_channels: 27
+        in_channels: 36
         fixed_kernel_size: 5
         #linear_layer_features: 448
         #linear_layer_features: 352 # Half Signal = 5_000
