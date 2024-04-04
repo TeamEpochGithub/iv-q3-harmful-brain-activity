@@ -1,7 +1,7 @@
 defaults:
   - base_submit
   - hydra/logging
-  - ensemble: hashtest
+  - model: test2
 
 # Use this when uploading to Kaggle
 #raw_path: /kaggle/input/hms-harmful-brain-activity-classification/
