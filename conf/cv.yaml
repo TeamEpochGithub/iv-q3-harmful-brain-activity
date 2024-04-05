@@ -1,7 +1,8 @@
 defaults:
   - base_cv
   - hydra/logging
-  - model: eeg_net_butter
+  # - ensemble: example
+  - model: multi_res_bi_gru
   - wandb: train
 
 # Use these for normal training
