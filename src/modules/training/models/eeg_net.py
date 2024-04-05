@@ -124,11 +124,10 @@ class EEGNet(nn.Module):
         in_channels: int,
         fixed_kernel_size: int,
         num_classes: int,
+        linear_layer_features: int,
         dilation: int = 1,
         groups: int = 1,
         dropout: float = 0.0,
-        hidden_size: int = 64,
-        gru_layers: int = 1,
     ) -> None:
         """Initialize EEGNet.
 
@@ -136,10 +135,10 @@ class EEGNet(nn.Module):
         :param in_channels: Number of in_channels
         :param fixed_kernel_size: The fixed_kernel_size
         :param num_classes: Output classes of the model
+        :param linear_layer_features: Number of features in the linear layer
         :param dilation: Dilation factor
         :param groups: Number of groups
         :param dropout: Dropout rate
-        :param hidden_size: Hidden size of rnn
         """
         super(EEGNet, self).__init__()  # noqa: UP008
         self.kernels = kernels
@@ -192,12 +191,11 @@ class EEGNet(nn.Module):
 
         self.rnn = nn.GRU(
             input_size=self.in_channels,
-            hidden_size=hidden_size,
-            num_layers=gru_layers,
+            hidden_size=128,
+            num_layers=1,
             bidirectional=True,
             dropout=self.dropout,
         )
-        linear_layer_features = 48 + hidden_size * 2
         self.fc = nn.Linear(in_features=linear_layer_features, out_features=num_classes)
 
     def _make_resnet_layer(

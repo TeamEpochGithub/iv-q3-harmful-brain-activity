@@ -48,7 +48,7 @@ train_sys:
         # linear_layer_features: 280 # 1/10 Signal = 1_000
         kernels: [3, 5,7,9,11]
         dropout: 0.1
-        hidden_size: 32 
+        hidden_size: 32
         gru_layers: 1
       optimizer: # Partially instantiate optimizer, so model parameters can be linked at runtime
         _target_: functools.partial
@@ -59,7 +59,7 @@ train_sys:
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
         reduction: "batchmean"
-      epochs: 30 
+      epochs: 30
       batch_size: 64
       patience: 15
       dataset_args:

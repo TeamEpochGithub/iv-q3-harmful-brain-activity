@@ -16,7 +16,7 @@ parameters:
   model.train_sys.steps.0.epochs:
     distribution: int_uniform
     max: 60
-    min: 10 
+    min: 10
   model.train_sys.steps.0.optimizer.lr:
     distribution: log_uniform_values
     max: 0.01
