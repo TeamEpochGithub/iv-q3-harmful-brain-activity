@@ -24,8 +24,8 @@ x_sys:
       downsample_factor: 5
 
 y_sys:
-  steps: []
-
+  steps: 
+    - _target_: src.modules.transformation.target.mean_window_votes.MeanWindowVotes
 train_sys:
   steps:
     - _target_: src.modules.training.main_trainer.MainTrainer
@@ -61,7 +61,7 @@ train_sys:
       batch_size: 64
       patience: 15
       dataset_args:
-        subsample_method: running_random_w_mean
+        subsample_method: running_random
         data_type: "eeg"
         augmentations:
           _target_: src.modules.training.augmentations.custom_sequential.CustomSequential

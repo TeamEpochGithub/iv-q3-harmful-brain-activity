@@ -35,6 +35,8 @@ class CustomApplyOne:
             x = transform(x)
         if transform in self.xy_transforms:
             x, y = transform(x, y)
+        if torch.any(torch.isnan(y)):
+            print('nan')
         return x, y
 
 
