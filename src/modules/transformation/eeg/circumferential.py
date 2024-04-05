@@ -1,4 +1,4 @@
-"""Circumferential module for different montages"""
+"""Circumferential module for different montages."""
 from dataclasses import dataclass
 from typing import Any
 
@@ -67,7 +67,7 @@ CZ_REFERENCE = {
     "Cz_Pz": ("Cz", "Pz"),
 }
 
-CZ_REFERENCE_REDUCED = { # 12 channels
+CZ_REFERENCE_REDUCED = {  # 12 channels
     # Left Temporal
     "Cz_Fp1": ("Cz", "Fp1"),
     "Cz_T3": ("Cz", "T3"),
@@ -85,7 +85,6 @@ CZ_REFERENCE_REDUCED = { # 12 channels
     # Central
     "Cz_Fz": ("Cz", "Fz"),
     "Cz_Pz": ("Cz", "Pz"),
-
 }
 
 
