@@ -2,7 +2,6 @@ defaults:
   - base_submit
   - hydra/logging
   - model: cream-game
-
 # Use this when uploading to Kaggle
 #raw_path: /kaggle/input/hms-harmful-brain-activity-classification/
 #metadata_path: /kaggle/input/hms-harmful-brain-activity-classification/test.csv
