@@ -1,3 +1,5 @@
+"""Circumferential transformation block."""
+
 from dataclasses import dataclass
 from typing import Any
 
@@ -21,9 +23,7 @@ CIRCUMFERENTIAL = {
     "C0": ("Fz", "Pz"),
 }
 
-CIRCUMFERENTIAL_PARASAGITTAL = {
-
-}
+CIRCUMFERENTIAL_PARASAGITTAL: dict[str, tuple[str, str]] = {}
 
 
 @dataclass

@@ -99,8 +99,7 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
         if self.include_features:
             all_features_tensor = torch.stack(all_features)
             return (all_x_tensor, all_features_tensor), all_y_tensor
-        else:
-            return all_x_tensor, all_y_tensor
+        return all_x_tensor, all_y_tensor
 
     def __getitem__(self, idx: int) -> tuple[Any, Any]:
         """Get an item from the dataset.
@@ -147,11 +146,10 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
         if isinstance(y, np.ndarray):
             y = torch.from_numpy(y)
 
-        if self.include_features:
+        if self.include_features and self.X.features is not None:
             features = self.X.features.iloc[idx].to_numpy()
             return (x, features), y
-        else:
-            return x, y
+        return x, y
 
     @typing.no_type_check
     def _eeg_getitem(self, idx: int) -> tuple[Any, Any]:  # type: ignore[no-untyped-def]

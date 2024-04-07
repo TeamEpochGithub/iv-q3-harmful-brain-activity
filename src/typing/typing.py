@@ -31,7 +31,14 @@ class XData:
         if isinstance(sliced_meta, pd.Series):
             sliced_meta = sliced_meta.to_frame()
 
-        return XData(eeg=self.eeg, kaggle_spec=self.kaggle_spec, eeg_spec=self.eeg_spec, meta=sliced_meta, shared=self.shared)  # type: ignore[arg-type]
+        if self.features is not None:
+            sliced_features = self.features.iloc[key]
+            if isinstance(sliced_features, pd.Series):
+                sliced_features = sliced_features.to_frame()
+        else:
+            sliced_features = None
+
+        return XData(eeg=self.eeg, kaggle_spec=self.kaggle_spec, eeg_spec=self.eeg_spec, meta=sliced_meta, shared=self.shared, features=sliced_features)  # type: ignore[arg-type]
 
     def __len__(self) -> int:
         """Return the length of the meta attribute."""
