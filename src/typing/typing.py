@@ -15,6 +15,7 @@ class XData:
     :param eeg_spec: The EEG spectrogram data, as a dictionary of Tensors
     :param meta: The metadata, as a DataFrame
     :param shared: The shared data to be used in the pipeline. Contains frequency data, offset data, etc.
+    :param features: Contains the features extracted from the EEG data. Should have same length as meta.
     """
 
     eeg: dict[int, pd.DataFrame] | None
@@ -22,6 +23,7 @@ class XData:
     eeg_spec: dict[int, torch.Tensor] | None
     meta: pd.DataFrame
     shared: dict[str, Any] | None
+    features: pd.DataFrame | None = None
 
     def __getitem__(self, key: slice | int | list[int]) -> "XData":
         """Enable slice indexing on the meta attribute using iloc and filters other attributes based on eeg_id."""

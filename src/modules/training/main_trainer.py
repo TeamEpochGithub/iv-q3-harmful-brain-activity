@@ -34,6 +34,8 @@ class MainTrainer(TorchTrainer, Logger):
     :param two_stage_pretrain_full: Whether to train the first stage on the full dataset.
     :param two_stage_split_test: Whether to split the test data into two stages as well.
     :param early_stopping: Whether to do early stopping.
+    :param revert_to_best: Whether to revert to the best model if the learning rate changes.
+    :param include_features: Whether to include features in the training data.
     """
 
     dataset_args: dict[str, Any] = field(default_factory=dict)
@@ -52,6 +54,7 @@ class MainTrainer(TorchTrainer, Logger):
     _last_lr: float = field(default=-1, init=False, repr=False, compare=False)
 
     test_split_type: float = field(default=-1, init=True, repr=False, compare=False)
+    include_features: bool = field(hash=False, repr=False, init=True, default=False)
 
     def __post_init__(self) -> None:
         """Post init method."""
@@ -150,8 +153,14 @@ class MainTrainer(TorchTrainer, Logger):
         loader = DataLoader(loader.dataset, batch_size=loader.batch_size, shuffle=False, collate_fn=collate_fn)  # type: ignore[arg-type]
         with torch.no_grad(), tqdm(loader, unit="batch", disable=False) as tepoch:
             for data in tepoch:
-                X_batch = data[0].to(self.device).float()
-                y_pred = self.model(X_batch).cpu()
+                if self.include_features:
+                    X_batch, features_batch = data
+                    features_batch = features_batch.to(self.device).float()
+                    X_batch = X_batch.to(self.device).float()
+                    y_pred = self.model(X_batch, features_batch).cpu()
+                else:
+                    X_batch = data[0].to(self.device).float()
+                    y_pred = self.model(X_batch).cpu()
                 predictions.extend(y_pred)
         self.log_to_terminal("Done predicting")
         return torch.stack(predictions)
@@ -252,11 +261,18 @@ class MainTrainer(TorchTrainer, Logger):
         pbar = tqdm(dataloader, unit="batch", desc=f"Epoch {epoch} Train ({self.initialized_optimizer.param_groups[0]['lr']})")
         for batch in pbar:
             X_batch, y_batch = batch
-            X_batch = X_batch.to(self.device).float()
             y_batch = y_batch.to(self.device).float()
 
+
             # Forward pass
-            y_pred = self.model(X_batch).squeeze(1)
+            if self.include_features:
+                X_batch, features_batch = X_batch
+                X_batch = X_batch.to(self.device).float()
+                features_batch = features_batch.to(self.device).float()
+                y_pred = self.model(X_batch, features_batch).squeeze(1)
+            else:
+                X_batch = X_batch.to(self.device).float()
+                y_pred = self.model(X_batch).squeeze(1)
             loss = self.criterion(y_pred, y_batch)
 
             # Backward pass
