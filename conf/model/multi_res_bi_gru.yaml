@@ -39,7 +39,7 @@ train_sys:
       two_stage_pretrain_full: true
       model:
         _target_: src.modules.training.models.parkinson_multi_res_bi_gru.MultiResidualBiGRU
-        input_size: 44 
+        input_size: 44
         hidden_size: 64
         out_size: 6
         n_layers: 2
