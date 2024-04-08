@@ -1,0 +1,7 @@
+defaults:
+  - /model/cream-game@steps.0
+  - /model/MRBG-CIRCUMFERENTIAL-3L@steps.1
+  - /model/cnn3d-aug@steps.2
+
+_target_: src.modules.training.base_ensembling.BaseEnsemble
+_convert_: partial
