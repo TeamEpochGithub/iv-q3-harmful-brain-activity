@@ -108,10 +108,8 @@ def run_cv_cfg(cfg: DictConfig) -> None:
         scores.append(score)
         accuracies.append(accuracy)
         f1s.append(f1)
-
-        # min_scores = [0.36, 0.36, 0.36, 0.36, 0.36]
-        # if score > min_scores[fold_no]:
-        #     break
+        if score > 0.5:
+            break
 
     avg_score = np.average(np.array(scores))
     avg_accuracy = np.average(np.array(accuracies))
