@@ -10,6 +10,7 @@ from epochalyst.logging.section_separator import print_section_separator
 from epochalyst.pipeline.ensemble import EnsemblePipeline
 from hydra.core.config_store import ConfigStore
 from omegaconf import DictConfig
+from src.modules.training.base_ensembling import PostEnsemble
 
 from src.config.submit_config import SubmitConfig
 from src.logging_utils.logger import logger
@@ -65,6 +66,16 @@ def run_submit(cfg: DictConfig) -> None:
     if isinstance(model_pipeline, EnsemblePipeline):
         pred_args = {
             "ModelPipeline": pred_args,
+        }
+    if isinstance(model_pipeline, PostEnsemble):
+        pred_args = {
+            "EnsemblePipeline": {
+                "ModelPipeline": pred_args,
+
+            },
+            "SmoothPatient": {
+                "metadata": X.meta,
+            }
         }
     predictions = model_pipeline.predict(X, **pred_args)
 

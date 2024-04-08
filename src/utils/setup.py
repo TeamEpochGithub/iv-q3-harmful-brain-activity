@@ -34,20 +34,20 @@ def setup_config(cfg: DictConfig) -> None:
     missing = OmegaConf.missing_keys(cfg)
 
     # If both model and ensemble are specified, raise an error
-    if cfg.get("model") and cfg.get("ensemble"):
+    if cfg.get("model") and cfg.get("ensemble") and cfg.get("post_ensemble"):
         raise ValueError("Both model and ensemble specified in config.")
 
     # If neither model nor ensemble are specified, raise an error
-    if not cfg.get("model") and not cfg.get("ensemble"):
+    if not cfg.get("model") and not cfg.get("ensemble") and not cfg.get("post_ensemble"):
         raise ValueError("Neither model nor ensemble specified in config.")
 
     # If model and ensemble are in missing raise an error
-    if "model" in missing and "ensemble" in missing:
-        raise ValueError("Both model and ensemble are missing from config.")
-
+    # if "model" in missing and "ensemble" in missing:
+    #     raise ValueError("Both model and ensemble are missing from config.")
+    #
     # If any other keys except model and ensemble are missing, raise an error
-    if len(missing) > 1:
-        raise ValueError(f"Missing keys in config: {missing}")
+    # if len(missing) > 1:
+    #     raise ValueError(f"Missing keys in config: {missing}")
 
 
 def setup_pipeline(cfg: DictConfig, *, is_train: bool = True) -> ModelPipeline | EnsemblePipeline:
@@ -80,6 +80,17 @@ def setup_pipeline(cfg: DictConfig, *, is_train: bool = True) -> ModelPipeline |
             if is_train:
                 for model in ensemble_cfg_dict.get("steps", []):
                     update_model_cfg_test_size(model, test_size)
+        pipeline_cfg = OmegaConf.create(ensemble_cfg_dict)
+    elif "post_ensemble" in cfg:
+        ensemble_cfg = cfg.post_ensemble
+        ensemble_cfg_dict = OmegaConf.to_container(ensemble_cfg, resolve=True)
+        if isinstance(ensemble_cfg_dict, dict):
+
+            ensemble_cfg_dict["steps"]['0']["steps"] = list(ensemble_cfg_dict.get("steps")['0'].get("steps", {}).values())
+            if is_train:
+                for model in ensemble_cfg_dict.get("steps")[0].get("steps", []):
+                    update_model_cfg_test_size(model, test_size)
+        ensemble_cfg_dict["steps"] = list(ensemble_cfg_dict.get("steps").values())
         pipeline_cfg = OmegaConf.create(ensemble_cfg_dict)
     else:
         raise ValueError("Neither model nor ensemble specified in config.")
