@@ -69,6 +69,7 @@ train_sys:
       two_stage_split_test: true
       two_stage_pretrain_full: true
 
+      test_split_type: 10
       model:
         _target_: src.modules.training.models.timm.Timm
         in_channels: 3

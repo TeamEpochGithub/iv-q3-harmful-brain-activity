@@ -22,11 +22,24 @@ class BaseEnsemble(EnsemblePipeline):
         if original_data is None:
             if data_to_concat is None:
                 return None
-            return data_to_concat * weight
+            print(f"self.weights:{self.weights[self.count]}, count: {self.count}, vs original weight: {weight}")
+            data = data_to_concat * self.weights[self.count]
+            self.count += 1
+            return data
+            # return data_to_concat * self.weights[self.count]
+        print(f"self.weights:{self.weights[self.count]}, count: {self.count}, vs original weight: {weight}")
         data = original_data + data_to_concat * self.weights[self.count]
         self.count += 1
         return data
         # return original_data + data_to_concat * self.weights[count]
+
+    def concat_labels(self, original_data, data_to_concat, weight):
+        if original_data is None:
+            if data_to_concat is None:
+                return None
+            return data_to_concat * weight
+        data = original_data + data_to_concat * weight
+        return data
 
 
 class PostEnsemble(EnsemblePipeline, TrainingPipeline, Logger):
