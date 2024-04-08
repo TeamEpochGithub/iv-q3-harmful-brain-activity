@@ -30,6 +30,5 @@ class Multiply(VerboseTrainingBlock):
         :param x: The predictions.
         :return: The multiplied predictions.
         """
-
         self.log_to_terminal(f"Applying Multiply to the predictions with factor {self.factor}...")
         return (x * self.factor).numpy()

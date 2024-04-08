@@ -85,10 +85,9 @@ def setup_pipeline(cfg: DictConfig, *, is_train: bool = True) -> ModelPipeline |
         ensemble_cfg = cfg.post_ensemble
         ensemble_cfg_dict = OmegaConf.to_container(ensemble_cfg, resolve=True)
         if isinstance(ensemble_cfg_dict, dict):
-
-            ensemble_cfg_dict["steps"]['0']["steps"] = list(ensemble_cfg_dict.get("steps")['0'].get("steps", {}).values())
+            ensemble_cfg_dict["steps"]["0"]["steps"] = list(ensemble_cfg_dict.get("steps")["0"].get("steps", {}).values())
             if is_train:
-                for model in ensemble_cfg_dict.get("steps")['0'].get("steps", []):
+                for model in ensemble_cfg_dict.get("steps")["0"].get("steps", []):
                     update_model_cfg_test_size(model, test_size)
         ensemble_cfg_dict["steps"] = list(ensemble_cfg_dict.get("steps").values())
         pipeline_cfg = OmegaConf.create(ensemble_cfg_dict)
