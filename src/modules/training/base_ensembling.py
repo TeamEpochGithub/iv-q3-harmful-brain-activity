@@ -17,5 +17,5 @@ class BaseEnsemble(EnsemblePipeline):
     #     return original_data + data_to_concat * weight
 
 
-class PostEnsemble(TrainingPipeline, Logger):
+class PostEnsemble(EnsemblePipeline, TrainingPipeline, Logger):
     """Ensembling with post processing blocks"""

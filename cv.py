@@ -18,6 +18,7 @@ from omegaconf import DictConfig
 
 from src.config.cross_validation_config import CVConfig
 from src.logging_utils.logger import logger
+from src.modules.training.base_ensembling import PostEnsemble
 from src.scoring.kldiv import KLDiv
 from src.typing.typing import XData
 from src.utils.script.lock import Lock
@@ -177,6 +178,17 @@ def run_fold(
         train_args = {
             "ModelPipeline": train_args,
         }
+    if isinstance(model_pipeline, PostEnsemble):
+        train_args = {
+            "EnsemblePipeline": {
+                "ModelPipeline": train_args,
+
+            },
+            "SmoothPatient": {
+                "metadata": X.meta,
+            }
+        }
+
     predictions, _ = model_pipeline.train(X, y, **train_args)
 
     if predictions is None or isinstance(predictions, XData):
