@@ -7,4 +7,4 @@ defaults:
   - /model/dark-audience@steps.5
 _target_: src.modules.training.base_ensembling.BaseEnsemble
 _convert_: partial
-weights: [1, 1, 1, 1, 1, 3]
+weights: [1, 1, 1, 1, 1, 2]
