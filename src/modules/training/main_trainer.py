@@ -60,6 +60,8 @@ class MainTrainer(TorchTrainer, Logger):
         if self.test_split_type == -1:
             raise ValueError("train_split_type needs to be set to either test_size or n_folds")
 
+        print(self.get_hash())
+
     def create_datasets(
             self,
             x: XData,
