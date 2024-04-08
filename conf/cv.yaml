@@ -2,7 +2,7 @@ defaults:
   - base_cv
   - hydra/logging
   # - ensemble: example
-  - model: spectro
+  - ensemble: letsgo2
   - wandb: train
 
 # Use these for normal training
