@@ -3,8 +3,10 @@ defaults:
   - hydra/logging
   # - ensemble: example
   # - model: wise_men_multi_res_bi_gru
-  - model: wise_men_regular_temple
+  # - model: wise_men_regular_temple
+  # - model: multi_res_bi_gru
   # - model: wise_men_bone_merlot
+  - model: wise_men_circumferential
   - wandb: train
 
 # Use these for normal training
@@ -29,6 +31,6 @@ scorer:
 cache_size: -1
 splitter:
   _target_: src.utils.stratified_splitter.StratifiedSplitter
-  n_splits: 10
+  n_splits: 10 
 allow_multiple_instances: true
 save_folds: true
