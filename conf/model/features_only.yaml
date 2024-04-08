@@ -40,31 +40,17 @@ train_sys:
 
       include_features: true
       model:
-        _target_: src.modules.training.models.feature_concat_head.FeatureConcatHead
-        in_features_deep: 32
-        in_features_manual: 11
-        hidden_size: 32
-        num_classes: 6
-        model:
-          _target_: src.modules.training.models.eeg_net.EEGNet
-          num_classes: 32 # <--- this is the intermediate size for concatenation
-          in_channels: 9
-          fixed_kernel_size: 5
-          #linear_layer_features: 448
-          #linear_layer_features: 352 # Half Signal = 5_000
-          linear_layer_features: 304 # 1/4 1/5 1/6 Signal = 2_000
-          #linear_layer_features: 280 # 1/10 Signal = 1_000
-          kernels: [3,5,7,9,11]
-          dropout: 0.1
+        _target_: src.modules.training.models.feature_only.FeatureOnly
+        layer_sizes: [11, 32, 32, 6]
       optimizer: # Partially instantiate optimizer, so model parameters can be linked at runtime
         _target_: functools.partial
         _args_:
           - _target_: hydra.utils.get_class
             path: torch.optim.AdamW
-        lr: 0.00125
+        lr: 0.002
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
-      epochs: 75
+      epochs: 30
       batch_size: 64
       patience: 20
       dataset_args:
@@ -73,33 +59,14 @@ train_sys:
         subsample_method: "running_random"
         augmentations:
           _target_: src.modules.training.augmentations.custom_sequential.CustomSequential
-          x_transforms:
-          - _target_: src.modules.training.augmentations.reverse_1d.Reverse1D
-            p: 0.2182003038407022
-          - _target_: torch_audiomentations.Shift
-            p: 0.24901240464397228
-            rollover: true
-            mode: per_example
-          - _target_: src.modules.training.augmentations.mirror_1d.Mirror1D
-            p: 0.18977429061506068
-          - _target_: src.modules.training.augmentations.random_phase_shift.RandomPhaseShift
-            p: 0.7877957224900426
-            shift_limit: 0.07818576072044058
-          - _target_: src.modules.training.augmentations.substract_channels.SubstractChannels
-            p: 0.09473363797540786
-          xy_transforms:
-          - _target_: src.modules.training.augmentations.mixup_1d.MixUp1D
-            p: 0.20280019949541855
-          - _target_: src.modules.training.augmentations.cutmix_1d.CutMix1D
-            p: 0.4298758457083039
-            low: 0.08824470307990548
-            high: 0.502159898957396
+          x_transforms: []
+          xy_transforms: []
       scheduler:
         _target_: functools.partial
         _args_:
           - _target_: hydra.utils.get_class
             path: timm.scheduler.cosine_lr.CosineLRScheduler
-        t_initial: 75
+        t_initial: 30
         cycle_mul: 1
         cycle_decay: 1
         cycle_limit: 1

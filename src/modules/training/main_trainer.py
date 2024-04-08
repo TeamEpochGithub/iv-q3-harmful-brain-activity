@@ -87,6 +87,11 @@ class MainTrainer(TorchTrainer, Logger):
 
         train_dataset = MainDataset(X=train_data, y=train_labels, use_aug=True, include_features=self.include_features, **self.dataset_args)
 
+        # Make a backup of the original metadata for the scorer preds to work
+        self.meta_backup = deepcopy(x.meta)
+        self.y_backup = deepcopy(y)
+        self.features_backup = deepcopy(x.features)
+
         # Set up the test dataset
         if test_indices is not None:
             test_dataset_args = self.dataset_args.copy()
@@ -94,11 +99,6 @@ class MainTrainer(TorchTrainer, Logger):
             test_dataset = MainDataset(X=test_data, y=test_labels, use_aug=False, include_features=self.include_features, **test_dataset_args)
         else:
             test_dataset = None
-
-        # Make a backup of the original metadata for the scorer preds to work
-        self.meta_backup = deepcopy(x.meta)
-        self.y_backup = deepcopy(y)
-
         return train_dataset, test_dataset
 
     def create_prediction_dataset(self, x: XData) -> Dataset[Any]:
@@ -109,9 +109,7 @@ class MainTrainer(TorchTrainer, Logger):
         """
         pred_args = self.dataset_args.copy()
         pred_args["subsample_method"] = None
-        predict_dataset = MainDataset(X=x, use_aug=False, include_features=self.include_features, **pred_args)
-        predict_dataset.setup_prediction(x)
-        return predict_dataset
+        return MainDataset(X=x, use_aug=False, include_features=self.include_features, **pred_args)
 
     def _concat_datasets(
         self,
@@ -135,6 +133,8 @@ class MainTrainer(TorchTrainer, Logger):
             raise ValueError("XData should not be None in the prediction dataset.")
         pred_dataset.X.meta = self.meta_backup.iloc[test_indices, :].reset_index(drop=True)
         pred_dataset.y = self.y_backup[test_indices, :]
+        if self.include_features:
+            pred_dataset.X.features = self.features_backup.iloc[test_indices, :].reset_index(drop=True)
         return pred_dataset
 
     def predict_on_loader(
