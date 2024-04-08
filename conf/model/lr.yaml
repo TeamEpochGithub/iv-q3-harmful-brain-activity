@@ -4,6 +4,9 @@ defaults:
 
 x_sys:
   steps:
+    - _target_: src.modules.transformation.eeg.bipolar.BipolarEEG
+      use_full_map: false
+      keep_ekg: false
     - _target_: src.modules.transformation.clip.Clip
       lower: -1024
       upper: 1024
@@ -18,13 +21,14 @@ x_sys:
       ranges: [[1,4],[4,8],[8,12],[12,25]]
     - _target_: src.modules.transformation.eeg.quantize.Quantizer
     - _target_: src.modules.transformation.eeg.downsample.Downsample
-      downsample_factor: 10
+      downsample_factor: 5
 #    - _target_: src.modules.transformation.eeg.rolling.Rolling
 #      channels: [0, 2, 4, 6]
 #      window_sizes: [20, 20, 20, 20]
 #      operations: ["std", "std", "std", "std"]
 #    - _target_: src.modules.transformation.eeg.select_channels.SelectChannels
 #      channels: [8, 9, 10, 11, 12, 13, 14, 15] #Select the last 18 channels
+
 
 train_sys:
   steps:
@@ -35,24 +39,27 @@ train_sys:
       two_stage_split_test: true
       two_stage_pretrain_full: true
       model:
-        _target_: src.modules.training.models.cnn3d.model.Model
-        in_channels: 4
-        out_channels: 6
-        image_size: 10
-        duration: 1000
-        model_type: "resnet18"
+        _target_: src.modules.training.models.eeg_net.EEGNet
+        num_classes: 6
+        in_channels: 36
+        fixed_kernel_size: 5
+        #linear_layer_features: 448
+        #linear_layer_features: 352 # Half Signal = 5_000
+        linear_layer_features: 304 # 1/4 1/5 1/6 Signal = 2_000
+        #linear_layer_features: 280 # 1/10 Signal = 1_000
+        kernels: [3,5,7,9,11]
+        dropout: 0.1
       optimizer: # Partially instantiate optimizer, so model parameters can be linked at runtime
         _target_: functools.partial
         _args_:
           - _target_: hydra.utils.get_class
             path: torch.optim.AdamW
         lr: 0.0012277709879372125
-        weight_decay: 1e-2
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
-      epochs: 50
-      batch_size: 800
-      patience: 15
+      epochs: 75
+      batch_size: 64
+      patience: 20
       dataset_args:
         data_type: "eeg"
         get_item_custom:
@@ -85,7 +92,7 @@ train_sys:
         _args_:
           - _target_: hydra.utils.get_class
             path: timm.scheduler.cosine_lr.CosineLRScheduler
-        t_initial: 50
+        t_initial: 75
         cycle_mul: 1
         cycle_decay: 1
         cycle_limit: 1
@@ -94,4 +101,3 @@ train_sys:
     - _target_: src.modules.training.postprocessing.softmax.Softmax
     - _target_: src.modules.training.postprocessing.smooth_patient.SmoothPatient
       smooth_factor: 0.1
-
