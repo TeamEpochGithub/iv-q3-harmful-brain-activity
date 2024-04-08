@@ -57,7 +57,7 @@ train_sys:
     two_stage_evaluator_threshold: 9
     two_stage_split_test: true
     two_stage_pretrain_full: true
-    test_split_type: 3
+    test_split_type: 1
     model:
       _target_: src.modules.training.models.timm.Timm
       in_channels: 3
@@ -115,7 +115,7 @@ train_sys:
       cycle_limit: 2
   - _target_: src.modules.training.postprocessing.softmax.Softmax
   - _target_: src.modules.training.postprocessing.smooth_patient.SmoothPatient
-    smooth_factor: 0.09
+    smooth_factor: 0.1
 pred_sys:
   _target_: src.modules.transformation.verbose_transformation_pipeline.VerboseTransformationPipeline
   title: Postprocessing pipeline
