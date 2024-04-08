@@ -4,7 +4,7 @@ defaults:
   # - ensemble: example
   # - model: wave_net
   # - model: jaspers_eeg_net_dont_touch
-  - model: cnn3d-aug
+  - ensemble: letsgo2
   - wandb: train
 
 # Use these for normal training

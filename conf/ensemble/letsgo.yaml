@@ -3,7 +3,7 @@ defaults:
   - /model/bone-merlot@steps.1
   - /model/regular-temple@steps.2
   - /model/tractable-crew@steps.3
-  - /model/cream-game@steps.4
+  - /model/cream-game.yaml@steps.4
 
 _target_: src.modules.training.base_ensembling.BaseEnsemble
 _convert_: partial

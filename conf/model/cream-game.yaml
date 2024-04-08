@@ -38,7 +38,7 @@ train_sys:
       two_stage_evaluator_threshold: 9
       two_stage_split_test: true
       two_stage_pretrain_full: true
-      test_split_type: 6
+      test_split_type: 10
       model:
         _target_: src.modules.training.models.parkinson_multi_res_bi_gru.MultiResidualBiGRU
         input_size: 72
@@ -96,5 +96,3 @@ train_sys:
         warmup_t: 5
         warmup_lr_init: 1e-5
     - _target_: src.modules.training.postprocessing.softmax.Softmax
-    - _target_: src.modules.training.postprocessing.smooth_patient.SmoothPatient
-      smooth_factor: 0.1
