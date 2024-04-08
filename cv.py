@@ -102,7 +102,7 @@ def run_cv_cfg(cfg: DictConfig) -> None:
     scores: list[float] = []
     accuracies: list[float] = []
     f1s: list[float] = []
-    folds = [4,5,6,7,8]
+    folds = [6,7,8]
     for fold_no, (train_indices, test_indices) in enumerate(instantiate(cfg.splitter).split(splitter_data, y)):
 
         if fold_no not in folds:
