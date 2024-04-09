@@ -57,7 +57,7 @@ def run_train_cfg(cfg: DictConfig) -> None:
     print_section_separator("Setup pipeline")
     model_pipeline = setup_pipeline(cfg)
 
-    # Cache arguments for x_sys
+    # Cache arguments for this x_sys
     processed_data_path = Path(cfg.processed_path)
     processed_data_path.mkdir(parents=True, exist_ok=True)
     cache_args = {
@@ -111,6 +111,10 @@ def run_train_cfg(cfg: DictConfig) -> None:
             "MainTrainer": {
                 "train_indices": train_indices,
                 "test_indices": test_indices,
+            },
+            "SmoothPatient": {
+                "test_indices": test_indices,
+                "metadata": X.meta,
             },
             "cache_args": cache_args,
         },

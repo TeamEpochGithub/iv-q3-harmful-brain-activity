@@ -28,6 +28,9 @@ dependencies = [
     "polars>=0.19.19",
     "epochalyst==0.2",
 
+    # Data loading
+    "pyarrow>=6.0.0",
+
     # Visualizations
     "seaborn>=0.13.0",
     "matplotlib>=3.8.2",

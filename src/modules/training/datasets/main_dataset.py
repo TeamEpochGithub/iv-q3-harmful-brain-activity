@@ -24,6 +24,9 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
     use_aug: bool = field(hash=False, repr=False, init=True, default=False)
     subsample_method: str | None = None
 
+    # to avoid influencing the hash, enter this through maintrainer
+    include_features: bool = field(hash=False, repr=False, init=True, default=False)
+
     def __post_init__(self) -> None:
         """Set up the dataset."""
         if self.X is None:
@@ -70,13 +73,18 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
     def __getitems__(self, indices: list[int]) -> tuple[Any, Any]:
         """Get multiple items from the dataset and apply augmentations if necessary."""
         all_x = []
+        all_features = []
         all_y = []
 
         # Read the data in a loop
         for idx in indices:
             x, y = self.__getitem__(idx)
+            if self.include_features:
+                x, features = x
+                all_features.append(torch.tensor(features))
             all_x.append(x)
             all_y.append(y)
+
         # Create a tensor from the list of tensors
         all_x_tensor = torch.stack(all_x)
         # If labels exist, create a tensor from the list of tensors
@@ -87,6 +95,10 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
         # Apply augmentations if necessary
         if self.augmentations is not None and self.use_aug:
             all_x_tensor, all_y_tensor = self.augmentations(all_x_tensor.to("cuda"), all_y_tensor.to("cuda"))
+
+        if self.include_features:
+            all_features_tensor = torch.stack(all_features)
+            return (all_x_tensor, all_features_tensor), all_y_tensor
         return all_x_tensor, all_y_tensor
 
     def __getitem__(self, idx: int) -> tuple[Any, Any]:
@@ -133,6 +145,10 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
             x = torch.from_numpy(x)
         if isinstance(y, np.ndarray):
             y = torch.from_numpy(y)
+
+        if self.include_features and self.X.features is not None:
+            features = self.X.features.iloc[idx].to_numpy()
+            return (x, features), y
         return x, y
 
     @typing.no_type_check
@@ -259,16 +275,23 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
 
         X_eeg, X_kaggle_spec, X_eeg_spec = None, None, None
 
-        if self.X.eeg is not None:
-            X_eeg, _ = self._eeg_getitem(idx)
+        if self.get_item_custom.use_eeg:
+            if self.X.eeg is not None:
+                X_eeg, _ = self._eeg_getitem(idx)
+            else:
+                raise ValueError("EEG data is not set up.")
 
-        if self.X.kaggle_spec is not None:
-            X_kaggle_spec, _ = self._kaggle_spec_getitem(idx)
+        if self.get_item_custom.use_kaggle_spec:
+            if self.X.kaggle_spec is not None:
+                X_kaggle_spec, _ = self._kaggle_spec_getitem(idx)
+            else:
+                raise ValueError("Kaggle spectrogram data is not set up.")
 
-        if self.X.eeg_spec is not None:
-            X_eeg_spec, _ = self._eeg_spec_getitem(idx)
+        if self.get_item_custom.use_eeg_spec:
+            if self.X.eeg_spec is not None:
+                X_eeg_spec, _ = self._eeg_spec_getitem(idx)
+            else:
+                raise ValueError("EEG spectrogram data is not set up.")
 
-        idx = self.indices[idx]
         labels = [] if self.y is None else self.y[idx, :]
-
-        return self.get_item_custom(X_eeg, X_kaggle_spec, X_eeg_spec, labels)
+        return self.get_item_custom(X_eeg, X_kaggle_spec, X_eeg_spec, labels, use_augmentations=self.use_aug)

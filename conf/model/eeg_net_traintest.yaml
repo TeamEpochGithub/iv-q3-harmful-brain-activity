@@ -1,0 +1,100 @@
+defaults:
+  - pipeline/default@_here_
+  - _self_
+
+x_sys:
+  steps:
+    - _target_: src.modules.transformation.eeg.bipolar.BipolarEEG
+      use_full_map: false
+      keep_ekg: false
+    - _target_: src.modules.transformation.clip.Clip
+      lower: -1024
+      upper: 1024
+    - _target_: src.modules.transformation.nantozero.NaNToZero
+      eeg: true
+    - _target_: src.modules.transformation.eeg.divide.Divide
+      value: 32
+    - _target_: src.modules.transformation.eeg.butter.ButterFilter
+      lower: 0.5
+    - _target_: src.modules.transformation.eeg.quantize.Quantizer
+    - _target_: src.modules.transformation.eeg.downsample.Downsample
+      downsample_factor: 5
+#    - _target_: src.modules.transformation.eeg.rolling.Rolling
+#      channels: [0, 2, 4, 6]
+#      window_sizes: [20, 20, 20, 20]
+#      operations: ["std", "std", "std", "std"]
+#    - _target_: src.modules.transformation.eeg.select_channels.SelectChannels
+#      channels: [8, 9, 10, 11, 12, 13, 14, 15] #Select the last 18 channels
+
+
+train_sys:
+  steps:
+    - _target_: src.modules.training.main_trainer.MainTrainer
+      model_name: EEGNet # Can't have special characters or spaces
+      model:
+        _target_: src.modules.training.models.eeg_net.EEGNet
+        num_classes: 6
+        in_channels: 9
+        fixed_kernel_size: 5
+        #linear_layer_features: 448
+        #linear_layer_features: 352 # Half Signal = 5_000
+        linear_layer_features: 304 # 1/4 1/5 1/6 Signal = 2_000
+        #linear_layer_features: 280 # 1/10 Signal = 1_000
+        kernels: [3,5,7,9,11]
+        dropout: 0.1
+      optimizer: # Partially instantiate optimizer, so model parameters can be linked at runtime
+        _target_: functools.partial
+        _args_:
+          - _target_: hydra.utils.get_class
+            path: torch.optim.AdamW
+        lr: 0.003
+      criterion:
+        _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
+      epochs: 1
+      batch_size: 256
+      patience: 15
+      two_stage: false
+      two_stage_evaluator_threshold: 9
+
+      test_split_type: 0.2
+
+      dataset_args:
+        data_type: "eeg"
+        get_item_custom:
+        subsample_method: "running_random"
+        augmentations:
+          _target_: src.modules.training.augmentations.custom_sequential.CustomSequential
+          x_transforms:
+            - _target_: src.modules.training.augmentations.reverse_1d.Reverse1D
+              p: 0.2
+            - _target_: src.modules.training.augmentations.mirror_1d.Mirror1D
+              p: 0.2
+            - _target_: torch_audiomentations.Shift
+              p: 0.5
+              rollover: true
+              mode: per_example
+            - _target_: src.modules.training.augmentations.random_phase_shift.RandomPhaseShift
+              p: 0.4
+              shift_limit: 0.5
+            - _target_: src.modules.training.augmentations.substract_channels.SubstractChannels
+              p: 0.5
+          xy_transforms:
+            - _target_: src.modules.training.augmentations.mixup_1d.MixUp1D
+              p: 0.2
+            - _target_: src.modules.training.augmentations.cutmix_1d.CutMix1D
+              p: 0.2
+              # Randomly select a percentage between 'low' and 'high' to preserve on the left side of the signal.
+              low: 0.0
+              high: 0.5
+      scheduler:
+        _target_: functools.partial
+        _args_:
+          - _target_: hydra.utils.get_class
+            path: timm.scheduler.cosine_lr.CosineLRScheduler
+        t_initial: 50
+        cycle_mul: 1
+        cycle_decay: 1
+        cycle_limit: 1
+        warmup_t: 5
+        warmup_lr_init: 1e-5
+    - _target_: src.modules.training.postprocessing.softmax.Softmax
