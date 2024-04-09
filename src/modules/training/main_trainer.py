@@ -53,6 +53,7 @@ class MainTrainer(TorchTrainer, Logger):
     _last_lr: float = field(default=-1, init=False, repr=False, compare=False)
 
     test_split_type: float = field(default=-1, init=True, repr=False, compare=False)
+    include_features: bool = field(hash=False, repr=False, init=True, default=False)
 
     def __post_init__(self) -> None:
         """Post init method."""
@@ -83,13 +84,13 @@ class MainTrainer(TorchTrainer, Logger):
         test_data = x[test_indices]
         test_labels = y[test_indices]
 
-        train_dataset = MainDataset(X=train_data, y=train_labels, use_aug=True, **self.dataset_args)
+        train_dataset = MainDataset(X=train_data, y=train_labels, use_aug=True, include_features=self.include_features, **self.dataset_args)
 
         # Set up the test dataset
         if test_indices is not None:
             test_dataset_args = self.dataset_args.copy()
             test_dataset_args["subsample_method"] = "random"
-            test_dataset = MainDataset(X=test_data, y=test_labels, use_aug=False, **test_dataset_args)
+            test_dataset = MainDataset(X=test_data, y=test_labels, use_aug=False, include_features=self.include_features, **test_dataset_args)
         else:
             test_dataset = None
 
@@ -107,7 +108,7 @@ class MainTrainer(TorchTrainer, Logger):
         """
         pred_args = self.dataset_args.copy()
         pred_args["subsample_method"] = None
-        predict_dataset = MainDataset(X=x, use_aug=False, **pred_args)
+        predict_dataset = MainDataset(X=x, use_aug=False, include_features=self.include_features, **pred_args)
         predict_dataset.setup_prediction(x)
         return predict_dataset
 
@@ -151,8 +152,14 @@ class MainTrainer(TorchTrainer, Logger):
         loader = DataLoader(loader.dataset, batch_size=loader.batch_size, shuffle=False, collate_fn=collate_fn)  # type: ignore[arg-type]
         with torch.no_grad(), tqdm(loader, unit="batch", disable=False) as tepoch:
             for data in tepoch:
-                X_batch = data[0].to(self.device).float()
-                y_pred = self.model(X_batch).cpu()
+                if self.include_features:
+                    X_batch, features_batch = data[0]
+                    features_batch = features_batch.to(self.device).float()
+                    X_batch = X_batch.to(self.device).float()
+                    y_pred = self.model(X_batch, features_batch).cpu()
+                else:
+                    X_batch = data[0].to(self.device).float()
+                    y_pred = self.model(X_batch).cpu()
                 predictions.extend(y_pred)
         self.log_to_terminal("Done predicting")
         return torch.stack(predictions)
@@ -206,7 +213,7 @@ class MainTrainer(TorchTrainer, Logger):
 
             # predict again on the entire test data for scoring later on to work
             test_meta = x.meta.iloc[test_indices, :]
-            x_test = XData(x.eeg, x.kaggle_spec, x.eeg_spec, test_meta, x.shared)
+            x_test = XData(x.eeg, x.kaggle_spec, x.eeg_spec, test_meta, x.shared, x.features)
             return self.custom_predict(x_test, use_single_model=True), y  # type: ignore[return-value]
         return super().custom_train(x, y, **train_args)
 
@@ -253,11 +260,17 @@ class MainTrainer(TorchTrainer, Logger):
         pbar = tqdm(dataloader, unit="batch", desc=f"Epoch {epoch} Train ({self.initialized_optimizer.param_groups[0]['lr']})")
         for batch in pbar:
             X_batch, y_batch = batch
-            X_batch = X_batch.to(self.device).float()
             y_batch = y_batch.to(self.device).float()
 
             # Forward pass
-            y_pred = self.model(X_batch).squeeze(1)
+            if self.include_features:
+                X_batch, features_batch = X_batch
+                X_batch = X_batch.to(self.device).float()
+                features_batch = features_batch.to(self.device).float()
+                y_pred = self.model(X_batch, features_batch).squeeze(1)
+            else:
+                X_batch = X_batch.to(self.device).float()
+                y_pred = self.model(X_batch).squeeze(1)
             loss = self.criterion(y_pred, y_batch)
 
             # Backward pass
@@ -302,11 +315,17 @@ class MainTrainer(TorchTrainer, Logger):
         with torch.no_grad():
             for batch in pbar:
                 X_batch, y_batch = batch
-                X_batch = X_batch.to(self.device).float()
                 y_batch = y_batch.to(self.device).float()
 
                 # Forward pass
-                y_pred = self.model(X_batch).squeeze(1)
+                if self.include_features:
+                    X_batch, features_batch = X_batch
+                    X_batch = X_batch.to(self.device).float()
+                    features_batch = features_batch.to(self.device).float()
+                    y_pred = self.model(X_batch, features_batch).squeeze(1)
+                else:
+                    X_batch = X_batch.to(self.device).float()
+                    y_pred = self.model(X_batch).squeeze(1)
                 loss = self.criterion(y_pred, y_batch)
 
                 # Print losses
