@@ -4,6 +4,9 @@ defaults:
 
 x_sys:
   steps:
+    - _target_: src.modules.transformation.eeg.bipolar.BipolarEEG
+      use_full_map: false
+      keep_ekg: false
     - _target_: src.modules.transformation.clip.Clip
       lower: -1024
       upper: 1024
@@ -13,50 +16,84 @@ x_sys:
     - _target_: src.modules.transformation.eeg.divide.Divide
       value: 32
     - _target_: src.modules.transformation.eeg.butter.ButterFilter
-
+      lower: 0.5
+      upper: 20
+      order: 2
+    - _target_: src.modules.transformation.eeg.quantize.Quantizer
     - _target_: src.modules.transformation.eeg.downsample.Downsample
       downsample_factor: 5
 
 
-y_sys:
-  steps:
-    - _target_: src.modules.transformation.target.sum_to_one.SumToOne
-    - _target_: src.modules.transformation.target.gaussian_target.GaussianTarget
-      labels_length: 2000
-      sigma: 2 # in seconds
-
 train_sys:
   steps:
     - _target_: src.modules.training.main_trainer.MainTrainer
+      grad_clip_range:
       model_name: q1_spec_res_gru
       model:
         _target_: src.modules.training.models.spectrogram_cnn_gru.MultiResidualBiGRUwSpectrogramCNN
-        in_channels: 20
+        in_channels: 9
         out_channels: 6
+        n_fft: 447
+        hop_length: 9
+        n_layers: 1
+        dropout: 0.2
       optimizer: # Partially instantiate optimizer, so model parameters can be linked at runtime
         _target_: functools.partial
         _args_:
           - _target_: hydra.utils.get_class
-            path: torch.optim.Adam
-        lr: 0.0001
+            path: torch.optim.AdamW
+        lr: 0.0016
       criterion:
-        _target_: src.modules.training.losses.weighted_kldiv.WeightedKLDivLoss
-        # class_weights: [0.767737189589508, 0.8769737036801599, 1.133067562494455, 1.8903799535040144, 1.0400019137008414, 0.29183967703102165]
-      epochs: 101
-      batch_size: 64
-      patience: 90
-      dataset:
-        _target_: src.modules.training.datasets.main_dataset.MainDataset
-        data_type: "eeg"
-      # scheduler:
-      #   _target_: functools.partial
-      #   _args_:
-      #     - _target_: hydra.utils.get_class
-      #       path: timm.scheduler.cosine_lr.CosineLRScheduler
-      #   t_initial: 25
-      #   cycle_mul: 1
-      #   cycle_decay: 1
-      #   cycle_limit: 1
-      #   warmup_t: 1
-      #   warmup_lr_init: 0.000001
-    - _target_: src.modules.postprocessing.softmax.Softmax
+        _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
+
+      epochs: 40
+      batch_size: 128
+      patience: 15
+      dataset_args:
+        data_type: eeg
+        get_item_custom: null
+        subsample_method: running_random
+        augmentations:
+          _target_: src.modules.training.augmentations.custom_sequential.CustomSequential
+          x_transforms:
+          - _target_: src.modules.training.augmentations.reverse_1d.Reverse1D
+            p: 0.22801295284801437
+          - _target_: src.modules.training.augmentations.mirror_1d.Mirror1D
+            p: 0.3
+          - _target_: src.modules.training.augmentations.random_phase_shift.RandomPhaseShift
+            p: 0.40008134950696184
+            shift_limit: 0.2501999525667424
+          - _target_: src.modules.training.augmentations.random_amplitude_shift.RandomAmplitudeShift
+            p: 0.40008134950696184
+            low: 0.7
+            high: 1.3
+          - _target_: src.modules.training.augmentations.substract_channels.SubstractChannels
+            p: 0.1983820705239484
+          xy_transforms:
+          - _target_: src.modules.training.augmentations.custom_apply_one.CustomApplyOne
+            x_transforms:
+            - _target_: torch_audiomentations.Shift
+              p: 0.33
+              rollover: true
+              mode: per_example
+            xy_transforms:
+            - _target_: src.modules.training.augmentations.mixup_1d.MixUp1D
+              p: 0.33
+            - _target_: src.modules.training.augmentations.cutmix_1d.CutMix1D
+              p: 0.34
+              low: 0.07886719060925124
+              high: 0.5711317254713427
+      scheduler:
+        _target_: functools.partial
+        _args_:
+          - _target_: hydra.utils.get_class
+            path: timm.scheduler.cosine_lr.CosineLRScheduler
+        t_initial: 40
+        cycle_mul: 1
+        cycle_decay: 0.7
+        cycle_limit: 2
+        warmup_t: 0
+        warmup_lr_init: 1e-5
+        lr_min: 0.00002
+
+    - _target_: src.modules.training.postprocessing.softmax.Softmax

@@ -26,30 +26,56 @@ class GridEEGNet(nn.Module):
         """Initialize the model."""
         super().__init__()
 
-        self.conv = nn.Sequential(
+        self.conv1 = nn.Sequential(
             nn.Conv2d(1, 2, 3),
             nn.Conv2d(2, 4, 3),
-            nn.ReLU(),
-            nn.Conv2d(4, 8, 3),
-            nn.Conv2d(8, 16, 3),
-            nn.ReLU(),
+            nn.Conv2d(4, 2, 3),
+            nn.Conv2d(2, 1, 3),
         )
+        self.conv2 = nn.Sequential(
+            nn.Conv2d(1, 2, 5),
+            nn.Conv2d(2, 1, 5),
+        )
+        self.conv3 = nn.Sequential(
+            nn.ZeroPad2d(1),
+            nn.Conv2d(1, 2, 7),
+            nn.ZeroPad2d(1),
+            nn.Conv2d(2, 1, 7),
+        )
+        self.conv4 = nn.Sequential(
+            nn.Conv2d(1, 1, 9),
+        )
+        if kwargs.get("residual", False):
+            self.residual = True
+            del kwargs["residual"]
+
+        self.batch_norm = nn.BatchNorm1d(24)
+
         self.eeg_net = EEGNet(**kwargs)  # type: ignore[arg-type]
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass of the model."""
+        all_features: torch.Tensor | list[Any]
         x_grid = to_3d_grid_vectorized(x, 9, 9).permute(0, 2, 1, 3, 4)
         batch_size, sequence_len, C, H, W = x_grid.size()
         # Reshape to combine batch and sequence dimensions
         x_grid = x_grid.view(batch_size * sequence_len, C, H, W)
 
+        all_features = []
         # Apply convolutional layers
-        x_features = self.conv(x_grid)
+        for module in [self.conv1, self.conv2, self.conv3, self.conv4]:
+            x_features = module(x_grid)
 
-        # Output shape from conv layers, assuming (N, C', H', W')
-        _, C_out, H_out, W_out = x_features.size()
+            # Output shape from conv layers, assuming (N, C', H', W')
+            _, C_out, H_out, W_out = x_features.size()
 
-        # Reshape back to separate batch and sequence dimensions
-        x_features = x_features.view(batch_size, sequence_len, C_out, H_out, W_out).squeeze(-1).squeeze(-1)
-        concat_features = torch.cat([x_features.permute(0, 2, 1), x], dim=1)
-        return self.eeg_net(concat_features)
+            # Reshape back to separate batch and sequence dimensions
+            x_features = x_features.view(batch_size, sequence_len, C_out, H_out, W_out).squeeze(-1).squeeze(-1)
+            all_features.append(x_features)
+        all_features = torch.cat(all_features, dim=2)
+
+        # concat the inital features with the conv features
+        if self.residual:
+            all_features = torch.cat([x, all_features.permute(0, 2, 1)], dim=1)
+        all_features = self.batch_norm(all_features)
+        return self.eeg_net(all_features)
