@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 from tqdm import tqdm
 
@@ -54,7 +55,7 @@ class ExtractFeatures(VerboseTransformationBlock):
         # Standard deviation of each channel
         result["std"] = eeg.std().mean()
 
-        def freqs(col):
+        def freqs(col: str) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]:
             fft = np.abs(np.fft.fft(eeg[col]))[: len(eeg) // 2]
             freq = np.fft.fftfreq(len(eeg), 1 / sampling_rate)[: len(eeg) // 2]
             fft = fft[freq < 5]
