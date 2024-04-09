@@ -1,5 +1,6 @@
 """Converts EEG data to 5D grid format based on the electrode positions."""
 
+import numpy as np
 import torch
 
 ELECTRODES = {
@@ -76,21 +77,28 @@ def to_3d_grid_vectorized(eeg_data: torch.Tensor, width: int, height: int) -> to
     :return: EEG data in 5D grid format (N, 1, L, W, H).
     """
     n, c, l = eeg_data.shape  # noqa: E741
-    grid = torch.zeros(n, 1, l, width, height, device=eeg_data.device)
 
-    # Generate indices for electrodes excluding "EKG"
-    electrode_indices = [i for i, elec in ELECTRODES.items() if elec != "EKG"]
-    electrode_positions = [ELECTRODE_POSITIONS[ELECTRODES[i]] for i in electrode_indices]
+    total_electrodes = 20
+    number_channels = c / total_electrodes
+    if number_channels != int(number_channels):
+        raise ValueError(f"Number of channels must be a multiple of 20, got {c} instead.")
 
-    # Convert positions to tensor for indexing
-    positions = torch.tensor(electrode_positions, dtype=torch.long, device=eeg_data.device)
-    x_positions, y_positions = positions[:, 0], positions[:, 1]
+    grid = torch.zeros(n, int(number_channels), l, width, height, device=eeg_data.device)
 
-    # Get the corresponding EEG data values for valid electrodes
-    valid_eeg_data = eeg_data[:, electrode_indices, :]
+    for j, _ in enumerate(range(int(number_channels))):
+        # Generate indices for electrodes excluding "EKG"
+        electrode_indices = [i for i, elec in ELECTRODES.items() if elec != "EKG"]
+        electrode_positions = [ELECTRODE_POSITIONS[ELECTRODES[i]] for i in electrode_indices]
 
-    # Assign values from EEG data to the grid based on electrode positions
-    for i, (x, y) in enumerate(zip(x_positions, y_positions, strict=False)):
-        grid[:, 0, :, x, y] = valid_eeg_data[:, i, :]
+        # Convert positions to tensor for indexing
+        positions = torch.tensor(electrode_positions, dtype=torch.long, device=eeg_data.device)
+        x_positions, y_positions = positions[:, 0], positions[:, 1]
+
+        # Get the corresponding EEG data values for valid electrodes
+        valid_eeg_data = eeg_data[:, np.array(electrode_indices) + (j * total_electrodes), :]
+
+        # Assign values from EEG data to the grid based on electrode positions
+        for i, (x, y) in enumerate(zip(x_positions, y_positions, strict=False)):
+            grid[:, j, :, x, y] = valid_eeg_data[:, i, :]
 
     return grid

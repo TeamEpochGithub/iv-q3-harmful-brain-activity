@@ -68,7 +68,7 @@ train_sys:
       _args_:
       - _target_: hydra.utils.get_class
         path: torch.optim.AdamW
-      lr: 0.002878410457193373
+      lr: 0.004262647287209457
     criterion:
       _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
       reduction: batchmean
@@ -108,8 +108,8 @@ train_sys:
       - _target_: hydra.utils.get_class
         path: timm.scheduler.cosine_lr.CosineLRScheduler
       warmup_t: 4
-      warmup_lr_init: 6.106441594795696e-05
-      t_initial: 54
+      warmup_lr_init: 5.642205355351931e-05
+      t_initial: 56
       cycle_mul: 0.7
       cycle_decay: 0.2
       cycle_limit: 2
