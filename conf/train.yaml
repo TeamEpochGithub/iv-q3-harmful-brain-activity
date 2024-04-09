@@ -1,7 +1,12 @@
 defaults:
   - base_train
   - hydra/logging
-  - model: gru_advanced
+  # - model: jaspers_eeg_net_dont_touch
+  # - ensemble: example
+  # - model: wave_net
+  # - model: jaspers_eeg_net_dont_touch
+  # - model: multi_res_bi_gru
+  - model: wise_men_regular_temple
   - wandb: train
 
 # Use these for normal training
@@ -23,9 +28,9 @@ processed_path: data/processed
 scorer:
   _target_: src.scoring.kldiv.KLDiv
   voter_threshold: 9
-test_size: 0.2
+test_size: 0.1
 cache_size: -1
 splitter:
   _target_: src.utils.stratified_splitter.StratifiedSplitter
-  n_splits: 5
+  n_splits: 10
 allow_multiple_instances: true

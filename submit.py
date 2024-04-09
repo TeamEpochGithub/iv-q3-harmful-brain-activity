@@ -2,6 +2,7 @@
 import os
 import warnings
 from pathlib import Path
+from typing import Any
 
 import hydra
 import pandas as pd
@@ -12,7 +13,8 @@ from omegaconf import DictConfig
 
 from src.config.submit_config import SubmitConfig
 from src.logging_utils.logger import logger
-from src.utils.setup import setup_config, setup_data, setup_pipeline
+from src.modules.training.base_ensembling import PostEnsemble
+from src.utils.setup import setup_data, setup_pipeline
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -35,12 +37,9 @@ def run_submit(cfg: DictConfig) -> None:
 
     coloredlogs.install()
 
-    # Check for missing keys in the config file
-    setup_config(cfg)
-
     # Preload the pipeline
     print_section_separator("Setup pipeline")
-    model_pipeline = setup_pipeline(cfg)
+    model_pipeline = setup_pipeline(cfg, is_train=False)
 
     # Load the test data
     eeg_path = Path(cfg.eeg_path)
@@ -51,17 +50,28 @@ def run_submit(cfg: DictConfig) -> None:
     # Predict on the test data
     logger.info("Making predictions...")
 
-    pred_args = {
+    pred_args: dict[str, Any] = {
         "train_sys": {
             "MainTrainer": {
                 "batch_size": 16,
-                "model_folds": cfg.model_folds,
+            },
+            "SmoothPatient": {
+                "metadata": X.meta,
             },
         },
     }
     if isinstance(model_pipeline, EnsemblePipeline):
         pred_args = {
             "ModelPipeline": pred_args,
+        }
+    if isinstance(model_pipeline, PostEnsemble):
+        pred_args = {
+            "EnsemblePipeline": {
+                "ModelPipeline": pred_args,
+            },
+            "SmoothPatient": {
+                "metadata": X.meta,
+            },
         }
     predictions = model_pipeline.predict(X, **pred_args)
 

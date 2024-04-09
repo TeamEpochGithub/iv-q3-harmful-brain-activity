@@ -1,7 +1,7 @@
 defaults:
   - base_cv
   - hydra/logging
-  - model: eeg_net_better
+  - model: spectro
   - wandb: train
 
 # Use these for normal training
@@ -23,9 +23,10 @@ processed_path: data/processed
 scorer:
   _target_: src.scoring.kldiv.KLDiv
   voter_threshold: 9
+  kldiv_thresholds: [0.15, 0.175, 0.2, 0.225, 0.25, 0.3, 0.35]
 cache_size: -1
 splitter:
   _target_: src.utils.stratified_splitter.StratifiedSplitter
-  n_splits: 5
+  n_splits: 10
 allow_multiple_instances: true
 save_folds: true

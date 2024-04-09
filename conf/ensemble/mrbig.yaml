@@ -1,0 +1,12 @@
+defaults:
+  - /model/wise_men_multi_res_bi_gru@steps.0
+  - /model/wise_men_mrbg_circumferential@steps.1
+  - /model/wise_men_regular_temple@steps.2
+  - /model/wise_men_circumferential@steps.3
+  - /model/brown-fjord@steps.4
+  - /model/spectro@steps.5
+#  - /model/dark-audience@steps.5
+#  - /model/connected-type-2@steps.5
+_target_: src.modules.training.base_ensembling.BaseEnsemble
+_convert_: partial
+weights: [1, 1, 1, 1, 1, 2]
