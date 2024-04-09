@@ -102,14 +102,23 @@ def run_cv_cfg(cfg: DictConfig) -> None:
     scores: list[float] = []
     accuracies: list[float] = []
     f1s: list[float] = []
-
+    folds = [8]
     for fold_no, (train_indices, test_indices) in enumerate(instantiate(cfg.splitter).split(splitter_data, y)):
+        if fold_no not in folds:
+            continue
         score, accuracy, f1 = run_fold(fold_no, X, y, train_indices, test_indices, cfg, scorer, output_dir, cache_args)
         scores.append(score)
         accuracies.append(accuracy)
         f1s.append(f1)
-        if score > 0.5:
-            break
+        for fold, threshold in [
+            (0, 0.42),
+            (1, 0.41),
+            (2, 0.42),
+            (3, 0.41),
+        ]:
+            if fold_no == fold and np.mean(scores) > threshold:
+                logger.info(f"Early stopping at fold {fold} with threshold {threshold}")
+                break
 
     avg_score = np.average(np.array(scores))
     avg_accuracy = np.average(np.array(accuracies))

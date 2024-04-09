@@ -45,11 +45,7 @@ x_sys:
 
     - _target_: src.modules.transformation.spectrogram.eeg_to_spectrogram.EEGToSpectrogram
       size: [100, 256]
-      fmax: 25
       fitting_method: 'crop'
-
-    - _target_: src.modules.transformation.spectrogram.standardize.Standardize
-      eeg_spec: true
 
     - _target_: src.modules.transformation.spectrogram.pad.Pad
       eeg_spec: true
@@ -60,12 +56,12 @@ train_sys:
   steps:
     - _target_: src.modules.training.main_trainer.MainTrainer
       model_name: "Chris-512"
-      epochs: 40
-      batch_size: 32
-      patience: 15
+      epochs: 10
+      batch_size: 16
+      patience: 10
 
       two_stage: true
-      two_stage_evaluator_threshold: 9
+      two_stage_evaluator_threshold: 3
       two_stage_split_test: true
       two_stage_pretrain_full: true
 
@@ -80,7 +76,7 @@ train_sys:
         _args_:
           - _target_: hydra.utils.get_class
             path: torch.optim.AdamW
-        lr: 1e-3
+        lr: 1e-2
 
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
@@ -99,23 +95,23 @@ train_sys:
               freq_mask_param: 25
               apply_x_times: 2
               iid_masks: true
-              p: 0.5
+              p: 0.4
             - _target_: src.modules.training.augmentations.spectrogram.time_mask.TimeMask
-              time_mask_param: 40
+              time_mask_param: 30
               apply_x_times: 1
               iid_masks: true
-              p: 0.3
+              p: 0.2
           kaggle_spec_augmentations:
             - _target_: src.modules.training.augmentations.spectrogram.frequency_mask.FrequencyMask
               freq_mask_param: 25
               apply_x_times: 2
               iid_masks: true
-              p: 0.5
+              p: 0.4
             - _target_: src.modules.training.augmentations.spectrogram.time_mask.TimeMask
-              time_mask_param: 40
+              time_mask_param: 30
               apply_x_times: 1
               iid_masks: true
-              p: 0.3
+              p: 0.2
 
       # scheduler:
       #   _target_: functools.partial
@@ -126,32 +122,39 @@ train_sys:
       #   decay_rate: 0.5
       #   warmup_lr_init: 0.01
       #   warmup_t: 2
-      scheduler:
-        _target_: functools.partial
-        _args_:
-          - _target_: hydra.utils.get_class
-            path: timm.scheduler.cosine_lr.CosineLRScheduler
-        warmup_t: 2
-        warmup_lr_init: 1e-5
-        t_initial: 30
-        cycle_mul: 0.7
-        cycle_decay: 0.2
-        cycle_limit: 2
-
-      # revert_to_best: true
       # scheduler:
       #   _target_: functools.partial
       #   _args_:
       #     - _target_: hydra.utils.get_class
-      #       path: torch.optim.lr_scheduler.ReduceLROnPlateau
+      #       path: timm.scheduler.cosine_lr.CosineLRScheduler
+      #   t_initial: 5
+      #   lr_min: 1e-5
+      #   warmup_lr_init: 1e-2
+      #   warmup_t: 2
+      # scheduler:
+      #   _target_: functools.partial
+      #   _args_:
+      #     - _target_: hydra.utils.get_class
+      #       path: timm.scheduler.plateau_lr.PlateauLRScheduler
       #   mode: "min"
-      #   factor: 0.1
-      #   patience: 3
-      #   threshold: 0.1
-      #   threshold_mode: "rel"
-      #   cooldown: 0
-      #   min_lr: 1e-5
-      #   eps: 1e-8
+      #   warmup_t: -1
+      #   patience_t: 5
+      #   lr_min: 1e-5
+
+      revert_to_best: true
+      scheduler:
+        _target_: functools.partial
+        _args_:
+          - _target_: hydra.utils.get_class
+            path: torch.optim.lr_scheduler.ReduceLROnPlateau
+        mode: "min"
+        factor: 0.1
+        patience: 3
+        threshold: 0.1
+        threshold_mode: "rel"
+        cooldown: 0
+        min_lr: 1e-5
+        eps: 1e-8
 
     - _target_: src.modules.training.postprocessing.softmax.Softmax
     - _target_: src.modules.training.postprocessing.smooth_patient.SmoothPatient

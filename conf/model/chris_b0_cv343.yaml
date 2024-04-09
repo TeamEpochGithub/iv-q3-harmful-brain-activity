@@ -60,7 +60,7 @@ train_sys:
   steps:
     - _target_: src.modules.training.main_trainer.MainTrainer
       model_name: "Chris-512"
-      epochs: 40
+      epochs: 24
       batch_size: 32
       patience: 15
 
@@ -80,7 +80,7 @@ train_sys:
         _args_:
           - _target_: hydra.utils.get_class
             path: torch.optim.AdamW
-        lr: 1e-3
+        lr: 0.002878410457193373
 
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
@@ -131,9 +131,9 @@ train_sys:
         _args_:
           - _target_: hydra.utils.get_class
             path: timm.scheduler.cosine_lr.CosineLRScheduler
-        warmup_t: 2
-        warmup_lr_init: 1e-5
-        t_initial: 30
+        warmup_t: 4
+        warmup_lr_init: 0.00006106441594795696
+        t_initial: 54
         cycle_mul: 0.7
         cycle_decay: 0.2
         cycle_limit: 2

@@ -1,7 +1,6 @@
 defaults:
   - base_cv
   - hydra/logging
-  # - ensemble: example
   - model: spectro
   - wandb: train
 

@@ -42,8 +42,6 @@ x_sys:
     - 0
     - 14
     - 14
-    -
-
 
 train_sys:
   steps:
