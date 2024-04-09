@@ -76,7 +76,7 @@ train_sys:
         _args_:
           - _target_: hydra.utils.get_class
             path: torch.optim.AdamW
-        lr: 0.003
+        lr: 1e-2
 
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
@@ -141,6 +141,7 @@ train_sys:
       #   patience_t: 5
       #   lr_min: 1e-5
 
+      revert_to_best: true
       scheduler:
         _target_: functools.partial
         _args_:

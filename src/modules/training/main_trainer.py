@@ -34,8 +34,7 @@ class MainTrainer(TorchTrainer, Logger):
     :param two_stage_pretrain_full: Whether to train the first stage on the full dataset.
     :param two_stage_split_test: Whether to split the test data into two stages as well.
     :param early_stopping: Whether to do early stopping.
-    :param revert_to_best: Whether to revert to the best model if the learning rate changes.
-    :param include_features: Whether to include features in the training data.
+    Note: remove the sum to one block from the target pipeline for this to work
     """
 
     dataset_args: dict[str, Any] = field(default_factory=dict)
