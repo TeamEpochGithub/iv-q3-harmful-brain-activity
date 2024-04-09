@@ -5,8 +5,7 @@ defaults:
   # - ensemble: example
   # - model: wave_net
   # - model: jaspers_eeg_net_dont_touch
-  # - model: multi_res_bi_gru
-  - model: wise_men_regular_temple
+  - model: eeg_net_features2
   - wandb: train
 
 # Use these for normal training

@@ -44,6 +44,8 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
             seed = 42
             unique_indices = X_meta.groupby("eeg_id").sample(1, random_state=seed)["index"]
 
+            features = copy.deepcopy(self.X.features)
+
             # Use the unique indices to index the meta data
             self.X = replace(self.X)  # shallow copy of XData, so only meta is changed
             self.X.meta = X_meta.loc[unique_indices].reset_index(drop=True)
@@ -52,16 +54,14 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
             # use self indices to index the y data
             if self.y is not None:
                 self.y = self.y[self.indices, :]
+            if features is not None:
+                self.X.features = features.iloc[self.indices].reset_index(drop=True)
 
         elif "running" in self.subsample_method:
             # Create a mapping of idx to unique eeg_id
             self.id_mapping = dict(enumerate(self.X.meta["eeg_id"].unique()))
             # Group the metadata by eeg_id
             self.grouped = self.X.meta.groupby("eeg_id")
-
-    def setup_prediction(self, X: XData) -> None:
-        """Set up the dataset for prediction."""
-        self.X = X
 
     def __len__(self) -> int:
         """Get the length of the dataset."""
