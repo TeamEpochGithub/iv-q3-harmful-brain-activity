@@ -2,10 +2,12 @@
 import os
 import warnings
 from pathlib import Path
+from typing import Any
 
 import hydra
 import pandas as pd
 from epochalyst.logging.section_separator import print_section_separator
+from epochalyst.pipeline.ensemble import EnsemblePipeline
 from hydra.core.config_store import ConfigStore
 from omegaconf import DictConfig
 
@@ -50,14 +52,20 @@ def run_submit(cfg: DictConfig) -> None:
     # Predict on the test data
     logger.info("Making predictions...")
 
-    pred_args = {
+    pred_args: dict[str, Any] = {
         "train_sys": {
             "MainTrainer": {
                 "batch_size": 16,
-                "model_folds": cfg.model_folds,
+            },
+            "SmoothPatient": {
+                "metadata": X.meta,
             },
         },
     }
+    if isinstance(model_pipeline, EnsemblePipeline):
+        pred_args = {
+            "ModelPipeline": pred_args,
+        }
     predictions = model_pipeline.predict(X, **pred_args)
 
     # Make submission
