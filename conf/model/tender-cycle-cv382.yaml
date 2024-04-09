@@ -36,6 +36,9 @@ train_sys:
       two_stage_split_test: true
       two_stage_pretrain_full: true
       early_stopping: false
+
+      predict_with_n_folds: 4
+
       model:
         _target_: src.modules.training.models.eeg_net.EEGNet
         num_classes: 6

@@ -112,6 +112,10 @@ def run_train_cfg(cfg: DictConfig) -> None:
                 "train_indices": train_indices,
                 "test_indices": test_indices,
             },
+            "SmoothPatient": {
+                "test_indices": test_indices,
+                "metadata": X.meta,
+            },
             "cache_args": cache_args,
         },
     }

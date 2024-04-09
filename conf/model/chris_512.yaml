@@ -56,12 +56,12 @@ train_sys:
   steps:
     - _target_: src.modules.training.main_trainer.MainTrainer
       model_name: "Chris-512"
-      epochs: 10
-      batch_size: 16
-      patience: 10
+      epochs: 40
+      batch_size: 32
+      patience: 15
 
       two_stage: true
-      two_stage_evaluator_threshold: 3
+      two_stage_evaluator_threshold: 9
       two_stage_split_test: true
       two_stage_pretrain_full: true
 
@@ -146,14 +146,27 @@ train_sys:
         _target_: functools.partial
         _args_:
           - _target_: hydra.utils.get_class
-            path: torch.optim.lr_scheduler.ReduceLROnPlateau
-        mode: "min"
-        factor: 0.1
-        patience: 3
-        threshold: 0.1
-        threshold_mode: "rel"
-        cooldown: 0
-        min_lr: 1e-5
-        eps: 1e-8
+            path: timm.scheduler.cosine_lr.CosineLRScheduler
+        t_initial: 40
+        cycle_mul: 1
+        cycle_decay: 1
+        cycle_limit: 1
+        warmup_t: 0
+        warmup_lr_init: 1e-5
+#      scheduler:
+#        _target_: functools.partial
+#        _args_:
+#          - _target_: hydra.utils.get_class
+#            path: torch.optim.lr_scheduler.ReduceLROnPlateau
+#        mode: "min"
+#        factor: 0.1
+#        patience: 3
+#        threshold: 0.1
+#        threshold_mode: "rel"
+#        cooldown: 0
+#        min_lr: 1e-5
+#        eps: 1e-8
 
     - _target_: src.modules.training.postprocessing.softmax.Softmax
+    - _target_: src.modules.training.postprocessing.smooth_patient.SmoothPatient
+      smooth_factor: 0.1

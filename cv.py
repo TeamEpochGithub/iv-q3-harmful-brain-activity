@@ -114,7 +114,7 @@ def run_cv_cfg(cfg: DictConfig) -> None:
             (2, 0.42),
             (3, 0.41),
         ]:
-            if i == fold and np.mean(scores) > threshold:
+            if fold_no == fold and np.mean(scores) > threshold:
                 logger.info(f"Early stopping at fold {fold} with threshold {threshold}")
                 break
 
@@ -172,6 +172,10 @@ def run_fold(
                 "test_indices": test_indices,
                 "save_model": cfg.save_folds,
                 "fold": fold_no,
+            },
+            "SmoothPatient": {
+                "test_indices": test_indices,
+                "metadata": X.meta,
             },
             # "cache_args": cache_args, # TODO(Jasper): Allow for caching after training in fold
         },
