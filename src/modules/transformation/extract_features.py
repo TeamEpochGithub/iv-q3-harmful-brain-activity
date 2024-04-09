@@ -43,7 +43,7 @@ class ExtractFeatures(VerboseTransformationBlock):
         data.features = pd.DataFrame(features)
         return data
 
-    def _extract_from_sequence(self, eeg: pd.DataFrame, sampling_rate: int) -> pd.DataFrame:  # noqa: ARG002
+    def _extract_from_sequence(self, eeg: pd.DataFrame, sampling_rate: int) -> pd.DataFrame:
         """Extract features from the EEG data.
 
         :param eeg: The EEG data
@@ -55,8 +55,8 @@ class ExtractFeatures(VerboseTransformationBlock):
         result["std"] = eeg.std().mean()
 
         def freqs(col):
-            fft = np.abs(np.fft.fft(eeg[col]))[:len(eeg) // 2]
-            freq = np.fft.fftfreq(len(eeg), 1 / sampling_rate)[:len(eeg) // 2]
+            fft = np.abs(np.fft.fft(eeg[col]))[: len(eeg) // 2]
+            freq = np.fft.fftfreq(len(eeg), 1 / sampling_rate)[: len(eeg) // 2]
             fft = fft[freq < 5]
             freq = freq[freq < 5]
             return freq, fft
@@ -72,11 +72,7 @@ class ExtractFeatures(VerboseTransformationBlock):
 
         similarities = []
         dots = []
-        for left, right in [
-            ('LT1', 'RT1'),
-            ('LT2', 'RT2'),
-            ('LP1', 'RP1'),
-            ('LP2', 'RP2')]:
+        for left, right in [("LT1", "RT1"), ("LT2", "RT2"), ("LP1", "RP1"), ("LP2", "RP2")]:
             similarities.append(np.corrcoef(eeg[left], eeg[right])[0, 1])
             dots.append(np.dot(eeg[left], eeg[right]))
 
@@ -85,15 +81,15 @@ class ExtractFeatures(VerboseTransformationBlock):
 
         normalized_amplitude_difference_index = abs(amplitude_left - amplitude_right) / (amplitude_left + amplitude_right)
 
-        result['low_activity'] = (custom_feature < 0.02).mean()
-        result['high_activity'] = (custom_feature > 0.1).mean()
-        result['freq_peak'] = (np.argmax(avg_fft) - 50) / 30
-        result['freq_peak_val'] = (np.max(avg_fft) - 1000) / 500
-        result['similarity'] = np.mean(similarities) - 0.5
-        result['dots'] = (np.mean(dots) - 3650) / 5000
-        result['2-5hz'] = (np.sum(avg_fft[(freq > 2) & (freq < 5)]) - 24400)/ 15000
-        result['2-5hz_over_peak'] = ((result['2-5hz'] / result['freq_peak_val']) - 30) / 10
-        result['peak_ratio'] = (np.max(avg_fft) / np.mean(avg_fft) - 4) / 2
+        result["low_activity"] = (custom_feature < 0.02).mean()
+        result["high_activity"] = (custom_feature > 0.1).mean()
+        result["freq_peak"] = (np.argmax(avg_fft) - 50) / 30
+        result["freq_peak_val"] = (np.max(avg_fft) - 1000) / 500
+        result["similarity"] = np.mean(similarities) - 0.5
+        result["dots"] = (np.mean(dots) - 3650) / 5000
+        result["2-5hz"] = (np.sum(avg_fft[(freq > 2) & (freq < 5)]) - 24400) / 15000
+        result["2-5hz_over_peak"] = ((result["2-5hz"] / result["freq_peak_val"]) - 30) / 10
+        result["peak_ratio"] = (np.max(avg_fft) / np.mean(avg_fft) - 4) / 2
         result["NDAI"] = normalized_amplitude_difference_index * 10
 
         return pd.DataFrame(result).T.fillna(0)

@@ -61,7 +61,6 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
             # Group the metadata by eeg_id
             self.grouped = self.X.meta.groupby("eeg_id")
 
-
     def __len__(self) -> int:
         """Get the length of the dataset."""
         # Trick the dataloader into thinking the dataset is smaller than it is
