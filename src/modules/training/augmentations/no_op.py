@@ -10,6 +10,6 @@ class NoOp(torch.nn.Module):
 
     p: float = 0.5
 
-    def __call__(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    def __call__(self, x: torch.Tensor) -> torch.Tensor:
         """Apply the augmentation to the input signal."""
         return x

@@ -30,7 +30,7 @@ x_sys:
 #      channels: [8, 9, 10, 11, 12, 13, 14, 15] #Select the last 18 channels
 
 y_sys:
-  steps: 
+  steps:
     - _target_: src.modules.transformation.target.mean_window_votes.MeanWindowVotes
 
 train_sys:
