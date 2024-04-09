@@ -61,7 +61,7 @@ train_sys:
         reduction: "batchmean"
       epochs: 37
       batch_size: 64
-      patience: 15
+      patience: 30
       dataset_args:
         subsample_method: running_random
         data_type: "eeg"

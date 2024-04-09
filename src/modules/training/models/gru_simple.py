@@ -39,6 +39,7 @@ class GRUTimeSeriesClassifier(nn.Module):
         """
         # x: (batch_size, seq_length, input_dim)
         x = x.permute(0, 2, 1)
+
         gru_out, _ = self.gru(x)
         if self.bidirectional:
             # Use the concatenated last hidden states of both directions

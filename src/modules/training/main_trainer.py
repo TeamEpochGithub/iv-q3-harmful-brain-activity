@@ -48,6 +48,7 @@ class MainTrainer(TorchTrainer, Logger):
     revert_to_best: bool = False
     _fold: int = field(default=-1, init=False, repr=False, compare=False)
     _stage: int = field(default=-1, init=False, repr=False, compare=False)
+    grad_clip_range: int | None = None
 
     _cur_epoch: int = field(default=-1, init=False, repr=False, compare=False)
     _last_lr: float = field(default=-1, init=False, repr=False, compare=False)
@@ -465,3 +466,10 @@ def collate_fn(batch: tuple[Tensor, ...]) -> tuple[Tensor, ...]:
     """
     X, y = batch
     return X, y
+
+
+# def print_grad_stats(grad):
+#     if grad.max() > 0.2:
+#         print(f"Max gradient: {grad.max()}")
+#     if grad.min() < -0.2:
+#         print(f"Min gradient: {grad.min()}")
