@@ -18,7 +18,7 @@ from src.config.train_config import TrainConfig
 from src.logging_utils.logger import logger
 from src.utils.script.lock import Lock
 from src.utils.seed_torch import set_torch_seed
-from src.utils.setup import load_training_data, setup_config, setup_data, setup_pipeline, setup_wandb
+from src.utils.setup import load_training_data, setup_data, setup_pipeline, setup_wandb
 
 warnings.filterwarnings("ignore", category=UserWarning)
 # Makes hydra give full error messages
@@ -37,7 +37,7 @@ def run_train(cfg: DictConfig) -> None:
         run_train_cfg(cfg)
 
 
-def run_train_cfg(cfg: DictConfig) -> None:  # noqa: PLR0915
+def run_train_cfg(cfg: DictConfig) -> None:
     """Train a model pipeline with a train-test split."""
     print_section_separator("Q3 Detect Harmful Brain Activity - Training")
     set_torch_seed()
@@ -47,7 +47,6 @@ def run_train_cfg(cfg: DictConfig) -> None:  # noqa: PLR0915
     coloredlogs.install()
 
     # Check for missing keys in the config file
-    setup_config(cfg)
     output_dir = Path(hydra.core.hydra_config.HydraConfig.get().runtime.output_dir)
 
     if cfg.wandb.enabled:
@@ -57,7 +56,7 @@ def run_train_cfg(cfg: DictConfig) -> None:  # noqa: PLR0915
     print_section_separator("Setup pipeline")
     model_pipeline = setup_pipeline(cfg)
 
-    # Cache arguments for x_sys
+    # Cache arguments for this x_sys
     processed_data_path = Path(cfg.processed_path)
     processed_data_path.mkdir(parents=True, exist_ok=True)
     cache_args = {
@@ -130,11 +129,8 @@ def run_train_cfg(cfg: DictConfig) -> None:  # noqa: PLR0915
         scorer = instantiate(cfg.scorer)
         score = scorer(y[test_indices], predictions, metadata=X.meta.iloc[test_indices, :])
         accuracy, f1 = scorer.visualize_preds(y[test_indices], predictions, output_folder=output_dir)
-        curr_threshold = scorer.voter_threshold
-        scorer.voter_threshold = 0
-        accuracy_all, f1_all = scorer.visualize_preds(y[test_indices], predictions, output_folder=output_dir)
-        logger.info(f"Accuracy > {curr_threshold}: {accuracy} on all data: {accuracy_all}")
-        logger.info(f"F1 > {curr_threshold}: {f1} on all data: {f1_all}")
+        logger.info(f"Accuracy: {accuracy}")
+        logger.info(f"F1: {f1}")
         logger.info(f"Score: {score}")
 
         if wandb.run:

@@ -65,8 +65,6 @@ train_sys:
       two_stage_split_test: true
       two_stage_pretrain_full: true
 
-      predict_with_n_folds: 4
-
       model:
         _target_: src.modules.training.models.timm.Timm
         in_channels: 3
