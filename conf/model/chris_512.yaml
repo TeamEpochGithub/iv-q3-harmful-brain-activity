@@ -46,10 +46,6 @@ x_sys:
     - _target_: src.modules.transformation.spectrogram.eeg_to_spectrogram.EEGToSpectrogram
       size: [100, 256]
       fitting_method: 'crop'
-      fmax: 20
-
-    - _target_: src.modules.transformation.spectrogram.standardize.Standardize
-      eeg_spec: true
 
     - _target_: src.modules.transformation.spectrogram.pad.Pad
       eeg_spec: true
@@ -80,7 +76,7 @@ train_sys:
         _args_:
           - _target_: hydra.utils.get_class
             path: torch.optim.AdamW
-        lr: 0.007426
+        lr: 0.003
 
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
@@ -150,16 +146,27 @@ train_sys:
         _target_: functools.partial
         _args_:
           - _target_: hydra.utils.get_class
-            path: torch.optim.lr_scheduler.ReduceLROnPlateau
-        mode: "min"
-        factor: 0.2173
-        patience: 1
-        threshold: 0.1924
-        threshold_mode: "rel"
-        cooldown: 0
-        min_lr: 0.00003094
-        eps: 1e-8
+            path: timm.scheduler.cosine_lr.CosineLRScheduler
+        t_initial: 40
+        cycle_mul: 1
+        cycle_decay: 1
+        cycle_limit: 1
+        warmup_t: 0
+        warmup_lr_init: 1e-5
+#      scheduler:
+#        _target_: functools.partial
+#        _args_:
+#          - _target_: hydra.utils.get_class
+#            path: torch.optim.lr_scheduler.ReduceLROnPlateau
+#        mode: "min"
+#        factor: 0.1
+#        patience: 3
+#        threshold: 0.1
+#        threshold_mode: "rel"
+#        cooldown: 0
+#        min_lr: 1e-5
+#        eps: 1e-8
 
     - _target_: src.modules.training.postprocessing.softmax.Softmax
     - _target_: src.modules.training.postprocessing.smooth_patient.SmoothPatient
-      smooth_factor: 0.09
+      smooth_factor: 0.1

@@ -14,10 +14,18 @@ parameters:
   model.train_sys.steps.0.model.model_name:
     values:
       - efficientnet_b0
-      - efficientnetv2_s
-      - resnet34d
-      - resnet50d
       - efficientnet_b1
       - efficientnet_b2
       - efficientnet_b3
       - efficientnet_b4
+      - efficientnet_b5
+      - efficientnet_b6
+      - efficientnet_b7
+      - efficientnetv2_s
+      - efficientnetv2_m
+      - efficientnetv2_l
+      - efficientnetv2_xl
+      - resnet152d
+      - resnet101d
+      - resnet50d
+      - resnet34d
