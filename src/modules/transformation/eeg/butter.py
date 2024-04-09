@@ -26,12 +26,26 @@ class ButterFilter(VerboseTransformationBlock):
     upper: float = 20
     order: int = 2
     sampling_rate: float = 200
+    method: str = "filter"
+    ranges: list[list[float]] | None = None
 
     def custom_transform(self, data: XData, **kwargs: Any) -> XData:
         """Filter the eeg signals with a butter filter.
 
         :param data: The X data to transform, as tuple (eeg, spec, meta)
         :return: The transformed data
+        """
+        if self.method == "filter":
+            return self.apply_filter(data)
+        if self.method == "extend":
+            return self.extend(data)
+        raise ValueError(f"Method {self.method} not recognized")
+
+    def apply_filter(self, data: XData) -> XData:
+        """Filter the data with a butter filter.
+
+        :param data: The data to filter
+        :return: The filtered data
         """
         eeg = data.eeg
         if eeg is None:
@@ -43,6 +57,30 @@ class ButterFilter(VerboseTransformationBlock):
             else:
                 # bandpass
                 eeg[key] = eeg[key].apply(self.butter_bandpass_filter)
+        return data
+
+    def extend(self, data: XData) -> XData:
+        """Filter the data with a butter filter.
+
+        :param data: The data to filter
+        :return: The filtered data
+        """
+        eeg = data.eeg
+        if eeg is None:
+            raise ValueError("No EEG data to transform")
+        if self.ranges is None:
+            raise ValueError("No ranges provided")
+        for key in tqdm(eeg.keys(), desc="Butter Filtering EEG data"):
+            extended = []
+            for lower, upper in self.ranges:
+                self.lower = lower
+                self.upper = upper
+                curr_range = eeg[key].apply(self.butter_bandpass_filter)
+                extended.append(curr_range)
+                # Rename the columns of curr_range based on lower and upper
+                for col in curr_range.columns:
+                    curr_range.rename(columns={col: f"{col}_{lower}-{upper}"}, inplace=True)  # noqa: PD002
+            eeg[key] = pd.concat(extended, axis=1)
         return data
 
     def butter_lowpass_filter(self, data: pd.DataFrame) -> npt.NDArray[np.float32]:
@@ -66,4 +104,4 @@ class ButterFilter(VerboseTransformationBlock):
         :return: The filtered data
         """
         b, a = butter(self.order, [self.lower, self.upper], fs=self.sampling_rate, btype="band")
-        return lfilter(b, a, eeg)
+        return lfilter(b, a, eeg).astype(np.float32)

@@ -45,24 +45,29 @@ x_sys:
 
     - _target_: src.modules.transformation.spectrogram.eeg_to_spectrogram.EEGToSpectrogram
       size: [100, 256]
+      fmax: 25
       fitting_method: 'crop'
+
+    - _target_: src.modules.transformation.spectrogram.standardize.Standardize
+      eeg_spec: true
 
     - _target_: src.modules.transformation.spectrogram.pad.Pad
       eeg_spec: true
       pad_list: [0, 0, 14, 14]
 
 
-y_sys:
-  steps:
-    - _target_: src.modules.transformation.target.sum_to_one.SumToOne
-
 train_sys:
   steps:
     - _target_: src.modules.training.main_trainer.MainTrainer
-      model_name: "Chris-Notebook-EfficientNet"
-      epochs: 5
-      batch_size: 64
-      patience: 10
+      model_name: "Chris-512"
+      epochs: 40
+      batch_size: 32
+      patience: 15
+
+      two_stage: true
+      two_stage_evaluator_threshold: 9
+      two_stage_split_test: true
+      two_stage_pretrain_full: true
 
       model:
         _target_: src.modules.training.models.timm.Timm
@@ -74,34 +79,80 @@ train_sys:
         _target_: functools.partial
         _args_:
           - _target_: hydra.utils.get_class
-            path: torch.optim.Adam
-        lr: 1e-4
+            path: torch.optim.AdamW
+        lr: 1e-3
 
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
         reduction: "batchmean"
         weighted: false
 
-      dataset:
-        _target_: src.modules.training.datasets.main_dataset.MainDataset
+      dataset_args:
+        subsample_method: "running_random"
         data_type: "custom"
         get_item_custom:
           _target_: src.modules.training.datasets.get_item.chris.ChrisGetItem
           use_kaggle_spec: true
           use_eeg_spec: true
-        # augmentations:
-        #   _target_: kornia.augmentation.AugmentationSequential
-        #   _args_:
-        #     - _target_: kornia.augmentation.RandomHorizontalFlip
-        #       p: 0.5
+          eeg_spec_augmentations:
+            - _target_: src.modules.training.augmentations.spectrogram.frequency_mask.FrequencyMask
+              freq_mask_param: 25
+              apply_x_times: 2
+              iid_masks: true
+              p: 0.5
+            - _target_: src.modules.training.augmentations.spectrogram.time_mask.TimeMask
+              time_mask_param: 40
+              apply_x_times: 1
+              iid_masks: true
+              p: 0.3
+          kaggle_spec_augmentations:
+            - _target_: src.modules.training.augmentations.spectrogram.frequency_mask.FrequencyMask
+              freq_mask_param: 25
+              apply_x_times: 2
+              iid_masks: true
+              p: 0.5
+            - _target_: src.modules.training.augmentations.spectrogram.time_mask.TimeMask
+              time_mask_param: 40
+              apply_x_times: 1
+              iid_masks: true
+              p: 0.3
 
+      # scheduler:
+      #   _target_: functools.partial
+      #   _args_:
+      #     - _target_: hydra.utils.get_class
+      #       path: timm.scheduler.multistep_lr.MultiStepLRScheduler
+      #   decay_t: [5, 10, 15]
+      #   decay_rate: 0.5
+      #   warmup_lr_init: 0.01
+      #   warmup_t: 2
       scheduler:
         _target_: functools.partial
         _args_:
           - _target_: hydra.utils.get_class
-            path: timm.scheduler.multistep_lr.MultiStepLRScheduler
-        decay_t: [1, 2]
-        decay_rate: 0.1
-        warmup_lr_init: 0.001
+            path: timm.scheduler.cosine_lr.CosineLRScheduler
         warmup_t: 2
+        warmup_lr_init: 1e-5
+        t_initial: 30
+        cycle_mul: 0.7
+        cycle_decay: 0.2
+        cycle_limit: 2
+
+      # revert_to_best: true
+      # scheduler:
+      #   _target_: functools.partial
+      #   _args_:
+      #     - _target_: hydra.utils.get_class
+      #       path: torch.optim.lr_scheduler.ReduceLROnPlateau
+      #   mode: "min"
+      #   factor: 0.1
+      #   patience: 3
+      #   threshold: 0.1
+      #   threshold_mode: "rel"
+      #   cooldown: 0
+      #   min_lr: 1e-5
+      #   eps: 1e-8
+
     - _target_: src.modules.training.postprocessing.softmax.Softmax
+    - _target_: src.modules.training.postprocessing.smooth_patient.SmoothPatient
+      smooth_factor: 0.09

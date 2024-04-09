@@ -7,16 +7,18 @@ from typing import Any
 
 import hydra
 import numpy as np
+import numpy.typing as npt
 import randomname
 import wandb
 from epochalyst.logging.section_separator import print_section_separator
+from epochalyst.pipeline.ensemble import EnsemblePipeline
 from hydra.core.config_store import ConfigStore
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 
 from src.config.cross_validation_config import CVConfig
 from src.logging_utils.logger import logger
-from src.scoring.scorer import Scorer
+from src.scoring.kldiv import KLDiv
 from src.typing.typing import XData
 from src.utils.script.lock import Lock
 from src.utils.seed_torch import set_torch_seed
@@ -57,12 +59,15 @@ def run_cv_cfg(cfg: DictConfig) -> None:
 
     # Set up Weights & Biases group name
     wandb_group_name = randomname.get_name()
+    if cfg.wandb.enabled:
+        setup_wandb(cfg, "cv", output_dir, name=wandb_group_name, group=wandb_group_name)
 
-    model_pipeline = setup_pipeline(cfg, is_train=True)
+    # Preload the pipeline
+    print_section_separator("Setup pipeline")
+    model_pipeline = setup_pipeline(cfg)
 
     processed_data_path = Path(cfg.processed_path)
     processed_data_path.mkdir(parents=True, exist_ok=True)
-    # Cache arguments for x_sys
     cache_args = {
         "output_data_type": "numpy_array",
         "storage_type": ".pkl",
@@ -70,9 +75,8 @@ def run_cv_cfg(cfg: DictConfig) -> None:
     }
 
     # Read the data if required and split in X, y
-
-    x_cache_exists = model_pipeline.x_sys._cache_exists(model_pipeline.x_sys.get_hash(), cache_args)  # noqa: SLF001
-    y_cache_exists = model_pipeline.y_sys._cache_exists(model_pipeline.y_sys.get_hash(), cache_args)  # noqa: SLF001
+    x_cache_exists = model_pipeline.get_x_cache_exists(cache_args)
+    y_cache_exists = model_pipeline.get_y_cache_exists(cache_args)
 
     X, y = load_training_data(
         metadata_path=cfg.metadata_path,
@@ -86,34 +90,35 @@ def run_cv_cfg(cfg: DictConfig) -> None:
     if y is None:
         raise ValueError("No labels loaded to train with")
 
-    if model_pipeline.x_sys is not None:
-        X = model_pipeline.x_sys.transform(X, cache_args=cache_args)
-
-    if model_pipeline.y_sys is not None:
-        processed_y = model_pipeline.y_sys.transform(y)
-
+    # If cache exists, need to read the meta data for the splitter
     if X is not None:
         splitter_data = X.meta
     else:
-        X, _ = setup_data(cfg.metadata_path, cfg.eeg_path, cfg.spectrogram_path)
+        X, _ = setup_data(cfg.metadata_path, None, None)
         splitter_data = X.meta
 
     scorer = instantiate(cfg.scorer)
 
-    if cfg.wandb.enabled:
-        setup_wandb(cfg, "cv", output_dir, name=wandb_group_name, group=wandb_group_name)
-
     scores: list[float] = []
     accuracies: list[float] = []
     f1s: list[float] = []
-
-    for i, (train_indices, test_indices) in enumerate(instantiate(cfg.splitter).split(splitter_data, y)):
-        score, accuracy, f1 = run_fold(i, X, y, train_indices, test_indices, cfg, scorer, output_dir, processed_y=processed_y)
+    folds = [8]
+    for fold_no, (train_indices, test_indices) in enumerate(instantiate(cfg.splitter).split(splitter_data, y)):
+        if fold_no not in folds:
+            continue
+        score, accuracy, f1 = run_fold(fold_no, X, y, train_indices, test_indices, cfg, scorer, output_dir, cache_args)
         scores.append(score)
         accuracies.append(accuracy)
         f1s.append(f1)
-        if score > 0.85:
-            break
+        for fold, threshold in [
+            (0, 0.42),
+            (1, 0.41),
+            (2, 0.42),
+            (3, 0.41),
+        ]:
+            if fold_no == fold and np.mean(scores) > threshold:
+                logger.info(f"Early stopping at fold {fold} with threshold {threshold}")
+                break
 
     avg_score = np.average(np.array(scores))
     avg_accuracy = np.average(np.array(accuracies))
@@ -129,15 +134,15 @@ def run_cv_cfg(cfg: DictConfig) -> None:
 
 
 def run_fold(
-    i: int,
+    fold_no: int,
     X: XData,
-    y: np.ndarray[Any, Any],
+    y: npt.NDArray[np.float32],
     train_indices: np.ndarray[Any, Any],
     test_indices: np.ndarray[Any, Any],
     cfg: DictConfig,
-    scorer: Scorer,
+    scorer: KLDiv,
     output_dir: Path,
-    processed_y: np.ndarray[Any, Any] | None = None,
+    cache_args: dict[str, Any],
 ) -> tuple[float, float, float]:
     """Run a single fold of the cross validation.
 
@@ -153,29 +158,35 @@ def run_fold(
     :return: The score of the fold.
     """
     # Print section separator
-    print_section_separator(f"CV - Fold {i}")
+    print_section_separator(f"CV - Fold {fold_no}")
     logger.info(f"Train/Test size: {len(train_indices)}/{len(test_indices)}")
 
     logger.info("Creating clean pipeline for this fold")
-    model_pipeline = setup_pipeline(cfg, is_train=True)
-
-    # Fit the pipeline and get predictions
-    predictions = X
+    model_pipeline = setup_pipeline(cfg)
 
     train_args = {
-        "MainTrainer": {
-            "train_indices": train_indices,
-            "test_indices": test_indices,
-            "save_model": cfg.save_folds,
-            "fold": i,
+        "x_sys": {
+            "cache_args": cache_args,
+        },
+        "train_sys": {
+            "MainTrainer": {
+                "train_indices": train_indices,
+                "test_indices": test_indices,
+                "save_model": cfg.save_folds,
+                "fold": fold_no,
+            },
+            "SmoothPatient": {
+                "test_indices": test_indices,
+                "metadata": X.meta,
+            },
+            # "cache_args": cache_args, # TODO(Jasper): Allow for caching after training in fold
         },
     }
-
-    if model_pipeline.train_sys is not None:
-        predictions, _ = model_pipeline.train_sys.train(X, processed_y, **train_args)
-
-    if model_pipeline.pred_sys is not None:
-        predictions = model_pipeline.pred_sys.transform(predictions)
+    if isinstance(model_pipeline, EnsemblePipeline):
+        train_args = {
+            "ModelPipeline": train_args,
+        }
+    predictions, _ = model_pipeline.train(X, y, **train_args)
 
     if predictions is None or isinstance(predictions, XData):
         raise ValueError("Predictions are not in correct format to get a score")
@@ -186,14 +197,14 @@ def run_fold(
 
     score = scorer(y[test_indices], predictions, metadata=X.meta.iloc[test_indices, :])
 
-    # Add i to fold path using os.path.join
-    output_dir = os.path.join(output_dir, str(i))
+    # Add fold_no to fold path using os.path.join
+    output_dir = output_dir / str(fold_no)
     accuracy, f1 = scorer.visualize_preds(y[test_indices], predictions, output_folder=output_dir)
-    logger.info(f"Score, fold {i}: {score}")
-    logger.info(f"Accuracy, fold {i}: {accuracy}")
-    logger.info(f"F1, fold {i}: {f1}")
+    logger.info(f"Score, fold {fold_no}: {score}")
+    logger.info(f"Accuracy, fold {fold_no}: {accuracy}")
+    logger.info(f"F1, fold {fold_no}: {f1}")
 
-    wandb.log({f"Score_{i}": score, f"Accuracy_{i}": accuracy, f"F1_{i}": f1})
+    wandb.log({f"Score_{fold_no}": score, f"Accuracy_{fold_no}": accuracy, f"F1_{fold_no}": f1})
     return score, accuracy, f1
 
 

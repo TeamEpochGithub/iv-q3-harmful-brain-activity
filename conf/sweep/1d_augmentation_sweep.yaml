@@ -1,0 +1,57 @@
+command:
+  - venv/Scripts/python.exe
+  - ${program}
+  - ${args_no_hyphens}
+method: bayes
+project: detect-harmful-brain-activity
+program: cv.py
+name: 1d-augmentation-sweep
+metric:
+  name: Score
+  goal: minimize
+parameters: # Will use the model file in cv.yaml and override the values there with the values specified in this sweep file
+
+  model.train_sys.steps.0.optimizer.lr:
+    distribution: log_uniform_values
+    max: 0.01
+    min: 1e-06
+
+  model.train_sys.steps.0.dataset_args.augmentations.x_transforms.0.p:
+    max: 0.99
+    min: 0.0
+  model.train_sys.steps.0.dataset_args.augmentations.x_transforms.1.p:
+    max: 0.99
+    min: 0.0
+  model.train_sys.steps.0.dataset_args.augmentations.x_transforms.2.p:
+    max: 0.99
+    min: 0.0
+  model.train_sys.steps.0.dataset_args.augmentations.x_transforms.3.p:
+    max: 0.99
+    min: 0.0
+  model.train_sys.steps.0.dataset_args.augmentations.x_transforms.3.shift_limit:
+    max: 0.99
+    min: 0.0
+  model.train_sys.steps.0.dataset_args.augmentations.x_transforms.4.p:
+    max: 0.99
+    min: 0.0
+
+  model.train_sys.steps.0.dataset_args.augmentations.xy_transforms.0.p:
+    max: 0.99
+    min: 0.0
+  model.train_sys.steps.0.dataset_args.augmentations.xy_transforms.1.p:
+    max: 0.99
+    min: 0.0
+  model.train_sys.steps.0.dataset_args.augmentations.xy_transforms.1.low:
+    max: 0.49
+    min: 0.0
+  model.train_sys.steps.0.dataset_args.augmentations.xy_transforms.1.high:
+    max: 1.0
+    min: 0.5
+  model.train_sys.steps.0.model.dropout:
+    max: 0.5
+    min: 0.0
+
+  model.train_sys.steps.0.optimizer._args_.0.path:
+    values:
+      - torch.optim.Adam
+      - torch.optim.AdamW

@@ -38,5 +38,11 @@ class Threshold(VerboseTrainingBlock):
         # If the value is below the threshold, set it to 0
         x[x < self.threshold] = 0
 
+        # Make sure that the resulting predictions sum up to 1
+        x /= np.sum(x, axis=1, keepdims=True)
+
+        if np.sum(x, axis=1).all() != 1:
+            raise ValueError("Something went wrong.")
+
         self.log_to_terminal("Threshold applied to the predictions!")
         return x
