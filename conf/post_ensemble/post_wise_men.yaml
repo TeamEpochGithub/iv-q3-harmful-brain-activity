@@ -8,9 +8,9 @@ _target_: src.modules.training.base_ensembling.PostEnsemble
 _convert_: partial
 
 steps:
-  '0': 
+  '0':
     _target_: src.modules.training.base_ensembling.BaseEnsemble
-  # '1': 
+  # '1':
   #   _target_: src.modules.training.postprocessing.softmax.Softmax
   '2':
     _target_: src.modules.training.postprocessing.smooth_patient.SmoothPatient

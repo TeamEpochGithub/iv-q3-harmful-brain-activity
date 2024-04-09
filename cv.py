@@ -23,7 +23,7 @@ from src.scoring.kldiv import KLDiv
 from src.typing.typing import XData
 from src.utils.script.lock import Lock
 from src.utils.seed_torch import set_torch_seed
-from src.utils.setup import load_training_data, setup_config, setup_data, setup_pipeline, setup_wandb
+from src.utils.setup import load_training_data, setup_data, setup_pipeline, setup_wandb
 
 warnings.filterwarnings("ignore", category=UserWarning)
 # Makes hydra give full error messages
@@ -54,8 +54,6 @@ def run_cv_cfg(cfg: DictConfig) -> None:
     # Set seed
     set_torch_seed()
 
-    # Check for missing keys in the config file
-    setup_config(cfg)
     output_dir = Path(hydra.core.hydra_config.HydraConfig.get().runtime.output_dir)
 
     # Set up Weights & Biases group name
@@ -189,11 +187,10 @@ def run_fold(
         train_args = {
             "EnsemblePipeline": {
                 "ModelPipeline": train_args,
-
             },
             "SmoothPatient": {
-                "metadata": X.meta,
-            }
+                "metadata": X.meta,  # type: ignore[dict-item]
+            },
         }
 
     predictions, _ = model_pipeline.train(X, y, **train_args)

@@ -18,7 +18,7 @@ from src.config.train_config import TrainConfig
 from src.logging_utils.logger import logger
 from src.utils.script.lock import Lock
 from src.utils.seed_torch import set_torch_seed
-from src.utils.setup import load_training_data, setup_config, setup_data, setup_pipeline, setup_wandb
+from src.utils.setup import load_training_data, setup_data, setup_pipeline, setup_wandb
 
 warnings.filterwarnings("ignore", category=UserWarning)
 # Makes hydra give full error messages
@@ -47,7 +47,6 @@ def run_train_cfg(cfg: DictConfig) -> None:
     coloredlogs.install()
 
     # Check for missing keys in the config file
-    setup_config(cfg)
     output_dir = Path(hydra.core.hydra_config.HydraConfig.get().runtime.output_dir)
 
     if cfg.wandb.enabled:

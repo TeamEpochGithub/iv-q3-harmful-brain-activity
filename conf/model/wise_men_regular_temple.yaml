@@ -35,7 +35,7 @@ train_sys:
       model:
         _target_: src.modules.training.models.eeg_net.EEGNet
         num_classes: 6
-        in_channels: 36 
+        in_channels: 36
         fixed_kernel_size: 5
         #linear_layer_features: 448
         #linear_layer_features: 352 # Half Signal = 5_000
@@ -51,9 +51,9 @@ train_sys:
         lr: 0.0012277709879372125
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
-      epochs: 75 
+      epochs: 75
       batch_size: 64
-      patience: 20 
+      patience: 20
       dataset_args:
         data_type: "eeg"
         get_item_custom:
@@ -70,10 +70,10 @@ train_sys:
             - _target_: src.modules.training.augmentations.mirror_1d.Mirror1D
               p: 0.18977429061506068
             - _target_: src.modules.training.augmentations.random_phase_shift.RandomPhaseShift
-              p: 0.7877957224900426 
+              p: 0.7877957224900426
               shift_limit: 0.07818576072044058
             - _target_: src.modules.training.augmentations.substract_channels.SubstractChannels
-              p: 0.09473363797540786 
+              p: 0.09473363797540786
           xy_transforms:
             - _target_: src.modules.training.augmentations.mixup_1d.MixUp1D
               p: 0.20280019949541855
@@ -87,7 +87,7 @@ train_sys:
         _args_:
           - _target_: hydra.utils.get_class
             path: timm.scheduler.cosine_lr.CosineLRScheduler
-        t_initial: 75 
+        t_initial: 75
         cycle_mul: 1
         cycle_decay: 1
         cycle_limit: 1
