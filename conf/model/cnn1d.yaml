@@ -4,9 +4,10 @@ defaults:
 
 x_sys:
   steps:
-    - _target_: src.modules.transformation.eeg.clip.ClipEEG
+    - _target_: src.modules.transformation.clip.Clip
       lower: -1024
       upper: 1024
+      eeg: true
     - _target_: src.modules.transformation.nantozero.NaNToZero
       eeg: true
     - _target_: src.modules.transformation.eeg.divide.Divide
@@ -29,7 +30,7 @@ train_sys:
             path: torch.optim.Adam
         lr: 0.001
       criterion:
-        _target_: src.modules.training.losses.kldiv.CustomKLDivLoss
+        _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
         reduction: "batchmean"
       epochs: 5
       batch_size: 32
@@ -37,3 +38,4 @@ train_sys:
       dataset:
         _target_: src.modules.training.datasets.main_dataset.MainDataset
         data_type: "eeg"
+    - _target_: src.modules.training.postprocessing.softmax.Softmax

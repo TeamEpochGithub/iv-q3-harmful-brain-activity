@@ -1,0 +1,31 @@
+command:
+  - python3
+  - ${program}
+  - ${args_no_hyphens}
+method: grid
+project: detect-harmful-brain-activity
+program: cv.py
+name: Chris-512 Model Sweep
+metric:
+  name: Score
+  goal: minimize
+parameters:
+
+  model.train_sys.steps.0.model.model_name:
+    values:
+      - efficientnet_b0
+      - efficientnet_b1
+      - efficientnet_b2
+      - efficientnet_b3
+      - efficientnet_b4
+      - efficientnet_b5
+      - efficientnet_b6
+      - efficientnet_b7
+      - efficientnetv2_s
+      - efficientnetv2_m
+      - efficientnetv2_l
+      - efficientnetv2_xl
+      - resnet152d
+      - resnet101d
+      - resnet50d
+      - resnet34d

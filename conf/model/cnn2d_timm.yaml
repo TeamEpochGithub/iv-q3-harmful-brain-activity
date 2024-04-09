@@ -4,9 +4,10 @@ defaults:
 
 x_sys:
   steps:
-    - _target_: src.modules.transformation.eeg.clip.ClipEEG
+    - _target_: src.modules.transformation.clip.Clip
       lower: -1024
       upper: 1024
+      eeg: true
     - _target_: src.modules.transformation.nantozero.NaNToZero
       eeg: true
       kaggle_spec: true
@@ -26,11 +27,15 @@ train_sys:
             path: torch.optim.Adam
         lr: 0.001
       criterion:
-        _target_: src.modules.training.losses.kldiv.CustomKLDivLoss
+        _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
         reduction: "batchmean"
-      epochs: 5
+      epochs: 1
       batch_size: 256
       patience: 10
-      dataset:
-        _target_: src.modules.training.datasets.main_dataset.MainDataset
+      two_stage: true
+      two_stage_evaluator_threshold: 4
+      dataset_args:
         data_type: "kaggle_spec"
+        get_item_custom:
+        subsample_method: "random"
+    - _target_: src.modules.training.postprocessing.softmax.Softmax

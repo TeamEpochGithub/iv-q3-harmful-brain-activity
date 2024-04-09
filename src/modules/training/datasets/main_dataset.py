@@ -1,10 +1,11 @@
 """Main dataset for EEG / Spectrogram data."""
 import copy
 import typing
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
-import pandas as pd
+import numpy as np
+import numpy.typing as npt
 import torch
 from torch.utils.data import Dataset
 
@@ -17,18 +18,22 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
 
     data_type: str
     X: XData | None = None
-    y: pd.DataFrame | None = None
-    indices: list[int] | None = None
+    y: npt.NDArray[np.float32] | None = None
+    get_item_custom: Any | None = None
     augmentations: Any | None = None
-    use_aug: bool = field(hash=False, repr=False, init=False, default=False)
+    use_aug: bool = field(hash=False, repr=False, init=True, default=False)
+    subsample_method: str | None = None
 
-    def setup(self, X: XData, y: pd.DataFrame, indices: list[int], *, use_aug: bool = False, subsample_data: bool = False) -> None:
+    # to avoid influencing the hash, enter this through maintrainer
+    include_features: bool = field(hash=False, repr=False, init=True, default=False)
+
+    def __post_init__(self) -> None:
         """Set up the dataset."""
-        self.X = X
-        self.y = y
-        self.indices = indices
-        if subsample_data:
-            X_meta = copy.deepcopy(self.X.meta.iloc[indices])
+        if self.X is None:
+            raise ValueError("XData not set up.")
+        self.X.meta = self.X.meta.reset_index(drop=True)
+        if self.subsample_method == "random":
+            X_meta = copy.deepcopy(self.X.meta)
             # append an index column to the meta data
             X_meta["index"] = copy.deepcopy(X_meta.index)
 
@@ -36,18 +41,65 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
             # Set sample seed for consistent results
             seed = 42
             unique_indices = X_meta.groupby("eeg_id").sample(1, random_state=seed)["index"]
+
             # Use the unique indices to index the meta data
+            self.X = replace(self.X)  # shallow copy of XData, so only meta is changed
+            self.X.meta = X_meta.loc[unique_indices].reset_index(drop=True)
+
             self.indices = unique_indices.to_list()
-        self.use_aug = use_aug
+            # use self indices to index the y data
+            if self.y is not None:
+                self.y = self.y[self.indices, :]
+
+        elif self.subsample_method == "running_random":
+            # Create a mapping of idx to unique eeg_id
+            self.id_mapping = dict(enumerate(self.X.meta["eeg_id"].unique()))
+            # Group the metadata by eeg_id
+            self.grouped = self.X.meta.groupby("eeg_id")
 
     def setup_prediction(self, X: XData) -> None:
         """Set up the dataset for prediction."""
         self.X = X
-        self.indices = list(range(len(X.meta)))
 
     def __len__(self) -> int:
         """Get the length of the dataset."""
-        return len(self.indices)  # type: ignore[arg-type]
+        # Trick the dataloader into thinking the dataset is smaller than it is
+        if self.subsample_method == "running_random":
+            if self.X is None:
+                raise ValueError("X Data not set up.")
+            return len(self.X.meta["eeg_id"].unique())
+        return len(self.X)  # type: ignore[arg-type]
+
+    def __getitems__(self, indices: list[int]) -> tuple[Any, Any]:
+        """Get multiple items from the dataset and apply augmentations if necessary."""
+        all_x = []
+        all_features = []
+        all_y = []
+
+        # Read the data in a loop
+        for idx in indices:
+            x, y = self.__getitem__(idx)
+            if self.include_features:
+                x, features = x
+                all_features.append(torch.tensor(features))
+            all_x.append(x)
+            all_y.append(y)
+
+        # Create a tensor from the list of tensors
+        all_x_tensor = torch.stack(all_x)
+        # If labels exist, create a tensor from the list of tensors
+        if isinstance(all_y[0], torch.Tensor):
+            all_y_tensor = torch.stack(all_y)
+        else:
+            all_y_tensor = torch.empty(1)
+        # Apply augmentations if necessary
+        if self.augmentations is not None and self.use_aug:
+            all_x_tensor, all_y_tensor = self.augmentations(all_x_tensor.to("cuda"), all_y_tensor.to("cuda"))
+
+        if self.include_features:
+            all_features_tensor = torch.stack(all_features)
+            return (all_x_tensor, all_features_tensor), all_y_tensor
+        return all_x_tensor, all_y_tensor
 
     def __getitem__(self, idx: int) -> tuple[Any, Any]:
         """Get an item from the dataset.
@@ -58,30 +110,45 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
         # Check if the data is set up, we need X.
         if self.X is None:
             raise ValueError("X Data not set up.")
-        if self.indices is None:
-            raise ValueError("Indices not set up.")
+
+        if self.subsample_method == "running_random":
+            # Using the mapping get the eeg_id for this idx
+            eeg_id = self.id_mapping[idx]
+            # Get the indices for this eeg_id
+            indices = self.grouped.get_group(eeg_id)
+            # Get a random index from the indices
+            idx = indices.sample(1, random_state=42).index[0]
+            # Now idx is the dataframe index and not the idx of the dataset
 
         # Create a switch statement to handle the different data types
         match self.data_type:
             case "eeg":
                 x, y = self._eeg_getitem(idx)
                 x = x.transpose(1, 0)
-                if self.augmentations is not None and self.use_aug:
-                    x_torch = torch.from_numpy(x)
-                    x = self.augmentations(x_torch.unsqueeze(0)).squeeze(0)
+                # y = torch.from_numpy(y)
+                # if self.augmentations is not None and self.use_aug:
+                #     x_torch = torch.from_numpy(x)
+                #     x = self.augmentations(x_torch.unsqueeze(0)).squeeze(0)
             case "kaggle_spec":
                 x, y = self._kaggle_spec_getitem(idx)
-                if self.augmentations is not None and self.use_aug:
-                    x = self.augmentations(x).squeeze(0)
-
+                # if self.augmentations is not None and self.use_aug:
+                #     x = self.augmentations(x).squeeze(0)
             case "eeg_spec":
                 x, y = self._eeg_spec_getitem(idx)
-                if self.augmentations is not None and self.use_aug:
-                    x = self.augmentations(x).squeeze(0)
-
+                # if self.augmentations is not None and self.use_aug:
+                #     x = self.augmentations(x).squeeze(0)
+            case "custom":
+                x, y = self._custom_getitem(idx)
             case _:
                 raise ValueError(f"Data type {self.data_type} not recognized.")
+        if isinstance(x, np.ndarray):
+            x = torch.from_numpy(x)
+        if isinstance(y, np.ndarray):
+            y = torch.from_numpy(y)
 
+        if self.include_features and self.X.features is not None:
+            features = self.X.features.iloc[idx].to_numpy()
+            return (x, features), y
         return x, y
 
     @typing.no_type_check
@@ -91,7 +158,6 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
         :param idx: The index to get.
         :return: The EEG data and the labels.
         """
-        idx = self.indices[idx]
         metadata = self.X.meta
         all_eegs = self.X.eeg
         eeg_frequency = self.X.shared["eeg_freq"]
@@ -123,7 +189,6 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
         :param idx: The index to get.
         :return: The Kaggle spectrogram data and the labels.
         """
-        idx = self.indices[idx]
         metadata = self.X.meta
         all_specs = self.X.kaggle_spec
         frequency = self.X.shared["kaggle_spec_freq"]
@@ -150,13 +215,12 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
         return spectrogram, labels
 
     @typing.no_type_check
-    def _eeg_spec_getitem(self, idx: int) -> tuple[Any, Any]:
+    def _eeg_spec_getitem(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
         """Get an item from the EEG spectrogram dataset.
 
         :param idx: The index to get.
         :return: The EEG spectrogram data and the labels.
         """
-        idx = self.indices[idx]
         metadata = self.X.meta
         eeg_frequency = self.X.shared["eeg_freq"]
         eeg_length = self.X.shared["eeg_len_s"]
@@ -198,3 +262,36 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
             return spectrogram, []
         labels = self.y[idx, :]
         return spectrogram, labels
+
+    @typing.no_type_check
+    def _custom_getitem(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
+        """Get an item from the EEG spectrogram dataset.
+
+        :param idx: The index to get.
+        :return: The EEG spectrogram data and the labels.
+        """
+        if self.get_item_custom is None:
+            raise ValueError("Custom get item is not set.")
+
+        X_eeg, X_kaggle_spec, X_eeg_spec = None, None, None
+
+        if self.get_item_custom.use_eeg:
+            if self.X.eeg is not None:
+                X_eeg, _ = self._eeg_getitem(idx)
+            else:
+                raise ValueError("EEG data is not set up.")
+
+        if self.get_item_custom.use_kaggle_spec:
+            if self.X.kaggle_spec is not None:
+                X_kaggle_spec, _ = self._kaggle_spec_getitem(idx)
+            else:
+                raise ValueError("Kaggle spectrogram data is not set up.")
+
+        if self.get_item_custom.use_eeg_spec:
+            if self.X.eeg_spec is not None:
+                X_eeg_spec, _ = self._eeg_spec_getitem(idx)
+            else:
+                raise ValueError("EEG spectrogram data is not set up.")
+
+        labels = [] if self.y is None else self.y[idx, :]
+        return self.get_item_custom(X_eeg, X_kaggle_spec, X_eeg_spec, labels, use_augmentations=self.use_aug)

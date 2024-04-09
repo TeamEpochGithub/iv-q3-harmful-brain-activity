@@ -3,8 +3,11 @@
 from dataclasses import dataclass
 from typing import Any
 
+import numpy as np
+import numpy.typing as npt
 import pandas as pd
 import torch
+from librosa import mel_frequencies  # type: ignore[import-not-found]
 from torchaudio.transforms import MelSpectrogram
 from tqdm import tqdm
 
@@ -30,6 +33,7 @@ class EEGToSpectrogram(VerboseTransformationBlock):
     """
 
     size: tuple[int, int] = (128, 320)
+    fmax: int = 40
     fitting_method: str = "pad"
 
     def _create_mel_spectrogram(self, eeg: pd.DataFrame, eeg_sample_rate: int, group_channels: list[str]) -> torch.Tensor:
@@ -48,7 +52,7 @@ class EEGToSpectrogram(VerboseTransformationBlock):
             win_length=128,
             hop_length=hop_length,
             f_min=0.0,
-            f_max=40,
+            f_max=self.fmax,
             pad=0,
             n_mels=n_mels,
             window_fn=torch.hann_window,
@@ -80,8 +84,6 @@ class EEGToSpectrogram(VerboseTransformationBlock):
             spec_parts.append(mel_spec_db)
 
         spectrogram = torch.mean(torch.stack(spec_parts), dim=0)
-
-        # Set any NaN values to 0
         spectrogram[torch.isnan(spectrogram)] = 0
 
         return spectrogram
@@ -135,3 +137,16 @@ class EEGToSpectrogram(VerboseTransformationBlock):
         data.shared["eeg_spec_test_spectrogram_size"] = test_spectrogram.shape
 
         return data
+
+    def get_freq_scale(self) -> npt.NDArray[np.float32]:
+        """Get the y-scale (mel frequencies) of the transformation."""
+        return mel_frequencies(
+            n_mels=self.size[0],
+            fmin=0.0,
+            fmax=self.fmax,
+            htk=True,
+        )
+
+    def get_time_scale(self, x_len: int, x_max: int) -> npt.NDArray[np.float32]:
+        """Get the x-scale (time) of the transformation."""
+        return np.linspace(0, x_max, num=x_len)

@@ -1,20 +1,33 @@
 defaults:
   - base_cv
   - hydra/logging
-  - model: eeg_net
+  # - ensemble: example
+  - model: chris_512
   - wandb: train
 
+# Use these for normal training
 metadata_path: data/raw/train.csv
 eeg_path: data/raw/train_eegs
-spectrogram_path: None
+spectrogram_path: data/raw/train_spectrograms
 raw_path: data/raw
 cache_path: data/cache
 processed_path: data/processed
 
+# Use these if you want to use the smaller dataset
+# metadata_path: data/raw/train_small.csv
+# eeg_path: data/raw/train_eegs_small
+# spectrogram_path: data/raw/train_spectrograms_small
+# raw_path: data/raw
+# cache_path: # Path to pickled version of the raw dicts
+# processed_path: data/processed/small
+
 scorer:
   _target_: src.scoring.kldiv.KLDiv
+  voter_threshold: 9
+  kldiv_thresholds: [0.15, 0.175, 0.2, 0.225, 0.25, 0.3, 0.35]
 cache_size: -1
 splitter:
   _target_: src.utils.stratified_splitter.StratifiedSplitter
-  n_splits: 5
-allow_multiple_instances: False
+  n_splits: 4
+allow_multiple_instances: true
+save_folds: true

@@ -27,10 +27,10 @@ class Timm(nn.Module):
         self.in_channels = in_channels
         self.out_channels = out_channels
 
-        self.model = timm.create_model(model_name, pretrained=True, in_chans=self.in_channels, num_classes=self.out_channels)
-
-        # Add a softmax layer to the end
-        self.softmax = nn.Softmax(dim=-1)
+        try:
+            self.model = timm.create_model(model_name, pretrained=True, in_chans=self.in_channels, num_classes=self.out_channels)
+        except Exception:  # noqa: BLE001
+            self.model = timm.create_model(model_name, pretrained=False, in_chans=self.in_channels, num_classes=self.out_channels)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass of the Timm model.
@@ -38,5 +38,4 @@ class Timm(nn.Module):
         :param x: The input data.
         :return: The output data.
         """
-        x = self.model(x)
-        return self.softmax(x)
+        return self.model(x)

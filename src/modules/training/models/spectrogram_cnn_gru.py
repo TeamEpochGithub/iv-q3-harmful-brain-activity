@@ -49,8 +49,7 @@ class MultiResidualBiGRUwSpectrogramCNN(nn.Module):
         self.batch_norm = nn.BatchNorm1d(in_channels)
 
     def forward(self, x, use_activation=True):
-        x = F.pad(x, (0, 0, 0, 16))
-        x = x.permute(0, 2, 1)
+        x = F.pad(x, (0, 16, 0, 0))
         x = self.batch_norm(x)
         x_spec = self.spectrogram(x)
         x_encoded = self.encoder(x_spec).squeeze(1)
