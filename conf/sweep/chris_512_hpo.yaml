@@ -1,0 +1,38 @@
+command:
+  - python3
+  - ${program}
+  - ${args_no_hyphens}
+method: bayes
+project: detect-harmful-brain-activity
+program: cv.py
+name: Chris-512 HPO
+metric:
+  name: Score
+  goal: minimize
+
+parameters:
+  model.train_sys.steps.0.epochs:
+    distribution: int_uniform
+    min: 15
+    max: 30
+
+  model.train_sys.steps.0.optimizer.lr:
+    distribution: uniform
+    min: 0.0001
+    max: 0.01
+
+  model.train_sys.steps.0.scheduler.warmup_t:
+    values:
+      - 0
+      - 2
+      - 4
+
+  model.train_sys.steps.0.scheduler.warmup_lr_init:
+    distribution: uniform
+    min: 1e-06
+    max: 1e-04
+
+  model.train_sys.steps.0.scheduler.t_initial:
+    distribution: int_uniform
+    min: 15
+    max: 60

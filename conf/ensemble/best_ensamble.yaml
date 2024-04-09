@@ -1,0 +1,7 @@
+defaults:
+  - /model/connected-type@steps.0
+  - /model/cream-game@steps.1
+  - /model/regular-temple@steps.2
+
+_target_: src.modules.training.base_ensembling.BaseEnsemble
+_convert_: partial

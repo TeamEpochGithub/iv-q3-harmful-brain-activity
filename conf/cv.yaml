@@ -1,9 +1,7 @@
 defaults:
   - base_cv
   - hydra/logging
-  - model: jaspers_eeg_net_dont_touch
-  # - ensemble: example
-  # - model: chris_512
+  - model: spectro
   - wandb: train
 
 # Use these for normal training
@@ -29,6 +27,6 @@ scorer:
 cache_size: -1
 splitter:
   _target_: src.utils.stratified_splitter.StratifiedSplitter
-  n_splits: 4
-allow_multiple_instances: true
+  n_splits: 10
+allow_multiple_instances: false
 save_folds: true
