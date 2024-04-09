@@ -3,9 +3,9 @@ import copy
 import logging
 from dataclasses import dataclass
 from typing import Any
-from tqdm import tqdm
 
 import numpy as np
+from tqdm import tqdm
 
 from src.modules.transformation.verbose_transformation_block import VerboseTransformationBlock
 
@@ -13,6 +13,7 @@ from src.modules.transformation.verbose_transformation_block import VerboseTrans
 @dataclass
 class MeanWindowVotes(VerboseTransformationBlock):
     """Mean window to one class."""
+
     threshold: float = 25.0
 
     def custom_transform(self, data: np.ndarray[Any, Any], **kwargs: Any) -> np.ndarray[Any, Any]:
@@ -23,9 +24,9 @@ class MeanWindowVotes(VerboseTransformationBlock):
         """
         # For each row, make sure the sum of the labels is 1
         logging.info(f"Averaging the votes of windows that are <= {self.threshold} apart...")
-        meta = copy.deepcopy(kwargs['metadata'])
+        meta = copy.deepcopy(kwargs["metadata"])
         # Group meta by eeg_id
-        grouped_meta = meta.groupby('eeg_id')
+        grouped_meta = meta.groupby("eeg_id")
         out = np.copy(data)
         out = out.astype(np.float32)
         # Iterate over each group
@@ -34,8 +35,8 @@ class MeanWindowVotes(VerboseTransformationBlock):
             indices = group.index
             for idx in indices:
                 similar_items = group[abs(group["eeg_label_offset_seconds"] - meta.iloc[idx]["eeg_label_offset_seconds"]) < self.threshold]
-                out[idx,:] = np.mean(data[similar_items.index,:], axis=0, dtype=np.float32)
-                if np.all(out[idx,:]==0):
-                    print('Nan found')
+                out[idx, :] = np.mean(data[similar_items.index, :], axis=0, dtype=np.float32)
+                if np.all(out[idx, :] == 0):
+                    print("Nan found")
         # Return the transformed data
         return out

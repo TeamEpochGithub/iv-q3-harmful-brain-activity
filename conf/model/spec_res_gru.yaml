@@ -71,7 +71,7 @@ train_sys:
             p: 0.1983820705239484
           xy_transforms:
           - _target_: src.modules.training.augmentations.custom_apply_one.CustomApplyOne
-            x_transforms: 
+            x_transforms:
             - _target_: torch_audiomentations.Shift
               p: 0.33
               rollover: true
@@ -97,5 +97,3 @@ train_sys:
         lr_min: 0.00002
 
     - _target_: src.modules.training.postprocessing.softmax.Softmax
-
-

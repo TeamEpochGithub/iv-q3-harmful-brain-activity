@@ -123,11 +123,9 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
             # Find all items from the group where the difference in eeg_label_offset_seconds is less than the threshold
             threshold = 10000  # specify your threshold here
             similar_items = group[abs(group["eeg_label_offset_seconds"] - self.X.meta.iloc[idx]["eeg_label_offset_seconds"]) < threshold]
-            if len(np.unique(self.y[similar_items.index,:], axis=0)) > 1:
+            if len(np.unique(self.y[similar_items.index, :], axis=0)) > 1:
                 print(similar_items)
-                print(self.y[similar_items.index,:])
-                pass
-            pass
+                print(self.y[similar_items.index, :])
 
         # Create a switch statement to handle the different data types
         match self.data_type:

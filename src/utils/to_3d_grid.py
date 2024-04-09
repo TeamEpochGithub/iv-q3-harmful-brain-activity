@@ -1,6 +1,7 @@
 """Converts EEG data to 5D grid format based on the electrode positions."""
 
 import time
+
 import torch
 
 ELECTRODES = {

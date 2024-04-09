@@ -31,23 +31,19 @@ class GridEEGNet(nn.Module):
             nn.Conv2d(2, 4, 3),
             nn.Conv2d(4, 2, 3),
             nn.Conv2d(2, 1, 3),
-
         )
         self.conv2 = nn.Sequential(
             nn.Conv2d(1, 2, 5),
             nn.Conv2d(2, 1, 5),
-
         )
         self.conv3 = nn.Sequential(
             nn.ZeroPad2d(1),
             nn.Conv2d(1, 2, 7),
             nn.ZeroPad2d(1),
             nn.Conv2d(2, 1, 7),
-
         )
         self.conv4 = nn.Sequential(
             nn.Conv2d(1, 1, 9),
-
         )
         if kwargs.get("residual", False):
             self.residual = True
@@ -67,7 +63,6 @@ class GridEEGNet(nn.Module):
         all_features = []
         # Apply convolutional layers
         for module in [self.conv1, self.conv2, self.conv3, self.conv4]:
-
             x_features = module(x_grid)
 
             # Output shape from conv layers, assuming (N, C', H', W')
@@ -84,28 +79,28 @@ class GridEEGNet(nn.Module):
         all_features = self.batch_norm(all_features)
         return self.eeg_net(all_features)
 
+
 if __name__ == "__main__":
-    
     import torch
 
-    x = torch.zeros(32,20,2000)
+    x = torch.zeros(32, 20, 2000)
     conv = nn.Sequential(
-            nn.Conv2d(1, 2, 3),
-            nn.Conv2d(2, 4, 3),
-            nn.ReLU(),
-            nn.Conv2d(4, 8, 3),
-            nn.Conv2d(8, 16, 3),
-            nn.ReLU(),
-        )
+        nn.Conv2d(1, 2, 3),
+        nn.Conv2d(2, 4, 3),
+        nn.ReLU(),
+        nn.Conv2d(4, 8, 3),
+        nn.Conv2d(8, 16, 3),
+        nn.ReLU(),
+    )
     x_grid = to_3d_grid_vectorized(x, 9, 9).permute(0, 2, 1, 3, 4)
     batch_size, sequence_len, C, H, W = x_grid.size()
-    
+
     for i in range(sequence_len):
-            x_features = conv(x_grid[:, i, :, :, :])
-            if i == 0:
-                x_features_all = x_features
-            else:
-                x_features_all = torch.cat((x_features_all, x_features), dim=2)
+        x_features = conv(x_grid[:, i, :, :, :])
+        if i == 0:
+            x_features_all = x_features
+        else:
+            x_features_all = torch.cat((x_features_all, x_features), dim=2)
 
     x_grid = x_grid.view(batch_size * sequence_len, C, H, W)
 

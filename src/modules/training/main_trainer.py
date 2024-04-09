@@ -5,7 +5,6 @@ import gc
 from collections.abc import Callable
 from copy import deepcopy
 from dataclasses import dataclass, field
-import gc
 from typing import Any
 
 import numpy as np
@@ -469,7 +468,9 @@ class MainTrainer(TorchTrainer, Logger):
         return torch.mean(test_predictions, dim=0)
 
     def _train_one_epoch(
-        self, dataloader: DataLoader[tuple[Tensor, ...]], epoch: int
+        self,
+        dataloader: DataLoader[tuple[Tensor, ...]],
+        epoch: int,
     ) -> float:
         """Train the model for one epoch.
 
@@ -500,7 +501,7 @@ class MainTrainer(TorchTrainer, Logger):
             if self.grad_clip_range is not None:
                 torch.nn.utils.clip_grad_value_(self.model.parameters(), self.grad_clip_range)
             self.initialized_optimizer.step()
-            
+
             # Print tqdm
             losses.append(loss.item())
             pbar.set_postfix(loss=sum(losses) / len(losses))
@@ -514,6 +515,7 @@ class MainTrainer(TorchTrainer, Logger):
         gc.collect()
 
         return sum(losses) / len(losses)
+
     def _early_stopping(self) -> bool:
         """Check if early stopping should be done.
 
@@ -532,6 +534,7 @@ def collate_fn(batch: tuple[Tensor, ...]) -> tuple[Tensor, ...]:
     """
     X, y = batch
     return X, y
+
 
 # def print_grad_stats(grad):
 #     if grad.max() > 0.2:

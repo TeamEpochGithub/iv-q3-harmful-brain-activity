@@ -29,7 +29,7 @@ train_sys:
       model_name: fft_conv # Can't have special characters or spaces
       model:
         _target_: src.modules.training.models.fft_conv.FFTConv
-        
+
       optimizer: # Partially instantiate optimizer, so model parameters can be linked at runtime
         _target_: functools.partial
         _args_:
@@ -67,4 +67,4 @@ train_sys:
             high: 0.5711317254713427
 
     - _target_: src.modules.training.postprocessing.softmax.Softmax
-    
+

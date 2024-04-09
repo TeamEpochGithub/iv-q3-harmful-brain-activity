@@ -24,8 +24,8 @@ class CustomKLDivLogitsLoss(nn.Module):
 
         # Multiply factor for each element in the batch based on the sum of the targets
         factor = target.sum(dim=1, keepdim=True)
-        if torch.any(factor==0):
-            print('')
+        if torch.any(factor == 0):
+            print("")
         # For each row, make sure the sum of the labels is 1
         target = target / factor
 
@@ -37,7 +37,7 @@ class CustomKLDivLogitsLoss(nn.Module):
         # Calculate the KLDivLoss
         loss = criterion(pred, target)
         if torch.any(torch.isnan(loss)):
-            print('Nan loss')
+            print("Nan loss")
         if self.weighted:
             loss = loss * factor.mean()
         return loss

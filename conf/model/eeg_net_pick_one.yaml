@@ -24,7 +24,7 @@ x_sys:
       downsample_factor: 5
 
 y_sys:
-  steps: 
+  steps:
     - _target_: src.modules.transformation.target.mean_window_votes.MeanWindowVotes
 train_sys:
   steps:
