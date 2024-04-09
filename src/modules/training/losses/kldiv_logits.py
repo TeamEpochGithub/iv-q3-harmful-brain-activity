@@ -24,6 +24,7 @@ class CustomKLDivLogitsLoss(nn.Module):
 
         # Multiply factor for each element in the batch based on the sum of the targets
         factor = target.sum(dim=1, keepdim=True)
+
         # For each row, make sure the sum of the labels is 1
         target = target / factor
 

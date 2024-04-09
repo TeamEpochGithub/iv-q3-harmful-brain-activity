@@ -106,6 +106,11 @@ def run_train_cfg(cfg: DictConfig) -> None:
         "x_sys": {
             "cache_args": cache_args,
         },
+        "y_sys": {
+            "MeanWindowVotes": {
+                "metadata": X.meta,
+            },
+        },
         "train_sys": {
             "MainTrainer": {
                 "train_indices": train_indices,
