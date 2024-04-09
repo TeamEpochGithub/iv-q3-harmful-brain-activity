@@ -1,0 +1,17 @@
+defaults:
+  - /model/wise_men_multi_res_bi_gru@steps.0.steps.1
+  - /model/wise_men_regular_temple@steps.0.steps.1
+  - /model/wise_men_bone_merlot@steps.0.steps.2
+  - /model/wise_men_circumferential@steps.0.steps.3
+
+_target_: src.modules.training.base_ensembling.PostEnsemble
+_convert_: partial
+
+steps:
+  '0':
+    _target_: src.modules.training.base_ensembling.BaseEnsemble
+  # '1':
+  #   _target_: src.modules.training.postprocessing.softmax.Softmax
+  '2':
+    _target_: src.modules.training.postprocessing.smooth_patient.SmoothPatient
+    smooth_factor: 0.1

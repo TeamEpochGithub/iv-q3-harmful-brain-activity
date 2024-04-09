@@ -3,7 +3,10 @@ defaults:
   - hydra/logging
   # - model: jaspers_eeg_net_dont_touch
   # - ensemble: example
-  - model: wave_net
+  # - model: wave_net
+  # - model: jaspers_eeg_net_dont_touch
+  # - model: multi_res_bi_gru
+  - model: wise_men_regular_temple
   - wandb: train
 
 # Use these for normal training

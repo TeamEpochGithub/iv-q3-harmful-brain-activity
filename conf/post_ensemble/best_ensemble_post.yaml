@@ -1,0 +1,16 @@
+defaults:
+  - /model/connected-type@steps.0.steps.0
+  - /model/cream-game@steps.0.steps.1
+  - /model/regular-temple@steps.0.steps.2
+
+_target_: src.modules.training.base_ensembling.PostEnsemble
+_convert_: partial
+
+steps:
+  '0':
+    _target_: src.modules.training.base_ensembling.BaseEnsemble
+  # '1':
+  #   _target_: src.modules.training.postprocessing.softmax.Softmax
+  '2':
+    _target_: src.modules.training.postprocessing.smooth_patient.SmoothPatient
+    smooth_factor: 0.1
