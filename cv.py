@@ -23,7 +23,7 @@ from src.scoring.kldiv import KLDiv
 from src.typing.typing import XData
 from src.utils.script.lock import Lock
 from src.utils.seed_torch import set_torch_seed
-from src.utils.setup import load_training_data, setup_config, setup_data, setup_pipeline, setup_wandb
+from src.utils.setup import load_training_data, setup_data, setup_pipeline, setup_wandb
 
 warnings.filterwarnings("ignore", category=UserWarning)
 # Makes hydra give full error messages
@@ -54,8 +54,6 @@ def run_cv_cfg(cfg: DictConfig) -> None:
     # Set seed
     set_torch_seed()
 
-    # Check for missing keys in the config file
-    setup_config(cfg)
     output_dir = Path(hydra.core.hydra_config.HydraConfig.get().runtime.output_dir)
 
     # Set up Weights & Biases group name
@@ -103,14 +101,23 @@ def run_cv_cfg(cfg: DictConfig) -> None:
     scores: list[float] = []
     accuracies: list[float] = []
     f1s: list[float] = []
-
+    folds = [8]
     for fold_no, (train_indices, test_indices) in enumerate(instantiate(cfg.splitter).split(splitter_data, y)):
+        if fold_no not in folds:
+            continue
         score, accuracy, f1 = run_fold(fold_no, X, y, train_indices, test_indices, cfg, scorer, output_dir, cache_args)
         scores.append(score)
         accuracies.append(accuracy)
         f1s.append(f1)
-        if score > 0.9:
-            break
+        for fold, threshold in [
+            (0, 0.42),
+            (1, 0.41),
+            (2, 0.42),
+            (3, 0.41),
+        ]:
+            if fold_no == fold and np.mean(scores) > threshold:
+                logger.info(f"Early stopping at fold {fold} with threshold {threshold}")
+                break
 
     avg_score = np.average(np.array(scores))
     avg_accuracy = np.average(np.array(accuracies))
@@ -182,11 +189,10 @@ def run_fold(
         train_args = {
             "EnsemblePipeline": {
                 "ModelPipeline": train_args,
-
             },
             "SmoothPatient": {
-                "metadata": X.meta,
-            }
+                "metadata": X.meta,  # type: ignore[dict-item]
+            },
         }
 
     predictions, _ = model_pipeline.train(X, y, **train_args)

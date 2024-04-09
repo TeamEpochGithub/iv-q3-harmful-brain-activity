@@ -115,7 +115,7 @@ train_sys:
       cycle_limit: 2
   - _target_: src.modules.training.postprocessing.softmax.Softmax
   - _target_: src.modules.training.postprocessing.smooth_patient.SmoothPatient
-    smooth_factor: 0.1
+    smooth_factor: 0.09
 pred_sys:
   _target_: src.modules.transformation.verbose_transformation_pipeline.VerboseTransformationPipeline
   title: Postprocessing pipeline
