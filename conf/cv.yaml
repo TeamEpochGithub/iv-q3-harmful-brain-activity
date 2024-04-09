@@ -1,19 +1,13 @@
 defaults:
   - base_cv
   - hydra/logging
-  - model: jaspers_eeg_net_dont_touch
-  # - ensemble: example
-  # - model: wise_men_multi_res_bi_gru
-  # - model: wise_men_regular_temple
-  # - model: multi_res_bi_gru
-  # - model: wise_men_bone_merlot
-  - model: wise_men_circumferential
+  - model: spectro
   - wandb: train
 
 # Use these for normal training
 metadata_path: data/raw/train.csv
 eeg_path: data/raw/train_eegs
-spectrogram_path: data/raw/train_spectrograms
+spectrogram_path:
 raw_path: data/raw
 cache_path: data/cache
 processed_path: data/processed
