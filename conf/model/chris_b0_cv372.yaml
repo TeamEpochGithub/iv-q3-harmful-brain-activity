@@ -145,6 +145,7 @@ train_sys:
       #   patience_t: 5
       #   lr_min: 1e-5
 
+      revert_to_best: true
       scheduler:
         _target_: functools.partial
         _args_:
