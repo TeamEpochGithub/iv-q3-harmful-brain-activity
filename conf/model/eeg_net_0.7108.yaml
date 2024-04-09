@@ -15,9 +15,12 @@ x_sys:
     - _target_: src.modules.transformation.eeg.divide.Divide
       value: 32
     - _target_: src.modules.transformation.eeg.butter.ButterFilter
+      lower: 0.5
+      upper: 20
+      order: 2
     - _target_: src.modules.transformation.eeg.quantize.Quantizer
     - _target_: src.modules.transformation.eeg.downsample.Downsample
-      downsample_factor: 10
+      downsample_factor: 5
     - _target_: src.modules.transformation.eeg.rolling.Rolling
       channels: [0, 2, 4, 6]
       window_sizes: [20, 20, 20, 20]
@@ -27,13 +30,15 @@ x_sys:
 
 
 y_sys:
-  steps:
-    - _target_: src.modules.transformation.target.sum_to_one.SumToOne
+  steps: []
 
 train_sys:
   steps:
     - _target_: src.modules.training.main_trainer.MainTrainer
       model_name: EEGNet # Can't have special characters or spaces
+      two_stage: true
+      # two_stage_kl_threshold: 5.5
+      two_stage_evaluator_threshold: 3
       model:
         _target_: src.modules.training.models.eeg_net.EEGNet
         num_classes: 6
@@ -49,13 +54,14 @@ train_sys:
         _target_: functools.partial
         _args_:
           - _target_: hydra.utils.get_class
-            path: torch.optim.Adam
-        lr: 0.004
+            path: torch.optim.AdamW
+        lr: 0.009654
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
+        reduction: "batchmean"
       epochs: 50
       batch_size: 64
-      patience: 10
+      patience: 15
       dataset:
         _target_: src.modules.training.datasets.main_dataset.MainDataset
         data_type: "eeg"

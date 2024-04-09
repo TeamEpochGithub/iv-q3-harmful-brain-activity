@@ -31,7 +31,6 @@ train_sys:
     - _target_: src.modules.training.main_trainer.MainTrainer
       model_name: EEGNet # Can't have special characters or spaces
       two_stage: true
-
       # two_stage_kl_threshold: 5.5
       two_stage_evaluator_threshold: 9
       two_stage_split_test: true

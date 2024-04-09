@@ -1,0 +1,100 @@
+defaults:
+  - pipeline/default@_here_
+  - _self_
+
+x_sys:
+  steps:
+    - _target_: src.modules.transformation.eeg.bipolar.BipolarEEG
+      use_full_map: false
+      keep_ekg: false
+    # - _target_: src.modules.transformation.eeg.circumferential.Circumferential
+    #   str_map: "CIRCUMFERENTIAL"
+    #   keep_ekg: false
+    - _target_: src.modules.transformation.clip.Clip
+      lower: -1024
+      upper: 1024
+      eeg: true
+    - _target_: src.modules.transformation.nantozero.NaNToZero
+      eeg: true
+    - _target_: src.modules.transformation.eeg.divide.Divide
+      value: 32
+    - _target_: src.modules.transformation.eeg.butter.ButterFilter
+      lower: 0.5
+      method: "extend"
+      ranges: [[1,4],[4,8],[8,12],[12,25]]
+    - _target_: src.modules.transformation.eeg.quantize.Quantizer
+    - _target_: src.modules.transformation.eeg.downsample.Downsample
+      downsample_factor: 5
+
+y_sys:
+  steps: []
+
+train_sys:
+  steps:
+    - _target_: src.modules.training.main_trainer.MainTrainer
+      model_name: MultiResidualBiGRU # Can't have special characters or spaces
+      two_stage: true
+      # two_stage_kl_threshold: 5.5
+      two_stage_evaluator_threshold: 9
+      two_stage_split_test: true
+      two_stage_pretrain_full: true
+      test_split_type: 10
+      model:
+        _target_: src.modules.training.models.parkinson_multi_res_bi_gru.MultiResidualBiGRU
+        input_size: 36
+        hidden_size: 64
+        out_size: 6
+        n_layers: 3
+      optimizer: # Partially instantiate optimizer, so model parameters can be linked at runtime
+        _target_: functools.partial
+        _args_:
+          - _target_: hydra.utils.get_class
+            path: torch.optim.AdamW
+        lr: 0.00315
+      criterion:
+        _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
+        reduction: "batchmean"
+      epochs: 50
+      batch_size: 64
+      patience: 15
+      dataset_args:
+        subsample_method: running_random
+        data_type: "eeg"
+        augmentations:
+          _target_: src.modules.training.augmentations.custom_sequential.CustomSequential
+          x_transforms:
+            - _target_: src.modules.training.augmentations.reverse_1d.Reverse1D
+              p: 0.23
+            - _target_: torch_audiomentations.Shift
+              p: 0.2
+              rollover: true
+              mode: per_example
+            - _target_: src.modules.training.augmentations.mirror_1d.Mirror1D
+              p: 0.5
+            - _target_: src.modules.training.augmentations.random_phase_shift.RandomPhaseShift
+              p: 0.15
+              shift_limit: 0.25
+            - _target_: src.modules.training.augmentations.substract_channels.SubstractChannels
+              p: 0.2
+          xy_transforms:
+            - _target_: src.modules.training.augmentations.mixup_1d.MixUp1D
+              p: 0.22
+            - _target_: src.modules.training.augmentations.cutmix_1d.CutMix1D
+              p: 0.35
+              # Randomly select a percentage between 'low' and 'high' to preserve on the left side of the signal.
+              low: 0.1
+              high: 0.8
+      scheduler:
+        _target_: functools.partial
+        _args_:
+          - _target_: hydra.utils.get_class
+            path: timm.scheduler.cosine_lr.CosineLRScheduler
+        t_initial: 50
+        cycle_mul: 1
+        cycle_decay: 1
+        cycle_limit: 1
+        warmup_t: 5
+        warmup_lr_init: 1e-5
+    - _target_: src.modules.training.postprocessing.softmax.Softmax
+    - _target_: src.modules.training.postprocessing.smooth_patient.SmoothPatient
+      smooth_factor: 0.1

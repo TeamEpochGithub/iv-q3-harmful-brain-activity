@@ -38,7 +38,7 @@ train_sys:
       two_stage_evaluator_threshold: 9
       two_stage_split_test: true
       two_stage_pretrain_full: true
-      test_split_type: 5
+      test_split_type: 10
       model:
         _target_: src.modules.training.models.eeg_net.EEGNet
         num_classes: 6

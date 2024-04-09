@@ -85,8 +85,7 @@ def to_3d_grid_vectorized(eeg_data: torch.Tensor, width: int, height: int) -> to
 
     grid = torch.zeros(n, int(number_channels), l, width, height, device=eeg_data.device)
 
-    for j, curr_c in enumerate(range(int(number_channels))):
-
+    for j, _ in enumerate(range(int(number_channels))):
         # Generate indices for electrodes excluding "EKG"
         electrode_indices = [i for i, elec in ELECTRODES.items() if elec != "EKG"]
         electrode_positions = [ELECTRODE_POSITIONS[ELECTRODES[i]] for i in electrode_indices]
