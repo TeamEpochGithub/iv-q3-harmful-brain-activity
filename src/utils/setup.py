@@ -25,31 +25,6 @@ from src.typing.typing import XData
 from src.utils.replace_list_with_dict import replace_list_with_dict
 
 
-def setup_config(cfg: DictConfig) -> None:
-    """Verify that config has no missing values and log it to yaml.
-
-    :param cfg: The config object. Created with Hydra or OmegaConf.
-    """
-    # Check for missing keys in the config file
-    missing = OmegaConf.missing_keys(cfg)
-
-    # If both model and ensemble are specified, raise an error
-    if cfg.get("model") and cfg.get("ensemble"):
-        raise ValueError("Both model and ensemble specified in config.")
-
-    # If neither model nor ensemble are specified, raise an error
-    if not cfg.get("model") and not cfg.get("ensemble"):
-        raise ValueError("Neither model nor ensemble specified in config.")
-
-    # If model and ensemble are in missing raise an error
-    if "model" in missing and "ensemble" in missing:
-        raise ValueError("Both model and ensemble are missing from config.")
-
-    # If any other keys except model and ensemble are missing, raise an error
-    if len(missing) > 1:
-        raise ValueError(f"Missing keys in config: {missing}")
-
-
 def setup_pipeline(cfg: DictConfig, *, is_train: bool = True) -> ModelPipeline | EnsemblePipeline:
     """Instantiate the pipeline.
 
@@ -58,12 +33,12 @@ def setup_pipeline(cfg: DictConfig, *, is_train: bool = True) -> ModelPipeline |
     """
     logger.info("Instantiating the pipeline")
 
-    test_size = -1
+    test_size = -1.0
     if is_train:
         # First looks for test_size in the config, then in the splitter config
-        test_size = cfg.get("test_size", -1)
-        if test_size == -1:
-            test_size = cfg.get("splitter", {}).get("n_splits", -1)
+        test_size = cfg.get("test_size", -1.0)
+        if test_size == -1.0:
+            test_size = cfg.get("splitter", {}).get("n_splits", -1.0)
 
     if "model" in cfg:
         model_cfg = cfg.model
@@ -75,11 +50,14 @@ def setup_pipeline(cfg: DictConfig, *, is_train: bool = True) -> ModelPipeline |
     elif "ensemble" in cfg:
         ensemble_cfg = cfg.ensemble
         ensemble_cfg_dict = OmegaConf.to_container(ensemble_cfg, resolve=True)
-        if isinstance(ensemble_cfg_dict, dict):
-            ensemble_cfg_dict["steps"] = list(ensemble_cfg_dict.get("steps", {}).values())
-            if is_train:
-                for model in ensemble_cfg_dict.get("steps", []):
-                    update_model_cfg_test_size(model, test_size)
+        ensemble_cfg_dict = update_ensemble_cfg_dict(ensemble_cfg_dict, test_size, is_train=is_train)
+        pipeline_cfg = OmegaConf.create(ensemble_cfg_dict)
+    elif "post_ensemble" in cfg:
+        post_ensemble_cfg = cfg.post_ensemble
+        post_ensemble_cfg_dict = OmegaConf.to_container(post_ensemble_cfg, resolve=True)
+        ensemble_cfg_dict = post_ensemble_cfg_dict.get("steps", {}).get("0", {})  # type: ignore[union-attr]
+        post_ensemble_cfg_dict.get("steps", {})["0"] = update_ensemble_cfg_dict(ensemble_cfg_dict, test_size, is_train=is_train)  # type: ignore[union-attr]
+        ensemble_cfg_dict["steps"] = list(ensemble_cfg_dict["steps"].values())
         pipeline_cfg = OmegaConf.create(ensemble_cfg_dict)
     else:
         raise ValueError("Neither model nor ensemble specified in config.")
@@ -90,9 +68,27 @@ def setup_pipeline(cfg: DictConfig, *, is_train: bool = True) -> ModelPipeline |
     return model_pipeline
 
 
+def update_ensemble_cfg_dict(ensemble_cfg_dict: Any, test_size: float, *, is_train: bool) -> dict[str, Any]:  # noqa: ANN401
+    """Update the ensemble_cfg_dict.
+
+    :param ensemble_cfg_dict: The original ensemble_cfg_dict
+    :param test_size: Test size to add to the models
+    :param is_train: Boolean whether models are being trained
+    """
+    if isinstance(ensemble_cfg_dict, dict):
+        ensemble_cfg_dict["steps"] = list(ensemble_cfg_dict["steps"].values())
+        if is_train:
+            for model in ensemble_cfg_dict["steps"]:
+                update_model_cfg_test_size(model, test_size)
+
+        return ensemble_cfg_dict
+
+    return {}
+
+
 def update_model_cfg_test_size(
     cfg: dict[str | bytes | int | Enum | float | bool, Any] | list[Any] | str | None,
-    test_size: int = -1,
+    test_size: float = -1.0,
 ) -> dict[str | bytes | int | Enum | float | bool, Any] | list[Any] | str | None:
     """Update the test size in the model config.
 
@@ -392,6 +388,9 @@ def setup_wandb(
         elif "ensemble" in cfg:
             model_name = OmegaConf.load(curr_config).defaults[2].ensemble
             model_path = f"conf/ensemble/{model_name}.yaml"
+        elif "post_ensemble" in cfg:
+            model_name = OmegaConf.load(curr_config).defaults[2].post_ensemble
+            model_path = f"conf/post_ensemble/{model_name}.yaml"
 
         # Store the config as an artefact of W&B
         artifact = wandb.Artifact(job_type + "_config", type="config")

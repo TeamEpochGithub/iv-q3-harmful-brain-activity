@@ -1,0 +1,8 @@
+defaults:
+  - /model/wise_men_multi_res_bi_gru@steps.0
+  - /model/wise_men_regular_temple@steps.1
+  - /model/wise_men_bone_merlot@steps.2
+  - /model/wise_men_circumferential@steps.3
+
+_target_: src.modules.training.base_ensembling.BaseEnsemble
+_convert_: partial

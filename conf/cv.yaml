@@ -1,7 +1,8 @@
 defaults:
   - base_cv
   - hydra/logging
-  - model: spectro
+  - ensemble: mrbig
+  # - model: wise_men_multi_res_bi_gru
   - wandb: train
 
 # Use these for normal training

@@ -13,7 +13,8 @@ from omegaconf import DictConfig
 
 from src.config.submit_config import SubmitConfig
 from src.logging_utils.logger import logger
-from src.utils.setup import setup_config, setup_data, setup_pipeline
+from src.modules.training.base_ensembling import PostEnsemble
+from src.utils.setup import setup_data, setup_pipeline
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -35,9 +36,6 @@ def run_submit(cfg: DictConfig) -> None:
     import coloredlogs
 
     coloredlogs.install()
-
-    # Check for missing keys in the config file
-    setup_config(cfg)
 
     # Preload the pipeline
     print_section_separator("Setup pipeline")
@@ -65,6 +63,15 @@ def run_submit(cfg: DictConfig) -> None:
     if isinstance(model_pipeline, EnsemblePipeline):
         pred_args = {
             "ModelPipeline": pred_args,
+        }
+    if isinstance(model_pipeline, PostEnsemble):
+        pred_args = {
+            "EnsemblePipeline": {
+                "ModelPipeline": pred_args,
+            },
+            "SmoothPatient": {
+                "metadata": X.meta,
+            },
         }
     predictions = model_pipeline.predict(X, **pred_args)
 
