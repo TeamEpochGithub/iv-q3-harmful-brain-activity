@@ -2,7 +2,6 @@ defaults:
   - base_cv
   - hydra/logging
   # - ensemble: example
-  - model: bone-merlot
   - wandb: train
 
 # Use these for normal training
@@ -24,6 +23,7 @@ processed_path: data/processed
 scorer:
   _target_: src.scoring.kldiv.KLDiv
   voter_threshold: 9
+  kldiv_thresholds: [0.15, 0.175, 0.2, 0.225, 0.25, 0.3, 0.35]
 cache_size: -1
 splitter:
   _target_: src.utils.stratified_splitter.StratifiedSplitter
