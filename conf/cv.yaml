@@ -1,9 +1,7 @@
 defaults:
   - base_cv
   - hydra/logging
-  - model: jaspers_eeg_net_dont_touch
-  # - ensemble: example
-  # - model: chris_512
+  - model: spectro
   - wandb: train
 
 # Use these for normal training
