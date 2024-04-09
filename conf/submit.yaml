@@ -1,6 +1,8 @@
 defaults:
   - base_submit
   - hydra/logging
+  # - ensemble: wise_men
+  # - post_ensemble: best_ensemble_post
   - ensemble: mrbig
 
 # Use this when uploading to Kaggle
@@ -11,11 +13,11 @@ defaults:
 #result_path: /kaggle/working/
 
 # Use this when running locally
-metadata_path: data/raw/test.csv
-eeg_path: data/raw/test_eegs
-spectrogram_path: data/raw/test_spectrograms
-raw_path: data/raw/
-result_path: data/results/
+# metadata_path: data/raw/test.csv
+# eeg_path: data/raw/test_eegs
+# spectrogram_path: data/raw/test_spectrograms
+# raw_path: data/raw/
+# result_path: data/results/
 
 # Use this for dumb test
 # metadata_path: data/raw/train_small.csv
