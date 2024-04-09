@@ -1,7 +1,9 @@
 defaults:
   - base_submit
   - hydra/logging
-  - ensemble: 1plus2
+  # - ensemble: wise_men
+  # - post_ensemble: best_ensemble_post
+  - ensemble: mrbig
 
 # Use this when uploading to Kaggle
 raw_path: /kaggle/input/hms-harmful-brain-activity-classification/
@@ -17,5 +19,9 @@ result_path: /kaggle/working/
 # raw_path: data/raw/
 # result_path: data/results/
 
-test_size: -1
-model_folds: 5
+# Use this for dumb test
+# metadata_path: data/raw/train_small.csv
+# eeg_path: data/raw/train_eegs_small
+# spectrogram_path: data/raw/train_spectrograms_small
+# raw_path: data/raw
+# result_path: data/results/

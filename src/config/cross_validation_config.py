@@ -23,6 +23,7 @@ class CVConfig:
 
     model: Any
     ensemble: Any
+    post_ensemble: Any
     metadata_path: str | None
     eeg_path: str | None
     spectrogram_path: str | None
