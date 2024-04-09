@@ -102,17 +102,3 @@ def to_3d_grid_vectorized(eeg_data: torch.Tensor, width: int, height: int) -> to
             grid[:, j, :, x, y] = valid_eeg_data[:, i, :]
 
     return grid
-
-
-if __name__ == "__main__":
-    eeg_data = torch.rand(32, 19, 2000)
-    start = time.time()
-    grid1 = to_3d_grid(eeg_data, 9, 9)
-    print(f"Time to convert to 5D: {time.time() - start}")
-
-    start = time.time()
-    grid2 = to_3d_grid_vectorized(eeg_data, 9, 9)
-    print(f"Time to convert to 5D (vectorized): {time.time() - start}")
-    print(grid2.shape)
-
-    assert torch.allclose(grid1, grid2, atol=1e-6)

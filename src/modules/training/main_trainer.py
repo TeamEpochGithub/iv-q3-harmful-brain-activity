@@ -467,55 +467,6 @@ class MainTrainer(TorchTrainer, Logger):
         test_predictions = torch.stack(predictions)
         return torch.mean(test_predictions, dim=0)
 
-    def _train_one_epoch(
-        self,
-        dataloader: DataLoader[tuple[Tensor, ...]],
-        epoch: int,
-    ) -> float:
-        """Train the model for one epoch.
-
-        :param dataloader: Dataloader for the training data.
-        :param epoch: Epoch number.
-        :return: Average loss for the epoch.
-        """
-        losses = []
-        self.model.train()
-        pbar = tqdm(dataloader, unit="batch", desc=f"Epoch {epoch} Train")
-        # for param in self.model.parameters():
-        #         if param.requires_grad:
-        #             param.register_hook(print_grad_stats)
-        for batch in pbar:
-            X_batch, y_batch = batch
-            X_batch = X_batch.to(self.device).float()
-            y_batch = y_batch.to(self.device).float()
-
-            # Forward pass
-            y_pred = self.model(X_batch).squeeze(1)
-            loss = self.criterion(y_pred, y_batch)
-
-            # Backward pass
-            self.initialized_optimizer.zero_grad()
-            loss.backward()
-
-            # Clip gradients
-            if self.grad_clip_range is not None:
-                torch.nn.utils.clip_grad_value_(self.model.parameters(), self.grad_clip_range)
-            self.initialized_optimizer.step()
-
-            # Print tqdm
-            losses.append(loss.item())
-            pbar.set_postfix(loss=sum(losses) / len(losses))
-
-        # Step the scheduler
-        if self.initialized_scheduler is not None:
-            self.initialized_scheduler.step(epoch=epoch)
-
-        # Remove the cuda cache
-        torch.cuda.empty_cache()
-        gc.collect()
-
-        return sum(losses) / len(losses)
-
     def _early_stopping(self) -> bool:
         """Check if early stopping should be done.
 

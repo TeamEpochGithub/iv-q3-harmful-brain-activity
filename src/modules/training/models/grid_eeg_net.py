@@ -55,6 +55,7 @@ class GridEEGNet(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass of the model."""
+        all_features: torch.Tensor | list[Any]
         x_grid = to_3d_grid_vectorized(x, 9, 9).permute(0, 2, 1, 3, 4)
         batch_size, sequence_len, C, H, W = x_grid.size()
         # Reshape to combine batch and sequence dimensions
@@ -78,41 +79,3 @@ class GridEEGNet(nn.Module):
             all_features = torch.cat([x, all_features.permute(0, 2, 1)], dim=1)
         all_features = self.batch_norm(all_features)
         return self.eeg_net(all_features)
-
-
-if __name__ == "__main__":
-    import torch
-
-    x = torch.zeros(32, 20, 2000)
-    conv = nn.Sequential(
-        nn.Conv2d(1, 2, 3),
-        nn.Conv2d(2, 4, 3),
-        nn.ReLU(),
-        nn.Conv2d(4, 8, 3),
-        nn.Conv2d(8, 16, 3),
-        nn.ReLU(),
-    )
-    x_grid = to_3d_grid_vectorized(x, 9, 9).permute(0, 2, 1, 3, 4)
-    batch_size, sequence_len, C, H, W = x_grid.size()
-
-    for i in range(sequence_len):
-        x_features = conv(x_grid[:, i, :, :, :])
-        if i == 0:
-            x_features_all = x_features
-        else:
-            x_features_all = torch.cat((x_features_all, x_features), dim=2)
-
-    x_grid = x_grid.view(batch_size * sequence_len, C, H, W)
-
-    # Apply convolutional layers
-    x_features = conv(x_grid)
-
-    # Output shape from conv layers, assuming (N, C', H', W')
-    _, C_out, H_out, W_out = x_features.size()
-
-    # Reshape back to separate batch and sequence dimensions
-    x_features = x_features.view(batch_size, sequence_len, C_out, H_out, W_out).squeeze(-1).squeeze(-1)
-
-    print(x_features.permute(0, 2, 1).shape)
-    print(x_features_all.squeeze(-1).shape)
-    print(torch.allclose(x_features.permute(0, 2, 1), x_features_all.squeeze(-1)))

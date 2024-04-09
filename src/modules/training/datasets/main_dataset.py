@@ -32,6 +32,8 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
         if self.X is None:
             raise ValueError("XData not set up.")
         self.X.meta = self.X.meta.reset_index(drop=True)
+        if self.subsample_method is None:
+            self.subsample_method = ""
         if self.subsample_method == "random":
             X_meta = copy.deepcopy(self.X.meta)
             # append an index column to the meta data
@@ -64,7 +66,7 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
     def __len__(self) -> int:
         """Get the length of the dataset."""
         # Trick the dataloader into thinking the dataset is smaller than it is
-        if "running" in self.subsample_method:
+        if "running" in self.subsample_method:  # type: ignore[operator]
             if self.X is None:
                 raise ValueError("X Data not set up.")
             return len(self.X.meta["eeg_id"].unique())
@@ -111,7 +113,7 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
         if self.X is None:
             raise ValueError("X Data not set up.")
 
-        if "running" in self.subsample_method:
+        if "running" in self.subsample_method:  # type: ignore[operator]
             # Using the mapping get the eeg_id for this idx
             eeg_id = self.id_mapping[idx]
             # Get the indices for this eeg_id
@@ -119,13 +121,6 @@ class MainDataset(Dataset):  # type: ignore[type-arg]
             # Get a random index from the indices
             idx = group.sample(1, random_state=42).index[0]
             # Now idx is the dataframe index and not the idx of the dataset
-        if self.subsample_method == "running_random_w_mean":
-            # Find all items from the group where the difference in eeg_label_offset_seconds is less than the threshold
-            threshold = 10000  # specify your threshold here
-            similar_items = group[abs(group["eeg_label_offset_seconds"] - self.X.meta.iloc[idx]["eeg_label_offset_seconds"]) < threshold]
-            if len(np.unique(self.y[similar_items.index, :], axis=0)) > 1:
-                print(similar_items)
-                print(self.y[similar_items.index, :])
 
         # Create a switch statement to handle the different data types
         match self.data_type:
