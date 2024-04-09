@@ -6,7 +6,6 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
-import timm.scheduler
 import torch
 import wandb
 from epochalyst.logging.section_separator import print_section_separator
@@ -63,15 +62,13 @@ class MainTrainer(TorchTrainer, Logger):
         if self.test_split_type == -1:
             raise ValueError("train_split_type needs to be set to either test_size or n_folds")
 
-        print(self.get_hash())
-
     def create_datasets(
-            self,
-            x: XData,
-            y: npt.NDArray[np.float32],
-            train_indices: list[int],
-            test_indices: list[int],
-            cache_size: int = -1,  # noqa: ARG002
+        self,
+        x: XData,
+        y: npt.NDArray[np.float32],
+        train_indices: list[int],
+        test_indices: list[int],
+        cache_size: int = -1,  # noqa: ARG002
     ) -> tuple[Dataset[Any], Dataset[Any]]:
         """Override custom create_datasets to allow for training and validation.
 
@@ -117,11 +114,11 @@ class MainTrainer(TorchTrainer, Logger):
         return predict_dataset
 
     def _concat_datasets(
-            self,
-            train_dataset: MainDataset,  # noqa: ARG002
-            test_dataset: MainDataset,
-            train_indices: list[int],  # noqa: ARG002
-            test_indices: list[int],
+        self,
+        train_dataset: MainDataset,  # noqa: ARG002
+        test_dataset: MainDataset,
+        train_indices: list[int],  # noqa: ARG002
+        test_indices: list[int],
     ) -> Dataset[tuple[Tensor, ...]]:
         """Concatenate the training and test datasets according to original order specified by train_indices and test_indices.
 
@@ -141,8 +138,8 @@ class MainTrainer(TorchTrainer, Logger):
         return pred_dataset
 
     def predict_on_loader(
-            self,
-            loader: DataLoader[tuple[Tensor, ...]],
+        self,
+        loader: DataLoader[tuple[Tensor, ...]],
     ) -> torch.Tensor:
         """Predict on the loader.
 
@@ -169,10 +166,10 @@ class MainTrainer(TorchTrainer, Logger):
         return torch.stack(predictions)
 
     def custom_train(
-            self,
-            x: XData,
-            y: npt.NDArray[np.float32],
-            **train_args: Any,
+        self,
+        x: XData,
+        y: npt.NDArray[np.float32],
+        **train_args: Any,
     ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]:
         """Train the model.
 
@@ -213,7 +210,6 @@ class MainTrainer(TorchTrainer, Logger):
         train_args["train_indices"] = train_indices_stage2
         train_args["test_indices"] = test_indices_stage2
         if self.two_stage_split_test:
-
             super().custom_train(x, y, **train_args)
 
             # predict again on the entire test data for scoring later on to work
@@ -249,9 +245,9 @@ class MainTrainer(TorchTrainer, Logger):
         return list(indices_1), list(indices_2)
 
     def _train_one_epoch(
-            self,
-            dataloader: DataLoader[tuple[Tensor, ...]],
-            epoch: int,
+        self,
+        dataloader: DataLoader[tuple[Tensor, ...]],
+        epoch: int,
     ) -> float:
         """Train the model for one epoch.
 
@@ -304,9 +300,9 @@ class MainTrainer(TorchTrainer, Logger):
         return sum(losses) / len(losses)
 
     def _val_one_epoch(
-            self,
-            dataloader: DataLoader[tuple[Tensor, ...]],
-            desc: str,
+        self,
+        dataloader: DataLoader[tuple[Tensor, ...]],
+        desc: str,
     ) -> float:
         """Compute validation loss of the model for one epoch.
 
@@ -387,9 +383,9 @@ class MainTrainer(TorchTrainer, Logger):
             wandb.log_artifact(model_artifact)
 
     def create_dataloaders(
-            self,
-            train_dataset: Dataset[tuple[Tensor, ...]],
-            test_dataset: Dataset[tuple[Tensor, ...]],
+        self,
+        train_dataset: Dataset[tuple[Tensor, ...]],
+        test_dataset: Dataset[tuple[Tensor, ...]],
     ) -> tuple[DataLoader[tuple[Tensor, ...]], DataLoader[tuple[Tensor, ...]]]:
         """Create the dataloaders for training and validation.
 
