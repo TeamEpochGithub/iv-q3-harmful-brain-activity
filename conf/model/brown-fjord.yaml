@@ -4,12 +4,12 @@ defaults:
 
 x_sys:
   steps:
-    # - _target_: src.modules.transformation.eeg.bipolar.BipolarEEG
-    #   use_full_map: false
-    #   keep_ekg: false
-    - _target_: src.modules.transformation.eeg.circumferential.Circumferential
-      str_map: "CZ_REFERENCE"
+    - _target_: src.modules.transformation.eeg.bipolar.BipolarEEG
+      use_full_map: false
       keep_ekg: false
+    # - _target_: src.modules.transformation.eeg.circumferential.Circumferential
+    #   str_map: "CIRCUMFERENTIAL"
+    #   keep_ekg: false
     - _target_: src.modules.transformation.clip.Clip
       lower: -1024
       upper: 1024
@@ -33,17 +33,18 @@ train_sys:
   steps:
     - _target_: src.modules.training.main_trainer.MainTrainer
       model_name: MultiResidualBiGRU # Can't have special characters or spaces
-      # two_stage: false
+      two_stage: true
       # two_stage_kl_threshold: 5.5
-      # two_stage_evaluator_threshold: 9
-      # two_stage_split_test: true
-      # two_stage_pretrain_full: true
+      two_stage_evaluator_threshold: 9
+      two_stage_split_test: true
+      two_stage_pretrain_full: true
+      test_split_type: 10
       model:
         _target_: src.modules.training.models.parkinson_multi_res_bi_gru.MultiResidualBiGRU
-        input_size: 72
+        input_size: 36
         hidden_size: 64
         out_size: 6
-        n_layers: 2
+        n_layers: 3
       optimizer: # Partially instantiate optimizer, so model parameters can be linked at runtime
         _target_: functools.partial
         _args_:
@@ -95,3 +96,5 @@ train_sys:
         warmup_t: 5
         warmup_lr_init: 1e-5
     - _target_: src.modules.training.postprocessing.softmax.Softmax
+    - _target_: src.modules.training.postprocessing.smooth_patient.SmoothPatient
+      smooth_factor: 0.1

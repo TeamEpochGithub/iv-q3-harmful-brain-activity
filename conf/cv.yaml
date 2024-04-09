@@ -29,4 +29,4 @@ splitter:
   _target_: src.utils.stratified_splitter.StratifiedSplitter
   n_splits: 10
 allow_multiple_instances: true
-save_folds: true 
+save_folds: true
