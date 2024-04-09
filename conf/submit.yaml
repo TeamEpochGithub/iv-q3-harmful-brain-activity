@@ -6,11 +6,11 @@ defaults:
   - ensemble: mrbig
 
 # Use this when uploading to Kaggle
-raw_path: /kaggle/input/hms-harmful-brain-activity-classification/
-metadata_path: /kaggle/input/hms-harmful-brain-activity-classification/test.csv
-eeg_path: /kaggle/input/hms-harmful-brain-activity-classification/test_eegs
-spectrogram_path: /kaggle/input/hms-harmful-brain-activity-classification/test_spectrograms
-result_path: /kaggle/working/
+#raw_path: /kaggle/input/hms-harmful-brain-activity-classification/
+#metadata_path: /kaggle/input/hms-harmful-brain-activity-classification/test.csv
+#eeg_path: /kaggle/input/hms-harmful-brain-activity-classification/test_eegs
+#spectrogram_path: /kaggle/input/hms-harmful-brain-activity-classification/test_spectrograms
+#result_path: /kaggle/working/
 
 # Use this when running locally
 # metadata_path: data/raw/test.csv
