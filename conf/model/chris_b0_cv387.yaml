@@ -69,7 +69,7 @@ train_sys:
         _target_: src.modules.training.models.timm.Timm
         in_channels: 3
         out_channels: 6
-        model_name: "efficientnet_b4"
+        model_name: "efficientnet_b0"
 
       optimizer:
         _target_: functools.partial
@@ -157,3 +157,5 @@ train_sys:
         eps: 1e-8
 
     - _target_: src.modules.training.postprocessing.softmax.Softmax
+    - _target_: src.modules.training.postprocessing.smooth_patient.SmoothPatient
+      smooth_factor: 0.09

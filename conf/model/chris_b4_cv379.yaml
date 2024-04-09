@@ -157,3 +157,5 @@ train_sys:
         eps: 1e-8
 
     - _target_: src.modules.training.postprocessing.softmax.Softmax
+    - _target_: src.modules.training.postprocessing.smooth_patient.SmoothPatient
+      smooth_factor: 0.09

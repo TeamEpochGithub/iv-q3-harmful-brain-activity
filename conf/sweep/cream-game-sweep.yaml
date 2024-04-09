@@ -1,0 +1,43 @@
+command:
+  - python3
+  - ${program}
+  - ${args_no_hyphens}
+method: bayes
+project: detect-harmful-brain-activity
+program: cv.py
+name: Cream-Game HPO
+metric:
+  name: Score
+  goal: minimize
+
+parameters:
+  model.train_sys.steps.0.epochs:
+    distribution: int_uniform
+    min: 30
+    max: 70
+
+  model.train_sys.steps.0.batch_size:
+    values:
+      - 32
+      - 64
+
+  model.train_sys.steps.0.optimizer.lr:
+    distribution: uniform
+    min: 0.0001
+    max: 0.01
+
+
+  model.train_sys.steps.0.scheduler.t_initial:
+    distribution: int_uniform
+    min: 15
+    max: 60
+
+  model.train_sys.steps.0.scheduler.warmup_t:
+    distribution: int_uniform
+    min: 0
+    max: 8
+
+  model.train_sys.steps.0.scheduler.warmup_lr_init:
+    distribution: uniform
+    min: 1e-06
+    max: 1e-04

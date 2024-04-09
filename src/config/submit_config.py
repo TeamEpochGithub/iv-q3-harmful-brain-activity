@@ -15,6 +15,7 @@ class SubmitConfig:
 
     model: Any
     ensemble: Any
+    post_ensemble: Any
     raw_path: str
     metadata_path: str | None
     eeg_path: str | None

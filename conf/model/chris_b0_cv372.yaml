@@ -46,6 +46,10 @@ x_sys:
     - _target_: src.modules.transformation.spectrogram.eeg_to_spectrogram.EEGToSpectrogram
       size: [100, 256]
       fitting_method: 'crop'
+      fmax: 20
+
+    - _target_: src.modules.transformation.spectrogram.standardize.Standardize
+      eeg_spec: true
 
     - _target_: src.modules.transformation.spectrogram.pad.Pad
       eeg_spec: true
@@ -56,12 +60,12 @@ train_sys:
   steps:
     - _target_: src.modules.training.main_trainer.MainTrainer
       model_name: "Chris-512"
-      epochs: 10
-      batch_size: 16
-      patience: 10
+      epochs: 40
+      batch_size: 32
+      patience: 15
 
       two_stage: true
-      two_stage_evaluator_threshold: 3
+      two_stage_evaluator_threshold: 9
       two_stage_split_test: true
       two_stage_pretrain_full: true
 
@@ -69,14 +73,14 @@ train_sys:
         _target_: src.modules.training.models.timm.Timm
         in_channels: 3
         out_channels: 6
-        model_name: "efficientnet_b4"
+        model_name: "efficientnet_b0"
 
       optimizer:
         _target_: functools.partial
         _args_:
           - _target_: hydra.utils.get_class
             path: torch.optim.AdamW
-        lr: 1e-2
+        lr: 0.007426
 
       criterion:
         _target_: src.modules.training.losses.kldiv_logits.CustomKLDivLogitsLoss
@@ -148,12 +152,14 @@ train_sys:
           - _target_: hydra.utils.get_class
             path: torch.optim.lr_scheduler.ReduceLROnPlateau
         mode: "min"
-        factor: 0.1
-        patience: 3
-        threshold: 0.1
+        factor: 0.2173
+        patience: 1
+        threshold: 0.1924
         threshold_mode: "rel"
         cooldown: 0
-        min_lr: 1e-5
+        min_lr: 0.00003094
         eps: 1e-8
 
     - _target_: src.modules.training.postprocessing.softmax.Softmax
+    - _target_: src.modules.training.postprocessing.smooth_patient.SmoothPatient
+      smooth_factor: 0.09

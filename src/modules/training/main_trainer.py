@@ -1,6 +1,8 @@
 """Module for example training block."""
 import copy
+import functools
 import gc
+from collections.abc import Callable
 from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any
@@ -12,6 +14,8 @@ from epochalyst.logging.section_separator import print_section_separator
 from epochalyst.pipeline.model.training.torch_trainer import TorchTrainer
 from numpy import typing as npt
 from torch import Tensor, nn
+from torch.optim import Optimizer
+from torch.optim.lr_scheduler import LRScheduler
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
@@ -34,8 +38,7 @@ class MainTrainer(TorchTrainer, Logger):
     :param two_stage_pretrain_full: Whether to train the first stage on the full dataset.
     :param two_stage_split_test: Whether to split the test data into two stages as well.
     :param early_stopping: Whether to do early stopping.
-    :param revert_to_best: Whether to revert to the best model if the learning rate changes.
-    :param include_features: Whether to include features in the training data.
+    Note: remove the sum to one block from the target pipeline for this to work
     """
 
     dataset_args: dict[str, Any] = field(default_factory=dict)
@@ -45,6 +48,9 @@ class MainTrainer(TorchTrainer, Logger):
     two_stage_evaluator_threshold: int | None = None
     two_stage_pretrain_full: bool = False
     two_stage_split_test: bool = False
+    two_stage_optimizer: functools.partial[Optimizer] | None = None
+    two_stage_scheduler: Callable[[Optimizer], LRScheduler] | None = None
+    two_stage_epochs: int | None = None
     early_stopping: bool = True
     revert_to_best: bool = False
     _fold: int = field(default=-1, init=False, repr=False, compare=False)
@@ -133,7 +139,7 @@ class MainTrainer(TorchTrainer, Logger):
             raise ValueError("XData should not be None in the prediction dataset.")
         pred_dataset.X.meta = self.meta_backup.iloc[test_indices, :].reset_index(drop=True)
         pred_dataset.y = self.y_backup[test_indices, :]
-        if self.include_features:
+        if self.include_features and self.features_backup is not None:
             pred_dataset.X.features = self.features_backup.iloc[test_indices, :].reset_index(drop=True)
         return pred_dataset
 
@@ -209,6 +215,18 @@ class MainTrainer(TorchTrainer, Logger):
         self.log_to_terminal("Training stage 2")
         train_args["train_indices"] = train_indices_stage2
         train_args["test_indices"] = test_indices_stage2
+
+        if self.two_stage_epochs is not None:
+            self.epochs = self.two_stage_epochs
+
+        if self.two_stage_optimizer is not None:
+            self.optimizer = self.two_stage_optimizer
+            self.initialized_optimizer = self.optimizer(self.model.parameters())
+
+        if self.two_stage_scheduler is not None:
+            self.scheduler = self.two_stage_scheduler
+            self.initialized_scheduler = self.scheduler(self.initialized_optimizer)
+
         if self.two_stage_split_test:
             super().custom_train(x, y, **train_args)
 
@@ -258,7 +276,7 @@ class MainTrainer(TorchTrainer, Logger):
         losses = []
         self.model.train()
 
-        pbar = tqdm(dataloader, unit="batch", desc=f"Epoch {epoch} Train ({self.initialized_optimizer.param_groups[0]['lr']})")
+        pbar = tqdm(dataloader, unit="batch", desc=f"Epoch {epoch} Train ({self.initialized_optimizer.param_groups[0]['lr']:.6f})")
         for batch in pbar:
             X_batch, y_batch = batch
             y_batch = y_batch.to(self.device).float()
