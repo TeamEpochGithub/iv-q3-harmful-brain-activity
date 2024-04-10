@@ -1,6 +1,6 @@
-# HMS - Harmful Brain Activity Classification
+# HMS - Harmful Brain Activity | Top 8% <img src="https://github.com/TeamEpochGithub/iv-q3-harmful-brain-activity/assets/44620257/55dc3d07-98b6-48c0-a659-181e534fdcf0" width="20">
 
-This is Team Epoch's solution to
+This is Team Epoch's top 8% solution to
 the [HMS - Harmful Brain Activity Classification](https://www.kaggle.com/competitions/hms-harmful-brain-activity-classification/overview)
 competition.
 
